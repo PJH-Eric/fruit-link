@@ -47,6 +47,10 @@
 
       <p class="note">從幼幼班一路打到第三關，分數會累加。也可以直接挑你想玩的那一關。<br><b>👶 幼幼班</b>是給 3～5 歲小朋友的：只有 4 × 3 十二格、三種水果，格子很大，時間長到幾乎沒有壓力，提示和洗牌不限次數，而且每一顆水果都會寫上名字。</p>
 
+      <h3 class="lbl">圖案主題</h3>
+      <div class="themepick" id="opt-theme" role="radiogroup" aria-label="選擇圖案主題"></div>
+      <p class="hint" id="theme-hint"></p>
+
       <h3 class="lbl">從哪一關開始</h3>
       <div class="cardpick" id="opt-level" role="radiogroup" aria-label="選擇起始關卡"></div>
 
@@ -171,6 +175,10 @@
                 <div class="lbl2">關卡（房主設定）</div>
                 <div class="ov-pick" id="level-pick" role="radiogroup" aria-label="關卡"></div>
               </div>
+              <div class="ov-block" id="theme-manage" hidden>
+                <div class="lbl2">圖案主題（房主設定）</div>
+                <div class="ov-pick" id="theme-pick" role="radiogroup" aria-label="圖案主題"></div>
+              </div>
               <p class="ovnote" id="ov-wait-note"></p>
               <div class="ovbtns" id="ov-wait-btns"></div>
             </div>
@@ -223,6 +231,12 @@
 
       <h3 class="lbl">四個關卡</h3>
       <table class="htable" id="level-table"></table>
+
+      <h3 class="lbl">圖案主題</h3>
+      <p class="note">除了蔬果，還可以換成動物、食物、國旗，或是全部混在一起的「大混搭」。
+      每一局會從主題裡<b>隨機抽</b>要用的圖案，所以同一關每次玩到的組合都不一樣。
+      線上對戰由房主決定主題，全場看到的都一樣。</p>
+      <div class="themegrid" id="theme-gallery"></div>
 
       <h3 class="lbl">提示與洗牌</h3>
       <p class="note">💡 <b>提示</b>會幫你點亮一組還能連的水果。🔀 <b>洗牌</b>會把盤面上剩下的水果重新排一次，而且保證重排後一定還有解。<br>
@@ -357,7 +371,11 @@
 <script src="js/config.js"></script>
 <script src="js/rng.js"></script>
 <script src="js/rules.js"></script>
-<script src="js/fruits.js"></script>
+<script src="js/themes/fruits.js"></script>
+<script src="js/themes/animals.js"></script>
+<script src="js/themes/food.js"></script>
+<script src="js/themes/flags.js"></script>
+<script src="js/themes.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/svgui.js"></script>
 <script src="js/audio.js"></script>

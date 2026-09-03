@@ -9,6 +9,7 @@
     nick: 'fl_nick',
     clientId: 'fl_client',
     level: 'fl_level',
+    theme: 'fl_theme',
     music: 'fl_music',
     musicVol: 'fl_music_vol',
     sfx: 'fl_sfx',
@@ -78,6 +79,8 @@
     clientId: clientId,
     nick: function (v) { if (v === undefined) return get(KEY.nick, ''); set(KEY.nick, v); return v; },
     level: function (v) { if (v === undefined) return get(KEY.level, 'easy'); set(KEY.level, v); return v; },
+    /* 造型主題（蔬果／動物／食物／國旗／大混搭）；建立線上房間時會先沿用 */
+    theme: function (v) { if (v === undefined) return get(KEY.theme, 'fruits'); set(KEY.theme, v); return v; },
     music: function (v) { if (v === undefined) return getFlag(KEY.music, true); setFlag(KEY.music, v); return v; },
     musicVol: function (v) { if (v === undefined) return getNum(KEY.musicVol, 0.7); set(KEY.musicVol, v); return v; },
     sfx: function (v) { if (v === undefined) return getFlag(KEY.sfx, true); setFlag(KEY.sfx, v); return v; },

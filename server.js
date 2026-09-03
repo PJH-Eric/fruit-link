@@ -212,6 +212,7 @@ io.on('connection', (socket) => {
       roomName: p.roomName,
       private: !!p.private,
       level: p.level,
+      theme: p.theme,
       now: now()
     });
     if (!res.ok) { fail(socket, res.error, res.code); if (typeof ack === 'function') ack(res); return; }
@@ -306,6 +307,13 @@ io.on('connection', (socket) => {
     const res = room.setLevel(socket.data.clientId, String(p.level || ''));
     if (!res.ok) return fail(socket, res.error, res.code);
     if (res.changed) room.system('關卡改成「' + res.label + '」。', now());
+    syncRoom(room); syncLobby();
+  }));
+
+  socket.on('room:setTheme', withRoom((room, p) => {
+    const res = room.setTheme(socket.data.clientId, String(p.theme || ''));
+    if (!res.ok) return fail(socket, res.error, res.code);
+    if (res.changed) room.system('造型換成「' + res.label + '」（' + res.count + ' 種）。', now());
     syncRoom(room); syncLobby();
   }));
 

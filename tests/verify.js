@@ -13,6 +13,7 @@ const path = require('path');
 const Rules = require(path.join(__dirname, '..', 'public', 'js', 'rules.js'));
 const RNG = require(path.join(__dirname, '..', 'public', 'js', 'rng.js'));
 const { RoomStore, sanitizeName, sanitizeText } = require(path.join(__dirname, '..', 'lib', 'rooms.js'));
+const Themes = require(path.join(__dirname, '..', 'public', 'js', 'themes.js'));
 
 let pass = 0, fail = 0;
 function test(name, fn) {
@@ -671,10 +672,144 @@ test('房間開的那一局用房號＋種子當亂數來源，同一組一定�
   room.start('host-client-01', 0, { countdownMs: 0 });
   const replay = Rules.createMatch({
     seed: room.seed, players: [{ id: 'host-client-01', name: '房主' }],
-    level: room.level, now: 0, countdownMs: 0,
+    level: room.level, theme: room.theme, maxKinds: Themes.count(room.theme),
+    now: 0, countdownMs: 0,
     rng: RNG.createRng('board:' + room.code + ':' + room.seed)
   });
-  assert.deepStrictEqual(replay.grid, room.state.grid);
+  assert.deepStrictEqual(replay.grid, room.state.grid, '盤面要能重現');
+  assert.deepStrictEqual(replay.palette, room.state.palette, '抽到的造型也要能重現');
+});
+
+/* ------------------------------------------------------------ 造型主題 */
+
+group('造型主題');
+
+test('五個主題都在，而且每個主題的造型數量足夠', () => {
+  const menu = Themes.menu();
+  assert.deepStrictEqual(menu.map((t) => t.key), ['fruits', 'animals', 'food', 'flags', 'mixed']);
+  const most = Rules.LEVELS.reduce((m, l) => Math.max(m, l.kinds), 0);
+  menu.forEach((t) => {
+    assert.ok(t.count >= most, t.label + ' 只有 ' + t.count + ' 種，不夠最難的關卡用（要 ' + most + ' 種）');
+    assert.ok(t.label && t.emoji, t.key + ' 少了名稱或圖示');
+  });
+});
+
+test('每個主題裡的 id 不重複、造型都有內容', () => {
+  Themes.LIST.forEach((t) => {
+    const ids = new Set(t.list.map((x) => x.id));
+    assert.strictEqual(ids.size, t.list.length, t.label + ' 有重複的 id');
+    t.list.forEach((x) => {
+      assert.ok(x.label && x.label.length, t.label + ' 的 ' + x.id + ' 沒有名稱');
+      assert.ok(x.svg && x.svg.indexOf('<') === 0, t.label + ' 的 ' + x.id + ' 不是 SVG 內容');
+      assert.ok(x.svg.indexOf('<script') < 0, t.label + ' 的 ' + x.id + ' 含有 script');
+    });
+  });
+});
+
+test('大混搭把所有主題接起來，數量剛好是總和', () => {
+  const base = Themes.LIST.filter((t) => t.key !== 'mixed');
+  const total = base.reduce((n, t) => n + t.list.length, 0);
+  assert.strictEqual(Themes.count('mixed'), total);
+});
+
+test('不認得的主題名稱會收斂回預設，art 取值會繞回頭', () => {
+  assert.strictEqual(Themes.of('nope').key, Themes.DEFAULT);
+  assert.strictEqual(Themes.has('nope'), false);
+  assert.strictEqual(Themes.has('animals'), true);
+  const n = Themes.count('animals');
+  assert.strictEqual(Themes.art('animals', n).id, Themes.art('animals', 0).id, '超過範圍要繞回第一個');
+  assert.strictEqual(Themes.art('animals', -1).id, Themes.art('animals', n - 1).id, '負的也要繞回去');
+});
+
+test('rules 只把主題當字串處理，不合法的字元會被清掉', () => {
+  assert.strictEqual(Rules.sanitizeTheme('animals'), 'animals');
+  assert.strictEqual(Rules.sanitizeTheme('<script>'), '');
+  assert.strictEqual(Rules.sanitizeTheme(null), '');
+});
+
+test('每一局會從主題裡隨機抽造型，抽出來的不重複也不超出範圍', () => {
+  Themes.KEYS.forEach((key) => {
+    const max = Themes.count(key);
+    const st = Rules.createMatch({
+      seed: 'T', players: [{ id: 'p1', name: '甲' }], level: 'hard',
+      theme: key, maxKinds: max, now: 0, countdownMs: 0, rng: RNG.createRng('pal:' + key)
+    });
+    assert.strictEqual(st.theme, key);
+    assert.strictEqual(st.palette.length, st.kinds, key + ' 的 palette 長度不對');
+    assert.strictEqual(new Set(st.palette).size, st.palette.length, key + ' 抽到重複的造型');
+    st.palette.forEach((i) => assert.ok(i >= 0 && i < max, key + ' 抽到超出範圍的造型 ' + i));
+  });
+});
+
+test('同一關換不同種子會抽到不同組造型', () => {
+  const mk = (seedText) => Rules.createMatch({
+    seed: 'T', players: [{ id: 'p1', name: '甲' }], level: 'normal',
+    theme: 'animals', maxKinds: Themes.count('animals'), now: 0, countdownMs: 0, rng: RNG.createRng(seedText)
+  }).palette.join(',');
+  assert.notStrictEqual(mk('runA'), mk('runB'), '不同種子應該抽到不同組');
+  assert.strictEqual(mk('runA'), mk('runA'), '同一個種子一定抽到同一組');
+});
+
+test('主題的造型比關卡要的種類少時，種類會自動收斂，不會爆掉', () => {
+  const st = Rules.createMatch({
+    seed: 'T', players: [{ id: 'p1', name: '甲' }], level: 'hard',
+    theme: 'animals', maxKinds: 3, now: 0, countdownMs: 0, rng: RNG.createRng('few')
+  });
+  assert.strictEqual(st.kinds, 3);
+  assert.strictEqual(st.palette.length, 3);
+  const kinds = new Set();
+  Rules.innerCells(st.W, st.H).forEach((i) => { if (st.grid[i]) kinds.add(st.grid[i]); });
+  assert.strictEqual(kinds.size, 3, '盤面上真的只出現 3 種');
+  assert.ok(Rules.findPair(st.grid, st.W, st.H), '還是要有解');
+});
+
+test('snapshot 會帶著主題與造型對照表（線上才畫得出一樣的盤面）', () => {
+  const st = Rules.createMatch({
+    seed: 'T', players: [{ id: 'p1', name: '甲' }], level: 'easy',
+    theme: 'flags', maxKinds: Themes.count('flags'), now: 0, countdownMs: 0, rng: RNG.createRng('snap')
+  });
+  const s = Rules.snapshot(st, st.startAt + 100);
+  assert.strictEqual(s.theme, 'flags');
+  assert.deepStrictEqual(s.palette, st.palette);
+  s.palette[0] = 999;
+  assert.notStrictEqual(st.palette[0], 999, 'palette 要是複本');
+});
+
+test('房間：只有房主能改主題，對局中不能改，亂寫會被擋', () => {
+  const store = newStore();
+  const room = mkRoom(store, { theme: 'animals' });
+  assert.strictEqual(room.theme, 'animals');
+  assert.strictEqual(room.brief().themeLabel, '動物');
+  room.join('c2', { name: '客人', now: 0 });
+  assert.strictEqual(room.setTheme('c2', 'flags').code, 'perm');
+  assert.strictEqual(room.setTheme('host-client-01', 'nope').code, 'badtheme');
+  assert.strictEqual(room.setTheme('host-client-01', 'flags').ok, true);
+  assert.strictEqual(room.theme, 'flags');
+
+  room.setReady('host-client-01', true);
+  room.setReady('c2', true);
+  room.start('host-client-01', 0, { countdownMs: 0 });
+  assert.strictEqual(room.state.theme, 'flags', '開局要用房間設定的主題');
+  assert.strictEqual(room.setTheme('host-client-01', 'food').code, 'phase');
+});
+
+test('房間建立時給不認得的主題會收斂回預設', () => {
+  const store = newStore();
+  const room = mkRoom(store, { theme: '../../etc/passwd' });
+  assert.strictEqual(room.theme, Themes.DEFAULT);
+});
+
+test('房主與觀戰者看到的主題與造型對照表完全一致', () => {
+  const store = newStore();
+  const room = mkRoom(store, { theme: 'mixed' });
+  room.join('spec', { name: '觀眾', role: 'spectator', now: 0 });
+  room.setReady('host-client-01', true);
+  room.start('host-client-01', 0, { countdownMs: 0 });
+  const a = room.viewFor('host-client-01', 10);
+  const b = room.viewFor('spec', 10);
+  assert.strictEqual(a.theme, 'mixed');
+  assert.strictEqual(a.match.theme, b.match.theme);
+  assert.deepStrictEqual(a.match.palette, b.match.palette);
 });
 
 /* ------------------------------------------------------------ 收尾 */

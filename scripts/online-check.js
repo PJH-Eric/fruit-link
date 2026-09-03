@@ -131,6 +131,18 @@ async function main() {
     await sleep(150);
     check('有人沒準備就不能開始', host.errors.some((e) => e.code === 'notready'));
 
+    group('造型主題');
+    p2.send('room:setTheme', { theme: 'animals' });
+    await sleep(150);
+    check('非房主不能改主題', p2.errors.some((e) => e.code === 'perm'));
+    host.send('room:setTheme', { theme: 'nope' });
+    await sleep(150);
+    check('亂寫的主題會被擋下來', host.errors.some((e) => e.code === 'badtheme'));
+    host.send('room:setTheme', { theme: 'animals' });
+    await spec.until((c) => c.view.theme === 'animals', 4000, '主題同步');
+    check('房主改主題會同步給全房（含觀戰者）', spec.view.theme === 'animals');
+    check('房間投影帶得出主題選單', (host.view.themes || []).length >= 5);
+
     group('開局與同盤搶消');
     host.send('room:ready', { ready: true });
     p2.send('room:ready', { ready: true });
@@ -141,6 +153,11 @@ async function main() {
     check('觀戰者看到的盤面和玩家完全一樣',
       JSON.stringify(spec.view.match.grid) === JSON.stringify(host.view.match.grid));
     check('觀戰者的 can.play 是 false', spec.view.you.can.play === false);
+    check('開局用的是房主選的主題', host.view.match.theme === 'animals');
+    check('全場抽到同一組造型（觀戰者也一樣）',
+      JSON.stringify(spec.view.match.palette) === JSON.stringify(host.view.match.palette) &&
+      host.view.match.palette.length === host.view.match.kinds,
+      JSON.stringify(host.view.match.palette));
 
     /* 同一組水果，兩個人同時送 —— 只有先到的那個人得分 */
     const pair = pickPair(host.view);

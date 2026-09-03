@@ -138,6 +138,27 @@ body{
 .pickcard.mini b{font-size:.92rem}
 .pickcard.mini span{font-size:.74rem}
 
+/* 造型主題選單：一張卡＝一個主題，卡上直接放四個造型縮圖 */
+.themepick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.themecard{
+  border:3px solid var(--ink);border-radius:18px;background:var(--paper);
+  padding:10px;font:inherit;cursor:pointer;color:var(--ink);text-align:center;
+}
+.themecard[aria-checked="true"]{background:var(--lemon);box-shadow:0 5px 0 var(--lemon-d)}
+.themecard:focus-visible{outline:3px solid var(--sky-d);outline-offset:2px}
+.themecard .tname{font-weight:800;font-size:.98rem}
+.themecard .tcount{display:block;font-size:.76rem;color:var(--ink-soft);margin-top:1px}
+.themecard .tpics{display:flex;gap:3px;justify-content:center;margin-top:6px}
+.themecard .tpics svg{width:26%;max-width:40px;height:auto;display:block}
+
+/* 說明頁的主題展示 */
+.themegrid{display:grid;gap:12px;margin-top:8px}
+.themerow{border:3px solid var(--ink);border-radius:18px;background:var(--paper);padding:10px 12px}
+.themerow .th{font-weight:800;font-size:.96rem;margin-bottom:6px}
+.themerow .th small{font-weight:600;color:var(--ink-soft);margin-left:6px}
+.themerow .tp{display:flex;gap:4px;flex-wrap:wrap}
+.themerow .tp svg{width:34px;height:34px;display:block}
+
 .htable{width:100%;border-collapse:collapse;margin:8px 0;font-size:.9rem}
 .htable th,.htable td{border:2.5px solid var(--line);padding:8px 10px;text-align:left}
 .htable th{background:var(--cream);font-weight:800}

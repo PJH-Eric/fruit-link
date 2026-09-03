@@ -13,7 +13,7 @@
   'use strict';
 
   var Rules = w.Rules, RNG = w.RNG, Store = w.Store, Sound = w.Sound;
-  var UI = w.SvgUI, R = w.Render, Config = w.GameConfig, Online = w.Online;
+  var UI = w.SvgUI, R = w.Render, Config = w.GameConfig, Online = w.Online, Themes = w.Themes;
 
   var $ = function (id) { return document.getElementById(id); };
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
@@ -38,6 +38,7 @@
     ticker: null,
     lastTick: 0,
     pendingLevel: 'easy',
+    pendingTheme: 'fruits',
     inviteRole: 'player'
   };
 
@@ -191,10 +192,40 @@
     b.addEventListener('click', function () { show(b.getAttribute('data-back')); });
   });
 
-  $('b-solo').addEventListener('click', function () { Sound.unlock(); buildLevelPicker(); show('s-solo'); });
+  $('b-solo').addEventListener('click', function () { Sound.unlock(); buildThemePicker(); buildLevelPicker(); show('s-solo'); });
   $('b-online').addEventListener('click', function () { Sound.unlock(); enterLobby(); });
   $('b-help').addEventListener('click', function () { buildHelp(); show('s-help'); });
   $('b-stats').addEventListener('click', function () { buildStats(); show('s-stats'); });
+
+  /** 主題卡上放四個造型縮圖，一眼就看得出換了會變成什麼 */
+  function themeCard(t, checked) {
+    var pics = '';
+    for (var i = 0; i < 4; i++) pics += UI.artSvg(t.key, Math.floor(i * t.count / 4));
+    return '<button class="themecard" role="radio" type="button" data-v="' + t.key + '" aria-checked="' + checked + '"' +
+      ' aria-label="' + t.label + '，' + t.count + ' 種圖案">' +
+      '<span class="tname">' + t.emoji + ' ' + t.label + '</span>' +
+      '<span class="tcount">' + t.count + ' 種</span>' +
+      '<span class="tpics">' + pics + '</span></button>';
+  }
+
+  function buildThemePicker() {
+    var host = $('opt-theme');
+    var cur = Store.theme();
+    if (!Themes.has(cur)) { cur = Themes.DEFAULT; Store.theme(cur); }
+    G.pendingTheme = cur;
+    host.innerHTML = Themes.menu().map(function (t) { return themeCard(t, t.key === cur); }).join('');
+    var note = function () { $('theme-hint').textContent = Themes.of(G.pendingTheme).note + '；每一局會從裡面隨機抽圖案，所以每次玩到的都不一樣。'; };
+    note();
+    $$('.themecard', host).forEach(function (b) {
+      b.addEventListener('click', function () {
+        G.pendingTheme = b.getAttribute('data-v');
+        Store.theme(G.pendingTheme);
+        $$('.themecard', host).forEach(function (x) { x.setAttribute('aria-checked', String(x === b)); });
+        note();
+        Sound.play('click');
+      });
+    });
+  }
 
   function buildLevelPicker() {
     var host = $('opt-level');
@@ -219,12 +250,24 @@
 
   function buildHelp() {
     R.pathDemos($('path-demo'));
+    buildThemeGallery();
     $('level-table').innerHTML =
       '<tr><th>關卡</th><th>盤面</th><th>水果種類</th><th>時間</th><th>提示</th><th>洗牌</th></tr>' +
       Rules.LEVELS.map(function (l) {
         return '<tr><td>' + l.emoji + ' ' + l.short + '</td><td>' + l.cols + ' × ' + l.rows + '</td>' +
           '<td>' + l.kinds + ' 種</td><td>' + l.sec + ' 秒</td><td>' + timesText(l.hints) + ' 次</td><td>' + timesText(l.shuffles) + ' 次</td></tr>';
       }).join('');
+  }
+
+  function buildThemeGallery() {
+    $('theme-gallery').innerHTML = Themes.menu().map(function (t) {
+      var pics = '';
+      var n = Math.min(12, t.count);
+      for (var i = 0; i < n; i++) pics += UI.artSvg(t.key, Math.floor(i * t.count / n));
+      return '<div class="themerow"><div class="th">' + t.emoji + ' ' + t.label +
+        '<small>' + t.count + ' 種 · ' + t.note + '</small></div>' +
+        '<div class="tp">' + pics + '</div></div>';
+    }).join('');
   }
 
   function buildStats() {
@@ -265,10 +308,13 @@
     G.run.level = level;
     var seed = RNG.randomSeed();
     G.rng = RNG.createRng('solo:' + seed);
+    var theme = Themes.has(Store.theme()) ? Store.theme() : Themes.DEFAULT;
     G.state = Rules.createMatch({
       seed: seed,
       players: [{ id: 'me', name: Store.nick() || '你' }],
       level: level,
+      theme: theme,
+      maxKinds: Themes.count(theme),
       now: Date.now(),
       countdownMs: Rules.COUNTDOWN_MS,
       rng: G.rng
@@ -370,13 +416,15 @@
     R.rank($('rank-list'), $('live-bar'), players, myId, players.map(function (p) { return p.id; }));
 
     var L = Rules.levelOf(G.snap.level);
+    var TH = Themes.of(G.snap.theme);
     if (isOnline() && G.view) {
       var specs = (G.view.members || []).filter(function (m) { return m.role === 'spectator'; }).length;
       $('sum-room').innerHTML = '房號 <b>' + R.esc(G.view.code) + '</b><br>' + R.esc(G.view.name) +
-        '<br>' + L.short + '　' + L.cols + ' × ' + L.rows + '<br>觀戰 ' + specs + ' 人';
+        '<br>' + L.short + '　' + L.cols + ' × ' + L.rows + '　' + TH.emoji + TH.label +
+        '<br>觀戰 ' + specs + ' 人';
     } else {
       $('sum-room').innerHTML = '單機闖關<br><b>' + L.short + '</b>　' + L.cols + ' × ' + L.rows +
-        '<br>累計 <b>' + (G.run ? G.run.total : 0) + '</b> 分';
+        '<br>' + TH.emoji + ' ' + TH.label + '<br>累計 <b>' + (G.run ? G.run.total : 0) + '</b> 分';
     }
 
     var me = myPlayer();
@@ -775,7 +823,8 @@
       name: Store.nick(),
       roomName: $('room-name').value,
       private: $('room-private').checked,
-      level: Store.level()
+      level: Store.level(),
+      theme: Store.theme()
     }, function (res) { if (res && res.ok) enterRoom(); });
   });
 
@@ -837,7 +886,8 @@
       var label = r.phase === 'playing' ? '對戰中' : (r.phase === 'countdown' ? '倒數中' : (r.phase === 'over' ? '剛結束' : '等待中'));
       var canSit = r.seatsFree > 0 && r.phase === 'lobby';
       return '<div class="roomrow"><span class="rname">' + R.esc(r.name) +
-        '<small>房號 ' + r.code + '　' + r.levelLabel + '（' + r.board + '）</small></span>' +
+        '<small>房號 ' + r.code + '　' + r.levelLabel + '（' + r.board + '）　' +
+        (r.themeEmoji || '') + (r.themeLabel || '') + '</small></span>' +
         '<span class="tag ' + tag + '">' + label + '</span>' +
         '<span class="tag">玩家 ' + r.players + '/' + r.seats + '</span>' +
         '<span class="tag">觀戰 ' + r.spectators + '</span>' +
@@ -930,8 +980,22 @@
         });
       }
 
+      var canTheme = !!(v.you.can && v.you.can.setTheme);
+      $('theme-manage').hidden = !canTheme;
+      if (canTheme) {
+        $('theme-pick').innerHTML = (v.themes || []).map(function (t) {
+          return '<button class="pickcard mini" role="radio" type="button" data-v="' + t.key + '" aria-checked="' + (t.key === v.theme) + '">' +
+            '<b>' + t.emoji + ' ' + t.label + '</b><span>' + t.count + ' 種</span></button>';
+        }).join('');
+        $$('.pickcard', $('theme-pick')).forEach(function (b) {
+          b.addEventListener('click', function () { Online.send('room:setTheme', { theme: b.getAttribute('data-v') }); });
+        });
+      }
+
+      var TH = Themes.of(v.theme);
       var L = Rules.levelOf(v.level);
-      $('ov-wait-note').innerHTML = '關卡：<b>' + L.label + '</b>　' + L.cols + ' × ' + L.rows + '　' + L.sec + ' 秒<br>' +
+      $('ov-wait-note').innerHTML = '圖案：<b>' + TH.emoji + ' ' + TH.label + '</b>（' + TH.list.length + ' 種，每局隨機抽）<br>' +
+        '關卡：<b>' + L.label + '</b>　' + L.cols + ' × ' + L.rows + '　' + L.sec + ' 秒<br>' +
         '最多 ' + v.seats + ' 人共用同一張盤面，同一對水果誰先連到就是誰的分。' +
         (v.you.startBlockedBy ? '<br>還不能開始：' + R.esc(v.you.startBlockedBy) : '');
 

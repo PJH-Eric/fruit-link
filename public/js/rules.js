@@ -200,6 +200,15 @@
     return n;
   }
 
+  /**
+   * 造型主題只是「數字要畫成什麼」，規則完全不在乎，所以這裡只做字元清洗，
+   * 真正有沒有這個主題由 themes.js 判斷（rules.js 刻意不認識任何造型）。
+   */
+  function sanitizeTheme(t) {
+    var str = String(t === undefined || t === null ? '' : t).slice(0, 24);
+    return /^[a-z0-9_-]+$/i.test(str) ? str : '';
+  }
+
   /* Fisher–Yates，rng 必須是 [0,1) 的函式 */
   function shuffleArray(list, rng) {
     for (var i = list.length - 1; i > 0; i--) {
@@ -230,6 +239,19 @@
     vals.sort(function (a, b) { return a - b; });
     for (i = 0; i < spots.length; i++) g[spots[i]] = vals[i];
     return !!findPair(g, W, H);
+  }
+
+  /**
+   * 從主題可用的 maxKinds 種造型裡，隨機抽 kinds 種來當這一局的水果。
+   *
+   * 這樣同一關每次玩到的組合都不一樣（動物 42 種抽 14 種、國旗 53 種抽 14 種…），
+   * 而且因為用的是可注入的 rng，同一個種子一定抽到同一組，線上才能全場一致。
+   */
+  function pickPalette(maxKinds, kinds, rng) {
+    var pool = [];
+    for (var i = 0; i < Math.max(1, maxKinds); i++) pool.push(i);
+    shuffleArray(pool, rng);
+    return pool.slice(0, kinds);
   }
 
   /**
@@ -278,13 +300,19 @@
   /**
    * 開一場新的對局。單機和線上共用，差別只在 players 有幾個人。
    * @param {{seed:string, players:Array, level:string, now:number,
+   *          theme?:string, maxKinds?:number,
    *          countdownMs?:number, roundMs?:number, rng:Function}} o
    */
   function createMatch(o) {
     var level = levelOf(o.level);
     var rng = o.rng;
     if (typeof rng !== 'function') throw new Error('createMatch 需要注入 rng');
-    var board = createBoard(level.cols, level.rows, level.kinds, rng);
+    /* 主題能提供的造型數；沒給就當成剛好夠用 */
+    var maxKinds = Math.max(1, Math.floor(o.maxKinds || level.kinds));
+    var pairs = level.cols * level.rows / 2;
+    var kinds = Math.max(1, Math.min(level.kinds, maxKinds, pairs));
+    var palette = pickPalette(maxKinds, kinds, rng);
+    var board = createBoard(level.cols, level.rows, kinds, rng);
     var countdown = o.countdownMs === undefined ? COUNTDOWN_MS : Math.max(0, o.countdownMs);
     var roundMs = o.roundMs > 0 ? o.roundMs : roundMsOf(level.key);
     var startAt = o.now + countdown;
@@ -300,6 +328,10 @@
     return {
       seed: String(o.seed || ''),
       level: level.key,
+      theme: sanitizeTheme(o.theme),
+      /* palette[kind - 1] = 這一局第 kind 種水果要用主題裡的第幾號造型 */
+      palette: palette,
+      kinds: kinds,
       cols: level.cols,
       rows: level.rows,
       W: board.W,
@@ -493,6 +525,9 @@
     return {
       seed: state.seed,
       level: state.level,
+      theme: state.theme,
+      palette: state.palette.slice(),
+      kinds: state.kinds,
       cols: state.cols,
       rows: state.rows,
       W: state.W,
@@ -546,6 +581,8 @@
     countLeft: countLeft,
     shuffleBoard: shuffleBoard,
     createBoard: createBoard,
+    pickPalette: pickPalette,
+    sanitizeTheme: sanitizeTheme,
 
     createMatch: createMatch,
     phaseOf: phaseOf,

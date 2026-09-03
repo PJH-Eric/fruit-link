@@ -92,6 +92,9 @@ async function main() {
       check('玩法頁的路徑示範有三張圖', await page.locator('#path-demo figure').count() === 3);
       const rows = await page.locator('#level-table tr').count();
       check('玩法頁的關卡表有四關（加上表頭共 5 列）', rows === 5, '實際 ' + rows + ' 列');
+      const gallery = await page.locator('#theme-gallery .themerow').count();
+      check('玩法頁列出五個圖案主題', gallery === 5, '實際 ' + gallery);
+      check('主題展示真的畫出造型縮圖', await page.locator('#theme-gallery .tp svg').count() >= 40);
       await page.screenshot({ path: path.join(SHOTS, 'help.png'), fullPage: true });
 
       await page.click('#s-help [data-back="s-home"]');
@@ -131,9 +134,65 @@ async function main() {
       check('恢復預設會把設定調回來', await page.locator('#set-music').isChecked() === true);
       await page.click('#b-settings-done');
 
-      group('幼幼班（3～5 歲）');
+      group('圖案主題');
+      await page.click('#b-solo');
+      await page.waitForTimeout(250);
+      const themeCards = await page.locator('#opt-theme .themecard').count();
+      check('單機設定有五個主題可以選', themeCards === 5, '實際 ' + themeCards);
+      check('每張主題卡都有造型縮圖', await page.locator('#opt-theme .themecard .tpics svg').count() === 20);
+      const themeNames = await page.locator('#opt-theme .themecard .tname').allInnerTexts();
+      check('主題名稱是蔬果／動物／食物／國旗／大混搭',
+        themeNames.join('').indexOf('動物') >= 0 && themeNames.join('').indexOf('國旗') >= 0 &&
+        themeNames.join('').indexOf('食物') >= 0 && themeNames.join('').indexOf('大混搭') >= 0, themeNames.join(' '));
+
+      /* 換成動物、開最小的一關，確認盤面真的變成動物 */
+      await page.locator('#opt-theme .themecard[data-v="animals"]').click();
+      await page.locator('#opt-level .pickcard').first().click();
+      await page.click('#b-solo-start');
+      await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
+      const animalNames = await page.evaluate(() => {
+        const G = window.__fruitLink;
+        return Array.from(new Set(G.snap.palette.map((i) => window.Themes.art(G.snap.theme, i).label)));
+      });
+      check('選動物之後盤面用的是動物造型',
+        await page.evaluate(() => window.__fruitLink.snap.theme) === 'animals', animalNames.join('、'));
+      const shownNames = await page.locator('#board .tile:not([hidden]) .tile-name').allInnerTexts();
+      check('磚塊上的名稱換成了動物', shownNames.every((n) => animalNames.indexOf(n) >= 0), shownNames.join('、'));
+      await page.screenshot({ path: path.join(SHOTS, 'theme-animals.png') });
+
+      /* 每一局會重新抽造型，所以同一關連玩兩次組合應該不一樣 */
+      const firstPalette = await page.evaluate(() => window.__fruitLink.snap.palette.join(','));
+      await page.evaluate(() => { window.__fruitLink.run.level = 'normal'; });
+      await page.click('#b-quit');
+      await page.waitForTimeout(300);
       await page.click('#b-solo');
       await page.waitForTimeout(200);
+      await page.locator('#opt-theme .themecard[data-v="animals"]').click();
+      await page.locator('#opt-level .pickcard').nth(2).click();
+      await page.click('#b-solo-start');
+      await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
+      const secondPalette = await page.evaluate(() => window.__fruitLink.snap.palette.join(','));
+      check('每一局會重新隨機抽造型', firstPalette !== secondPalette, firstPalette + ' vs ' + secondPalette);
+
+      /* 大混搭也要能正常開局 */
+      await page.click('#b-quit');
+      await page.waitForTimeout(300);
+      await page.click('#b-solo');
+      await page.waitForTimeout(200);
+      await page.locator('#opt-theme .themecard[data-v="mixed"]').click();
+      await page.locator('#opt-level .pickcard').last().click();
+      await page.click('#b-solo-start');
+      await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
+      const mixedKinds = await page.evaluate(() => window.__fruitLink.snap.kinds);
+      check('大混搭開得了最難的一關（14 種）', mixedKinds === 14, '實際 ' + mixedKinds);
+      await page.screenshot({ path: path.join(SHOTS, 'theme-mixed.png') });
+      await page.click('#b-quit');
+      await page.waitForTimeout(300);
+
+      group('幼幼班（3～5 歲）');
+      await page.click('#b-solo');
+      await page.waitForTimeout(250);
+      await page.locator('#opt-theme .themecard[data-v="fruits"]').click();
       const cards = await page.locator('#opt-level .pickcard').count();
       check('關卡選單有四關', cards === 4, '實際 ' + cards);
       const kidsText = await page.locator('#opt-level .pickcard').first().innerText();

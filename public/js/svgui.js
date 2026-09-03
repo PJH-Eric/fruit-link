@@ -96,17 +96,33 @@
   }
   function setColor(el, key) { el.setAttribute('data-color', key); paint(el); }
 
-  /* ---------------------------------------------------------- 水果磚 */
+  /* ---------------------------------------------------------- 造型磚 */
 
   function tileColors(kind) { return TILE_BG[(kind - 1) % TILE_BG.length]; }
 
   /**
-   * 一塊水果磚：圓角木牌 + 水果造型。
-   * viewBox 固定 100×100，實際大小交給 CSS，所以每種裝置只是等比縮放。
-   * @param {number} kind 1 起算的水果種類
+   * 這一局的第 kind 種要畫成什麼。
+   *
+   * 盤面只存 1..kinds 這種數字，palette 把它對到主題裡的第幾號造型
+   * （palette 是開局時用種子亂數抽的，所以同一關每次的組合都不一樣，
+   * 線上則靠同一個種子讓全場抽到同一組）。
+   *
+   * @param {string} theme   主題名稱
+   * @param {number[]} palette 這一局的造型對照表
+   * @param {number} kind    1 起算的種類編號
    */
-  function tileSvg(kind) {
-    var art = w.FRUITS ? w.FRUITS.at(kind - 1) : null;
+  function artOf(theme, palette, kind) {
+    if (!w.Themes) return null;
+    var i = (palette && palette.length) ? palette[(kind - 1) % palette.length] : (kind - 1);
+    return w.Themes.art(theme, i);
+  }
+
+  /**
+   * 一塊造型磚：圓角木牌 + 該主題的造型。
+   * viewBox 固定 100×100，實際大小交給 CSS，所以每種裝置只是等比縮放。
+   */
+  function tileSvg(kind, theme, palette) {
+    var art = artOf(theme, palette, kind);
     var c = tileColors(kind);
     return '<svg class="tile-svg" viewBox="0 0 100 100" aria-hidden="true">' +
       '<rect x="4" y="7" width="92" height="89" rx="19" fill="' + c[1] + '"/>' +
@@ -116,19 +132,25 @@
       '</svg>';
   }
 
-  /** 只有水果本體（圖鑑、結算、提示氣泡用得到） */
-  function fruitSvg(kind, cls) {
-    var art = w.FRUITS ? w.FRUITS.at(kind - 1) : null;
+  /** 只有造型本體（選單縮圖、說明頁用得到）。i 是主題裡的第幾號造型 */
+  function artSvg(theme, i, cls) {
+    var art = w.Themes ? w.Themes.art(theme, i) : null;
     return '<svg class="' + (cls || 'fruit-svg') + '" viewBox="0 0 100 100" aria-hidden="true">' +
       (art ? art.svg : '') + '</svg>';
   }
 
-  function fruitName(kind) {
-    var art = w.FRUITS ? w.FRUITS.at(kind - 1) : null;
-    return art ? art.label : '水果';
+  /** 這一格要唸出來的名字（螢幕閱讀器與「顯示名稱」都用它） */
+  function tileName(kind, theme, palette) {
+    var art = artOf(theme, palette, kind);
+    return art ? art.label : '圖案';
   }
 
   /* ---------------------------------------------------------- 標題與獎盃 */
+
+  /** LOGO 上固定用蔬果主題的兩顆，換遊戲主題不會讓招牌跟著跳 */
+  function logoArt(i) {
+    return w.Themes ? w.Themes.art('fruits', i).svg : '';
+  }
 
   function logo() {
     var f = 'Yuanti TC, PingFang TC, Microsoft JhengHei, Noto Sans TC, sans-serif';
@@ -137,13 +159,13 @@
       '<g transform="translate(16 46) rotate(-12)">' +
         '<rect x="0" y="6" width="86" height="84" rx="18" fill="#FFD9E2"/>' +
         '<rect x="0" y="0" width="86" height="84" rx="18" fill="#FFF3F5" stroke="' + INK + '" stroke-width="5"/>' +
-        '<g transform="translate(43 42) scale(0.66) translate(-50 -50)">' + (w.FRUITS ? w.FRUITS.at(5).svg : '') + '</g>' +
+        '<g transform="translate(43 42) scale(0.66) translate(-50 -50)">' + logoArt(5) + '</g>' +
       '</g>' +
       /* 右邊一塊鳳梨磚 */
       '<g transform="translate(458 44) rotate(11)">' +
         '<rect x="0" y="6" width="86" height="84" rx="18" fill="#FFE9B0"/>' +
         '<rect x="0" y="0" width="86" height="84" rx="18" fill="#FFF9E8" stroke="' + INK + '" stroke-width="5"/>' +
-        '<g transform="translate(43 42) scale(0.66) translate(-50 -50)">' + (w.FRUITS ? w.FRUITS.at(9).svg : '') + '</g>' +
+        '<g transform="translate(43 42) scale(0.66) translate(-50 -50)">' + logoArt(9) + '</g>' +
       '</g>' +
       /* 中間的連線示意：兩折的虛線 */
       '<path d="M118 62 H196 V104 H364 V62 H442" fill="none" stroke="#79C6AC" stroke-width="7" ' +
@@ -187,7 +209,7 @@
     PALETTE: PALETTE, INK: INK, TILE_BG: TILE_BG,
     decorate: decorate, decorateAll: decorateAll, repaintAll: repaintAll, paint: paint,
     setLabel: setLabel, setColor: setColor,
-    tileSvg: tileSvg, tileColors: tileColors, fruitSvg: fruitSvg, fruitName: fruitName,
+    tileSvg: tileSvg, tileColors: tileColors, artOf: artOf, artSvg: artSvg, tileName: tileName,
     logo: logo, trophy: trophy, bgDeco: bgDeco
   };
 }(window));

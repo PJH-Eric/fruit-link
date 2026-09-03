@@ -15,6 +15,7 @@
 
   var boardEl = null, lineEl = null, fxEl = null;
   var W = 0, H = 0, cols = 0, rows = 0;
+  var theme = 'fruits', palette = [];
   var tiles = {};          // cellIndex -> button 元素
   var lastGrid = null;
 
@@ -36,6 +37,8 @@
   function mount(hosts, snap, onPick) {
     boardEl = hosts.board; lineEl = hosts.line; fxEl = hosts.fx;
     W = snap.W; H = snap.H; cols = snap.cols; rows = snap.rows;
+    theme = snap.theme || 'fruits';
+    palette = (snap.palette || []).slice();
     boardEl.style.setProperty('--bw', W);
     boardEl.style.setProperty('--bh', H);
     lineEl.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
@@ -73,7 +76,7 @@
 
   function tileLabel(i, kind) {
     var x = (i % W), y = Math.floor(i / W);
-    return '第 ' + y + ' 列第 ' + x + ' 行，' + (kind ? w.SvgUI.fruitName(kind) : '空格');
+    return '第 ' + y + ' 列第 ' + x + ' 行，' + (kind ? w.SvgUI.tileName(kind, theme, palette) : '空格');
   }
 
   /** 把畫面上的磚塊對齊到 grid；只動有變的格子 */
@@ -96,8 +99,8 @@
         btn.removeAttribute('aria-hidden');
         btn.tabIndex = 0;
         btn.dataset.kind = kind;
-        btn.innerHTML = w.SvgUI.tileSvg(kind) +
-          '<span class="tile-name">' + w.SvgUI.fruitName(kind) + '</span>';
+        btn.innerHTML = w.SvgUI.tileSvg(kind, theme, palette) +
+          '<span class="tile-name">' + w.SvgUI.tileName(kind, theme, palette) + '</span>';
         btn.setAttribute('aria-label', tileLabel(idx, kind));
         btn.setAttribute('aria-pressed', 'false');
       }
@@ -138,7 +141,7 @@
   }
   function focusTile(i) { if (tiles[i] && !tiles[i].hidden) tiles[i].focus(); }
   function tileAt(i) { return tiles[i] || null; }
-  function dims() { return { W: W, H: H, cols: cols, rows: rows }; }
+  function dims() { return { W: W, H: H, cols: cols, rows: rows, theme: theme, palette: palette.slice() }; }
 
   /* ---------------------------------------------------------- 連線動畫 */
 
@@ -278,7 +281,7 @@
         return '<g transform="translate(' + p[0] + ' ' + p[1] + ') scale(0.01)">' +
           '<rect x="8" y="8" width="84" height="84" rx="18" fill="#FFF3F5" stroke="#4A3B55" stroke-width="5"/>' +
           '<g transform="translate(50 52) scale(0.66) translate(-50 -50)">' +
-          (w.FRUITS ? w.FRUITS.at(kind).svg : '') + '</g></g>';
+          (w.Themes ? w.Themes.art('fruits', kind).svg : '') + '</g></g>';
       };
       var pts = d.path.map(function (p) { return (p[0] + 0.5) + ',' + (p[1] + 0.5); }).join(' ');
       return '<figure><svg viewBox="0 0 ' + d.w + ' ' + d.h + '" aria-hidden="true">' + cells +
