@@ -171,8 +171,10 @@ PW_CHROMIUM=/path/to/chrome npm run test:browser
 
 ### 伺服器（Render 免費方案）
 
-在 Render 選 **New → Blueprint**、指到這個 repo，`render.yaml` 已經寫好了。
-記得設 `GAME_ALLOWED_ORIGIN`（前端另外放的話填前端網址；同一個服務可以留 `*`）。
+在 Render 選 **New → Blueprint**、指到這個 repo，`render.yaml` 已經寫好了，**不用填任何環境變數**。
+部署完成後把服務網址（例如 `https://fruit-link.onrender.com`）記下來，等一下要填到 GitHub。
+
+`GAME_ALLOWED_ORIGIN` 預設 `*`，想收緊就在 Render 的 Environment 改成前端網址。
 
 免費方案的限制已經設計進去了：
 
@@ -183,11 +185,20 @@ PW_CHROMIUM=/path/to/chrome npm run test:browser
 
 ### 前端（GitHub Pages）
 
-推上 `main` 就會自動跑 `.github/workflows/deploy-pages.yml`：
-把 repository variable **`GAME_SERVER_URL`** 注入 `public/js/config.js` 之後發佈 `public/`。
+**整套佈署只需要設定一個參數。**
 
-> 設定位置：Settings → Secrets and variables → Actions → Variables → `GAME_SERVER_URL`
-> 例如 `https://fruit-link.onrender.com`
+1. Settings → Pages → Build and deployment → Source 選 **GitHub Actions**。
+2. Settings → Secrets and variables → Actions → **Variables** → New variable：
+   - Name：`GAME_SERVER_URL`
+   - Value：上一步 Render 的服務網址，例如 `https://fruit-link.onrender.com`（不要加結尾斜線）
+3. 推上 `main`，`.github/workflows/deploy-pages.yml` 會自動把這個值注入
+   `public/js/config.js` 再發佈 `public/`。
+
+沒設 `GAME_SERVER_URL` 的話 workflow 會**直接失敗並提示**，不會靜默發佈一個
+退回同源（github.io）、看起來能連線但每次都失敗的頁面。
+
+改網址不用改程式：更新 variable 之後在 Actions 頁面按 **Run workflow** 重跑即可；
+`Run workflow` 也可以填 `server_url` 臨時覆蓋一次。
 
 **server URL 只有 `public/js/config.js` 這一個入口**，其他檔案不准寫死網址。
 解析順序：`?server=` 網址參數 → 建置注入 → 同源 → 都沒有就只能玩單機。
@@ -206,9 +217,9 @@ https://你的帳號.github.io/fruit-link/?server=https://fruit-link.onrender.co
 |---|---|---|
 | `PORT` | 3040 | 監聽埠（Render 會自動注入） |
 | `HOST` | 0.0.0.0 | 監聽介面 |
-| `GAME_ALLOWED_ORIGIN` | `*` | 允許連進來的前端來源，逗號分隔 |
+| `GAME_ALLOWED_ORIGIN` | `*` | 允許連進來的前端來源，逗號分隔（render.yaml 已預設 `*`） |
 | `COUNTDOWN_MS` | 3000 | 開賽倒數 |
-| `GAME_SERVER_URL` | — | **前端**建置時要注入的伺服器位址 |
+| `GAME_SERVER_URL` | — | **前端**建置時要注入的伺服器位址（GitHub repository variable，唯一要手動設的參數） |
 
 完整範例見 `.env.example`。秘密與本機設定都不進版控。
 
