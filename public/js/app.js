@@ -402,11 +402,16 @@
     if (me && me.combo > 1) { combo.hidden = false; $('hud-combo-n').textContent = me.combo; }
     else combo.hidden = true;
 
-    $('hint-left').textContent = me ? timesText(me.hints) : '0';
-    $('shuffle-left').textContent = me ? timesText(me.shuffles) : '0';
+    /* 提示與洗牌有兩組按鈕：寬版在左側欄、窄版在盤面下方，狀態要一起更新 */
+    var hintTxt = me ? timesText(me.hints) : '0';
+    var shufTxt = me ? timesText(me.shuffles) : '0';
     var playable = canPlay();
-    $('b-hint').disabled = !playable || !me || me.hints <= 0;
-    $('b-shuffle').disabled = !playable || !me || me.shuffles <= 0;
+    var hintOff = !playable || !me || me.hints <= 0;
+    var shufOff = !playable || !me || me.shuffles <= 0;
+    ['hint-left', 'hint-left2'].forEach(function (id) { $(id).textContent = hintTxt; });
+    ['shuffle-left', 'shuffle-left2'].forEach(function (id) { $(id).textContent = shufTxt; });
+    ['b-hint', 'b-hint2'].forEach(function (id) { $(id).disabled = hintOff; });
+    ['b-shuffle', 'b-shuffle2'].forEach(function (id) { $(id).disabled = shufOff; });
   }
 
   function paintSide() {
@@ -527,23 +532,26 @@
     (res.extra || []).forEach(handleEvent);
   }
 
-  $('b-hint').addEventListener('click', function () {
+  function askHint() {
     Sound.unlock();
     if (isOnline()) { Online.send('room:hint', {}); return; }
     var res = Rules.useHint(G.state, 'me', Date.now());
     if (!res.ok) { toast(res.error); return; }
     G.snap = Rules.snapshot(G.state, Date.now());
     handleEvent(res.event);
-  });
+  }
 
-  $('b-shuffle').addEventListener('click', function () {
+  function askShuffle() {
     Sound.unlock();
     if (isOnline()) { Online.send('room:shuffle', {}); return; }
     var res = Rules.useShuffle(G.state, 'me', Date.now(), G.rng);
     if (!res.ok) { toast(res.error); return; }
     G.snap = Rules.snapshot(G.state, Date.now());
     handleEvent(res.event);
-  });
+  }
+
+  ['b-hint', 'b-hint2'].forEach(function (id) { $(id).addEventListener('click', askHint); });
+  ['b-shuffle', 'b-shuffle2'].forEach(function (id) { $(id).addEventListener('click', askShuffle); });
 
   /* ------------------------------------------------------------ 事件處理 */
 

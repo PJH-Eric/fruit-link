@@ -25,8 +25,15 @@
     if (html !== undefined) e.innerHTML = html;
     return e;
   }
-  function cx(i) { return (i % W) + 0.5; }
-  function cy(i) { return Math.floor(i / W) + 0.5; }
+  /* 畫面座標：外圈是半格寬，整個座標系因此是 (cols+1) × (rows+1)。
+     欄位配置是 [0, 0.5] 半格、[0.5, 1.5] … [cols-0.5, cols+0.5] 整格、[cols+0.5, cols+1] 半格，
+     所以內圈第 x 欄的中心剛好落在 x，兩側外圈則是 0.25 與 cols+0.75。 */
+  function ax(x) { return x === 0 ? 0.25 : (x === W - 1 ? cols + 0.75 : x); }
+  function ay(y) { return y === 0 ? 0.25 : (y === H - 1 ? rows + 0.75 : y); }
+  function cx(i) { return ax(i % W); }
+  function cy(i) { return ay(Math.floor(i / W)); }
+  function vbW() { return cols + 1; }
+  function vbH() { return rows + 1; }
 
   /* ---------------------------------------------------------- 盤面 */
 
@@ -39,12 +46,18 @@
     W = snap.W; H = snap.H; cols = snap.cols; rows = snap.rows;
     theme = snap.theme || 'fruits';
     palette = (snap.palette || []).slice();
-    boardEl.style.setProperty('--bw', W);
-    boardEl.style.setProperty('--bh', H);
-    lineEl.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    boardEl.style.setProperty('--cols', cols);
+    boardEl.style.setProperty('--rows', rows);
+    lineEl.setAttribute('viewBox', '0 0 ' + vbW() + ' ' + vbH());
     lineEl.setAttribute('preserveAspectRatio', 'none');
     lineEl.innerHTML = '';
     fxEl.innerHTML = '';
+    /* 連線與特效這兩層要「疊在棋盤上」，不是疊在整個盤面容器上 ——
+       容器通常比棋盤大（棋盤是等比縮放置中的），疊錯層連線就會偏掉。
+       先把它們移出去，清空棋盤，最後再放回棋盤裡面。 */
+    var wrap = boardEl.parentNode;
+    if (lineEl.parentNode !== wrap) wrap.appendChild(lineEl);
+    if (fxEl.parentNode !== wrap) wrap.appendChild(fxEl);
     boardEl.innerHTML = '';
     tiles = {};
 
@@ -70,6 +83,8 @@
       }
     }
     boardEl.appendChild(frag);
+    boardEl.appendChild(lineEl);
+    boardEl.appendChild(fxEl);
     lastGrid = null;
     sync(snap.grid);
   }
@@ -172,8 +187,8 @@
   function flyScore(i, text, mine) {
     if (!fxEl) return;
     var s = el('div', 'flyscore' + (mine ? '' : ' other'), text);
-    s.style.left = (cx(i) / W * 100).toFixed(2) + '%';
-    s.style.top = (cy(i) / H * 100).toFixed(2) + '%';
+    s.style.left = (cx(i) / vbW() * 100).toFixed(2) + '%';
+    s.style.top = (cy(i) / vbH() * 100).toFixed(2) + '%';
     fxEl.appendChild(s);
     setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 950);
   }

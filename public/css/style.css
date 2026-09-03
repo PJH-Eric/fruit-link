@@ -301,13 +301,14 @@ body{
   overflow:hidden;container-type:size;
 }
 .board{
-  /* --bw / --bh 由 render.js 寫入，是「含外圈」的格數（cols+2、rows+2）。
-     各裝置只等比縮放，列欄永遠不變，所以格子編號在哪台裝置上都一樣。 */
-  --bw:10;--bh:8;
-  --ar:calc(var(--bw) / var(--bh));
+  /* --cols / --rows 由 render.js 寫入，是「不含外圈」的實際列欄。
+     外圈只是給連線路徑繞出去用的留白，做成半格寬就好 ——
+     整整一格太浪費，方塊會被擠小約一成。 */
+  --cols:10;--rows:8;--pad:0.5fr;
+  --ar:calc((var(--cols) + 1) / (var(--rows) + 1));
   display:grid;
-  grid-template-columns:repeat(var(--bw),1fr);
-  grid-template-rows:repeat(var(--bh),1fr);
+  grid-template-columns:var(--pad) repeat(var(--cols),1fr) var(--pad);
+  grid-template-rows:var(--pad) repeat(var(--rows),1fr) var(--pad);
   gap:0;
   aspect-ratio:var(--ar);
   width:100%;max-width:100%;max-height:100%;
@@ -319,35 +320,45 @@ body{
 @supports (width:1cqw){
   .board{width:min(100cqw,calc(100cqh * var(--ar)))}
 }
-.cell{position:relative;padding:2%;border:0;background:none;margin:0}
+/* 格子間距壓到最小，磚塊就能盡量放大；容器查詢讓名稱字級跟著格子走 */
+.cell{position:relative;padding:0.8%;border:0;background:none;margin:0;container-type:inline-size}
 .cell.pad{pointer-events:none}          /* 外面那一圈只是路徑用的留白 */
 .tile{
-  position:absolute;inset:2%;padding:0;margin:0;border:0;background:none;cursor:pointer;
-  border-radius:14%;touch-action:manipulation;transition:transform .12s ease,filter .12s ease;
+  position:absolute;inset:0.8%;padding:0;margin:0;border:0;background:none;cursor:pointer;
+  border-radius:16%;touch-action:manipulation;transition:transform .12s ease,filter .12s ease;
 }
-.tile .tile-svg{width:100%;height:100%;display:block}
+.tile .tile-svg{width:100%;height:100%;display:block;overflow:visible}
+/* 圖案獨立一層：開「顯示名稱」時往上縮，名稱才有自己的位置，不會蓋到圖 */
+.tile .tile-art{transform-box:fill-box;transform-origin:center;transition:transform .15s ease}
 .tile:focus-visible{outline:3px solid var(--sky-d);outline-offset:2px;z-index:4}
-.tile:hover{transform:translateY(-3%)}
-.tile.sel{transform:translateY(-6%) scale(1.06);filter:drop-shadow(0 0 6px rgba(122,106,136,.55));z-index:5}
+.tile:hover{transform:translateY(-4%)}
+.tile.sel{transform:translateY(-8%) scale(1.08);filter:drop-shadow(0 3px 5px rgba(74,59,85,.45));z-index:5}
 .tile.sel::after{
-  content:"";position:absolute;inset:-6%;border:4px solid var(--grape-d);border-radius:18%;
-  pointer-events:none;
+  content:"";position:absolute;inset:-7%;border:4px solid var(--grape-d);border-radius:20%;
+  pointer-events:none;box-shadow:0 0 0 2px rgba(255,255,255,.85) inset;
 }
 .tile.hint{animation:hintpulse 1s ease-in-out infinite;z-index:5}
-@keyframes hintpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes hintpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 .tile.gone{animation:pop .3s ease-out forwards;pointer-events:none}
 @keyframes pop{0%{transform:scale(1);opacity:1}45%{transform:scale(1.22);opacity:1}100%{transform:scale(.4);opacity:0}}
 .tile.shake{animation:shake .26s}
 @keyframes shake{0%,100%{transform:translate(0,0)}25%{transform:translate(-4%,2%)}50%{transform:translate(4%,-2%)}75%{transform:translate(-2%,-1%)}}
-/* 水果名稱標籤：色彩辨識不方便的時候打開，不只靠顏色分辨 */
+
+/* 名稱標籤：放在磚塊正面下緣的獨立色帶裡，不壓在圖案上。
+   字級用 cqw 跟著格子大小走，格子小就自動變小。 */
 .tile .tile-name{
-  position:absolute;left:4%;right:4%;bottom:5%;text-align:center;font-size:min(2.2cqh,11px);
-  font-weight:900;color:var(--ink);background:rgba(255,255,255,.82);border-radius:6px;
-  line-height:1.35;pointer-events:none;display:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+  position:absolute;left:6%;right:6%;bottom:7%;text-align:center;
+  font-size:clamp(6px,12.5cqw,12px);font-weight:800;color:var(--ink);
+  background:rgba(255,255,255,.94);border:1px solid rgba(74,59,85,.28);border-radius:999px;
+  line-height:1.3;padding:0 2px;pointer-events:none;display:none;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
 }
 body.show-label .tile .tile-name{display:block}
+/* 開名稱時圖案往上縮，把磚塊下緣整條讓給文字，兩者完全不重疊 */
+body.show-label .tile .tile-art{transform:translateY(-14%) scale(.76)}
 /* 幼幼班的盤面只有 12 格，格子大得多，名稱也跟著放大讓小朋友看得清楚 */
-body.kids-board .tile .tile-name{display:block;font-size:min(3.4cqh,20px);bottom:3%;border-radius:9px}
+body.kids-board .tile .tile-name{display:block;font-size:clamp(11px,10.5cqw,20px);bottom:7%}
+body.kids-board .tile .tile-art{transform:translateY(-14%) scale(.76)}
 
 /* 連線動畫：畫在和盤面同一個座標系的 SVG 上（1 單位 = 1 格） */
 .linkline{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6;overflow:visible}
@@ -416,6 +427,11 @@ body.kids-board .tile .tile-name{display:block;font-size:min(3.4cqh,20px);bottom
 .trophy{width:78px;margin:0 auto 4px}
 .trophy-svg{width:100%;height:auto;display:block}
 
+/* 盤面下方的操作列：只有窄版會用到（寬版這兩顆在左側欄裡） */
+.stage-actions{display:none;gap:10px;padding:8px 4px calc(4px + var(--safe-b));justify-content:center}
+.stage-actions .btn3d{flex:1 1 140px;max-width:220px;--d:6px;min-height:52px;font-size:.95rem}
+.stage-actions .btn3d b{font-variant-numeric:tabular-nums}
+
 /* 窄版才用的側欄開關 */
 .side-fab{display:none;position:absolute;left:calc(6px + var(--safe-l));bottom:calc(10px + var(--safe-b));
   z-index:12;flex-direction:column;gap:7px}
@@ -479,6 +495,9 @@ body.kids-board .tile .tile-name{display:block;font-size:min(3.4cqh,20px);bottom
   .side-fab{display:flex}
   .stage{padding-left:calc(8px + var(--safe-l))}
   .hud{padding-left:0}
+  /* 抽屜收起來的時候，提示與洗牌改放在盤面下方，單手就按得到 */
+  .stage-actions{display:flex}
+  .side-actions{display:none}
   /* 盤面上方的留白拿來放即時排行（pointer-events:none，不會擋到點擊） */
   .livebar{display:flex;position:absolute;z-index:8;pointer-events:none;
     left:8px;right:8px;top:6px;justify-content:center;flex-wrap:wrap;gap:5px}
@@ -486,6 +505,8 @@ body.kids-board .tile .tile-name{display:block;font-size:min(3.4cqh,20px);bottom
 
 /* 手機／平板橫向且很矮：HUD 壓扁，排行改成靠左一欄 */
 @media (orientation:landscape) and (max-height:560px){
+  /* 橫向很矮的時候沒有多餘高度，操作列縮回側欄 */
+  .stage-actions{display:none}
   .livebar{left:6px;right:auto;top:6px;bottom:6px;width:min(26%,140px);
     flex-direction:column;justify-content:flex-start;align-items:stretch}
   .lchip .ln{max-width:100%}

@@ -57,10 +57,20 @@ async function boardBox(page) {
     return {
       w: Math.round(r.width), h: Math.round(r.height),
       left: Math.round(r.left), top: Math.round(r.top),
-      bw: Number(cs.getPropertyValue('--bw')), bh: Number(cs.getPropertyValue('--bh')),
+      bw: Number(cs.getPropertyValue('--cols')) + 1, bh: Number(cs.getPropertyValue('--rows')) + 1,
       vw: window.innerWidth, vh: window.innerHeight
     };
   });
+}
+
+/** 對局進行中按離開會跳確認彈窗，測試也要照著點 */
+async function quitGame(page) {
+  await page.click('#b-quit');
+  await page.waitForTimeout(200);
+  if (await page.locator('#confirm-modal').isVisible()) {
+    await page.click('#b-confirm-yes');
+    await page.waitForTimeout(300);
+  }
 }
 
 async function main() {
@@ -163,8 +173,7 @@ async function main() {
       /* 每一局會重新抽造型，所以同一關連玩兩次組合應該不一樣 */
       const firstPalette = await page.evaluate(() => window.__fruitLink.snap.palette.join(','));
       await page.evaluate(() => { window.__fruitLink.run.level = 'normal'; });
-      await page.click('#b-quit');
-      await page.waitForTimeout(300);
+      await quitGame(page);
       await page.click('#b-solo');
       await page.waitForTimeout(200);
       await page.locator('#opt-theme .themecard[data-v="animals"]').click();
@@ -175,8 +184,7 @@ async function main() {
       check('每一局會重新隨機抽造型', firstPalette !== secondPalette, firstPalette + ' vs ' + secondPalette);
 
       /* 大混搭也要能正常開局 */
-      await page.click('#b-quit');
-      await page.waitForTimeout(300);
+      await quitGame(page);
       await page.click('#b-solo');
       await page.waitForTimeout(200);
       await page.locator('#opt-theme .themecard[data-v="mixed"]').click();
@@ -186,8 +194,83 @@ async function main() {
       const mixedKinds = await page.evaluate(() => window.__fruitLink.snap.kinds);
       check('大混搭開得了最難的一關（14 種）', mixedKinds === 14, '實際 ' + mixedKinds);
       await page.screenshot({ path: path.join(SHOTS, 'theme-mixed.png') });
-      await page.click('#b-quit');
-      await page.waitForTimeout(300);
+      await quitGame(page);
+
+      group('方塊尺寸與名稱標籤');
+      /* 開一局普通關，量方塊實際佔了格子多少、名稱有沒有壓到圖案 */
+      await page.click('#b-solo');
+      await page.waitForTimeout(250);
+      await page.locator('#opt-theme .themecard[data-v="fruits"]').click();
+      await page.locator('#opt-level .pickcard').nth(2).click();
+      await page.click('#b-solo-start');
+      await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
+
+      const fill = await page.evaluate(() => {
+        const cell = document.querySelector('#board .cell:not(.pad)');
+        const tile = cell.querySelector('.tile');
+        const c = cell.getBoundingClientRect(), t = tile.getBoundingClientRect();
+        return { ratio: (t.width * t.height) / (c.width * c.height), tileW: t.width, cellW: c.width };
+      });
+      check('方塊幾乎填滿格子（面積 ≥ 92%）', fill.ratio >= 0.92,
+        '實際 ' + (fill.ratio * 100).toFixed(1) + '%（方塊 ' + fill.tileW.toFixed(1) + 'px／格子 ' + fill.cellW.toFixed(1) + 'px）');
+
+      /* 立體感：磚塊 SVG 要畫出側面厚度與落地陰影 */
+      const solid = await page.evaluate(() => {
+        const svg = document.querySelector('#board .tile .tile-svg');
+        return { rects: svg.querySelectorAll('rect').length, shadow: !!svg.querySelector('ellipse'), art: !!svg.querySelector('.tile-art') };
+      });
+      check('磚塊畫出立體結構（側面＋正面＋光澤）', solid.rects >= 3, '實際 ' + solid.rects + ' 個面');
+      check('磚塊有落地陰影', solid.shadow);
+      check('圖案獨立成一層，名稱才能讓位', solid.art);
+
+      /* 關掉名稱時圖案最大；打開名稱時圖案縮小讓出下緣 */
+      const artBig = await page.evaluate(() => document.querySelector('#board .tile .tile-art').getBoundingClientRect().height);
+      await page.click('#b-settings');
+      await page.waitForTimeout(150);
+      await page.click('#set-label');
+      await page.waitForTimeout(150);
+      await page.click('#b-settings-done');
+      await page.waitForTimeout(400);
+      const withLabel = await page.evaluate(() => {
+        const tile = document.querySelector('#board .tile:not([hidden])');
+        const art = tile.querySelector('.tile-art').getBoundingClientRect();
+        const name = tile.querySelector('.tile-name').getBoundingClientRect();
+        const cs = getComputedStyle(tile.querySelector('.tile-name'));
+        return { artH: art.height, artBottom: art.bottom, nameTop: name.top, nameH: name.height,
+                 font: parseFloat(cs.fontSize), visible: cs.display !== 'none' };
+      });
+      check('打開「顯示名稱」後名稱真的出現', withLabel.visible && withLabel.nameH > 0);
+      check('圖案會自動讓位（縮小）', withLabel.artH < artBig - 1,
+        '原本 ' + artBig.toFixed(1) + 'px → ' + withLabel.artH.toFixed(1) + 'px');
+      check('名稱不會壓到圖案（標籤在圖案下方）', withLabel.nameTop >= withLabel.artBottom - 1,
+        '圖案底 ' + withLabel.artBottom.toFixed(1) + ' / 標籤頂 ' + withLabel.nameTop.toFixed(1));
+      check('名稱字級跟著格子縮放，不會爆版', withLabel.font >= 6 && withLabel.font <= 13,
+        withLabel.font.toFixed(1) + 'px');
+      await page.screenshot({ path: path.join(SHOTS, 'tile-label.png') });
+
+      /* 最難的一關格子最小，名稱也不能蓋圖 */
+      await quitGame(page);
+      await page.click('#b-solo');
+      await page.waitForTimeout(250);
+      await page.locator('#opt-level .pickcard').last().click();
+      await page.click('#b-solo-start');
+      await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
+      const hard = await page.evaluate(() => {
+        const tile = document.querySelector('#board .tile:not([hidden])');
+        const art = tile.querySelector('.tile-art').getBoundingClientRect();
+        const name = tile.querySelector('.tile-name').getBoundingClientRect();
+        return { artBottom: art.bottom, nameTop: name.top, tileW: tile.getBoundingClientRect().width };
+      });
+      check('最難的一關（格子最小）名稱一樣不蓋圖', hard.nameTop >= hard.artBottom - 1,
+        '格子寬 ' + hard.tileW.toFixed(1) + 'px，圖案底 ' + hard.artBottom.toFixed(1) + ' / 標籤頂 ' + hard.nameTop.toFixed(1));
+      await page.screenshot({ path: path.join(SHOTS, 'tile-label-hard.png') });
+      /* 把設定調回去，不影響後面的檢查 */
+      await page.click('#b-settings');
+      await page.waitForTimeout(150);
+      await page.click('#set-label');
+      await page.waitForTimeout(150);
+      await page.click('#b-settings-done');
+      await quitGame(page);
 
       group('幼幼班（3～5 歲）');
       await page.click('#b-solo');
@@ -336,6 +419,27 @@ async function main() {
         await page.waitForTimeout(300);
         const opened = await page.evaluate(() => Math.round(document.getElementById('side').getBoundingClientRect().left));
         check(v.label + ' 窄版：抽屜打得開', opened >= -1, '左緣 ' + opened);
+
+        /* 抽屜是收著的時候，提示與洗牌一定要在主畫面按得到 */
+        const acts = await page.evaluate(() => {
+          const bar = document.getElementById('stage-actions');
+          if (!bar || getComputedStyle(bar).display === 'none') return { shown: false };
+          const b = [...bar.querySelectorAll('.btn3d')];
+          const r = b.map((x) => x.getBoundingClientRect());
+          return {
+            shown: true, n: b.length,
+            minH: Math.min(...r.map((x) => x.height)),
+            inView: r.every((x) => x.top >= 0 && x.bottom <= innerHeight + 1 && x.left >= 0 && x.right <= innerWidth + 1),
+            hint: document.getElementById('hint-left2').textContent,
+            sideHint: document.getElementById('hint-left').textContent
+          };
+        });
+        if (acts.shown) {
+          check(v.label + ' 抽屜收著也能按到提示／洗牌', acts.n === 2 && acts.inView);
+          check(v.label + ' 提示／洗牌按鈕夠大（≥ 44px）', acts.minH >= 44, Math.round(acts.minH) + 'px');
+          check(v.label + ' 這兩顆顯示的剩餘次數是對的', acts.hint === acts.sideHint && acts.hint !== '',
+            '盤面下 ' + acts.hint + '／側欄 ' + acts.sideHint);
+        }
         await page.click('#b-side-close');
         await page.waitForTimeout(250);
       }

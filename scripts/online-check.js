@@ -173,6 +173,11 @@ async function main() {
     check('搶消的判定會廣播給觀戰者', spec.events.some((e) => e.k === 'match'));
 
     group('提示、洗牌與聊天');
+    /* 搶消是用事件推播的，用戶端手上的完整盤面要等下一次 room:sync 才會更新。
+       提示是伺服器依「目前」的盤面算的，所以要先等快照追上，
+       否則會拿還沒消掉的舊盤面去驗證，偶爾就會誤判成失敗。 */
+    await host.until((c) => c.view.match && c.view.match.left === matches[0].left, 6000, '盤面快照追上搶消結果');
+
     host.events.length = 0; p2.events.length = 0;
     host.send('room:hint', {});
     await host.until((c) => c.events.some((e) => e.k === 'hint'), 4000, '提示事件');

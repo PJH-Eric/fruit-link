@@ -20,15 +20,22 @@
     gray:  ['#E9E3EE', '#C8BFD1']
   };
 
-  /* 磚塊底色：依水果種類輪流，讓相同水果一眼就看得出是同一組，
-     不是只靠水果造型分辨（色彩辨識不便時還有「顯示名稱」可以開） */
-  var TILE_BG = [
-    ['#FFF3F5', '#FFD9E2'], ['#F2FBEF', '#D3EFC9'], ['#FFF9E8', '#FFE9B0'],
-    ['#EFF7FE', '#CFE6F8'], ['#F7F1FE', '#E1D2F7'], ['#FFF4EC', '#FFDCC2'],
-    ['#EEFBF7', '#C8EDE0'], ['#FDF0FA', '#F4D4EC'], ['#F4F6FF', '#D8DEF8'],
-    ['#FBF7EC', '#EBDEC0'], ['#F0FAFF', '#CDEBF7'], ['#FFF1F1', '#FFD2D2'],
-    ['#F5FFF0', '#DBF3C6'], ['#FBF3FF', '#E7D6F9']
-  ];
+  /* 磚塊配色：每一種圖案配一個色相，同一局裡不會有兩種圖案撞色。
+   *
+   * 色相刻意「跳著排」（紅 → 藍 → 黃 → 紫…），相鄰的種類差很多，
+   * 玩家掃過盤面時不容易把兩種不同的圖案看成同一種。
+   * 每個色相產出三個明度：正面（很淡，不跟圖案搶）、
+   * 內緣陰影（中）、側面厚度（深，做立體感也是最顯眼的顏色標記）。
+   */
+  var TILE_HUES = [352, 205, 42, 268, 96, 320, 18, 172, 62, 290, 138, 232, 8, 112, 306, 250];
+
+  function hsl(h, s2, l) { return 'hsl(' + h + ', ' + s2 + '%, ' + l + '%)'; }
+
+  /** @param {number} kind 1 起算 → [正面, 內緣, 側面] */
+  function tileColors(kind) {
+    var h = TILE_HUES[(Math.max(1, kind) - 1) % TILE_HUES.length];
+    return [hsl(h, 72, 93), hsl(h, 58, 80), hsl(h, 48, 63)];
+  }
 
   /* ---------------------------------------------------------- 立體按鈕 */
 
@@ -98,7 +105,6 @@
 
   /* ---------------------------------------------------------- 造型磚 */
 
-  function tileColors(kind) { return TILE_BG[(kind - 1) % TILE_BG.length]; }
 
   /**
    * 這一局的第 kind 種要畫成什麼。
@@ -121,14 +127,37 @@
    * 一塊造型磚：圓角木牌 + 該主題的造型。
    * viewBox 固定 100×100，實際大小交給 CSS，所以每種裝置只是等比縮放。
    */
+  /**
+   * 一塊立體磚：落地陰影 + 側面厚度 + 正面 + 內斜角 + 頂部光澤 + 圖案。
+   *
+   * viewBox 固定 100×100，實際大小交給 CSS，所以每種裝置只是等比縮放。
+   * 正面是 y 2～90，下面 7 個單位留給側面，看起來就像一塊有厚度的牌。
+   * 圖案裝在 .tile-art 這一層，開「顯示名稱」時由 CSS 往上縮，
+   * 名稱才有自己的位置，不會蓋在圖案上。
+   */
   function tileSvg(kind, theme, palette) {
     var art = artOf(theme, palette, kind);
     var c = tileColors(kind);
     return '<svg class="tile-svg" viewBox="0 0 100 100" aria-hidden="true">' +
-      '<rect x="4" y="7" width="92" height="89" rx="19" fill="' + c[1] + '"/>' +
-      '<rect x="4" y="4" width="92" height="89" rx="19" fill="' + c[0] + '" stroke="' + INK + '" stroke-width="4"/>' +
-      '<rect x="14" y="11" width="72" height="26" rx="13" fill="#FFFFFF" opacity="0.5"/>' +
-      '<g transform="translate(50 50) scale(0.76) translate(-50 -50)">' + (art ? art.svg : '') + '</g>' +
+      /* 落地陰影：讓磚看起來是浮在盤面上的 */
+      '<ellipse cx="50" cy="96" rx="41" ry="3.6" fill="#4A3B55" opacity="0.18"/>' +
+      /* 側面（厚度）：這一條深色也是這種圖案最好認的顏色標記 */
+      '<rect x="2" y="9" width="96" height="88" rx="18" fill="' + c[2] + '" stroke="' + INK + '" stroke-width="3"/>' +
+      /* 正面 */
+      '<rect x="2" y="2" width="96" height="88" rx="18" fill="' + c[0] + '" stroke="' + INK + '" stroke-width="3"/>' +
+      /* 內斜角：上緣打亮、下緣壓暗，厚度才立體 */
+      '<path d="M7 21 A15 15 0 0 1 22 6 L78 6 A15 15 0 0 1 93 21" fill="none" stroke="#FFFFFF" ' +
+        'stroke-width="4" stroke-linecap="round" opacity="0.6"/>' +
+      '<path d="M7 71 A15 15 0 0 0 22 86 L78 86 A15 15 0 0 0 93 71" fill="none" stroke="' + c[1] + '" ' +
+        'stroke-width="4" stroke-linecap="round" opacity="0.85"/>' +
+      /* 頂部光澤 */
+      '<rect x="13" y="7" width="74" height="19" rx="9.5" fill="#FFFFFF" opacity="0.42"/>' +
+      /* 圖案層。裡面先放一個看不見的 100×100 定位框：每一種圖案的實際外框大小
+         都不一樣（香蕉扁、玉米長），少了這個框，CSS 依 fill-box 縮放時每一種
+         讓位的幅度就會不同，名稱標籤有時候還是會被蓋到。 */
+      '<g class="tile-art" transform="translate(50 46) scale(0.88) translate(-50 -50)">' +
+      '<rect x="0" y="0" width="100" height="100" fill="none" stroke="none"/>' +
+      (art ? art.svg : '') + '</g>' +
       '</svg>';
   }
 
@@ -206,10 +235,10 @@
   }
 
   w.SvgUI = {
-    PALETTE: PALETTE, INK: INK, TILE_BG: TILE_BG,
+    PALETTE: PALETTE, INK: INK,
     decorate: decorate, decorateAll: decorateAll, repaintAll: repaintAll, paint: paint,
     setLabel: setLabel, setColor: setColor,
-    tileSvg: tileSvg, tileColors: tileColors, artOf: artOf, artSvg: artSvg, tileName: tileName,
+    tileSvg: tileSvg, tileColors: tileColors, TILE_HUES: TILE_HUES, artOf: artOf, artSvg: artSvg, tileName: tileName,
     logo: logo, trophy: trophy, bgDeco: bgDeco
   };
 }(window));
