@@ -229,6 +229,18 @@ test('createBoard：格數偶數、每種成雙、開局就有解', () => {
   });
 });
 
+test('平面關卡：每種水果會出現 2～3 對，不超過 3 對', () => {
+  Rules.LEVELS.forEach((L) => {
+    const b = Rules.createBoard(L.cols, L.rows, L.kinds, RNG.createRng('repeat:' + L.key));
+    const counts = {};
+    Rules.innerCells(b.W, b.H).forEach((i) => { counts[b.grid[i]] = (counts[b.grid[i]] || 0) + 1; });
+    Object.keys(counts).forEach((kind) => {
+      assert.ok(counts[kind] >= 4 && counts[kind] <= 6,
+        L.key + ' 第 ' + kind + ' 種應該有 2～3 對，實際 ' + counts[kind] + ' 顆');
+    });
+  });
+});
+
 test('同一個種子一定長出同一張盤面（可重現、可重播）', () => {
   const a = Rules.createBoard(10, 8, 10, RNG.createRng('same-seed'));
   const b = Rules.createBoard(10, 8, 10, RNG.createRng('same-seed'));
