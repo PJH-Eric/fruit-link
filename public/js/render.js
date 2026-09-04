@@ -34,8 +34,8 @@
   function ay(y) { return y === 0 ? 0.25 : (y === H - 1 ? rows + 0.75 : y); }
   function cx(i) { return ax(i % W); }
   function cy(i) { return ay(Math.floor(i / W)); }
-  function vbW() { return cols + 1; }
-  function vbH() { return rows + 1; }
+  function vbW() { return stackPos ? W + 1 : cols + 1; }
+  function vbH() { return stackPos ? H + 1 : rows + 1; }
 
   /* ---------------------------------------------------------- 盤面 */
 
@@ -261,6 +261,29 @@
     setTimeout(function () { if (g.parentNode) g.parentNode.removeChild(g); }, 700);
   }
 
+  /** 疊牌沒有平面路徑，改用兩張牌的中心畫出配對特效 */
+  function drawStackLink(a, b) {
+    if (!lineEl || !stackPos || !stackPos[a] || !stackPos[b]) return;
+    var point = function (i) {
+      return (stackPos[i].x + 1.5).toFixed(3) + ',' + (stackPos[i].y + 1.5).toFixed(3);
+    };
+    var pts = point(a) + ' ' + point(b);
+    var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.innerHTML =
+      '<polyline class="lk-bg stack-link" points="' + pts + '"/>' +
+      '<polyline class="lk stack-link" points="' + pts + '"/>';
+    lineEl.appendChild(g);
+    [a, b].forEach(function (i) {
+      if (tiles[i]) tiles[i].classList.add('mahjong-match');
+    });
+    setTimeout(function () {
+      if (g.parentNode) g.parentNode.removeChild(g);
+      [a, b].forEach(function (i) {
+        if (tiles[i]) tiles[i].classList.remove('mahjong-match');
+      });
+    }, 700);
+  }
+
   /** 消除動畫：先彈一下再消失，動畫結束才真的把磚塊拿掉 */
   function popPair(a, b) {
     [a, b].forEach(function (i) {
@@ -401,7 +424,7 @@
     isLocked: isLocked, stackStep: stackStep,
     setSelected: setSelected, clearSelected: clearSelected,
     markHint: markHint, clearHints: clearHints, shake: shake,
-    drawLink: drawLink, popPair: popPair,
+    drawLink: drawLink, drawStackLink: drawStackLink, popPair: popPair,
     flyScore: flyScore, shout: shout,
     rank: rank, seats: seats, results: results, chat: chat,
     pathDemos: pathDemos, seatColor: seatColor, esc: esc

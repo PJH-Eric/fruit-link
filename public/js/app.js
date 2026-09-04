@@ -584,7 +584,8 @@
           if (p.id === ev.by) { p.score = ev.score; p.combo = ev.combo; p.pairs = ev.pairs; }
         });
       }
-      R.drawLink(ev.path);
+      if (isStackBoard()) R.drawStackLink(ev.a, ev.b);
+      else R.drawLink(ev.path);
       R.popPair(ev.a, ev.b);
       R.flyScore(ev.b, '+' + ev.gain + (ev.combo > 1 ? ' ×' + ev.mult : ''), mine);
       if (!mine) R.flyScore(ev.a, nameOf(ev.by), false);

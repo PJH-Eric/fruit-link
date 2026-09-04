@@ -493,6 +493,15 @@ async function main() {
       if (firstPair) {
         await page.mouse.click(firstPair.a.x, firstPair.a.y);
         await page.mouse.click(firstPair.b.x, firstPair.b.y);
+        const matchEffect = await page.evaluate((data) => {
+          const ids = data ? [data.pair.a, data.pair.b] : [];
+          return {
+            link: document.querySelectorAll('#linkline .stack-link').length,
+            tiles: ids.filter((i) => document.querySelector('#board .tile[data-i="' + i + '"]').classList.contains('mahjong-match')).length
+          };
+        }, firstPair);
+        check('麻將配對會顯示連線特效', matchEffect.link >= 2 && matchEffect.tiles === 2,
+          JSON.stringify(matchEffect));
         await page.waitForFunction((before) => window.__fruitLink.snap && window.__fruitLink.snap.left < before,
           firstPair.left, { timeout: 1200 });
         await page.waitForTimeout(350);

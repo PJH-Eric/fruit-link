@@ -392,7 +392,9 @@ body.kids-board .tile .tile-art{transform:translateY(-14%) scale(.76)}
   filter:drop-shadow(0 0 .06px #fff);animation:linkfade .55s ease-out forwards}
 .linkline .lk-bg{fill:none;stroke:#FFFFFF;stroke-width:.28;stroke-linecap:round;stroke-linejoin:round;
   opacity:.85;animation:linkfade .55s ease-out forwards}
+.linkline .stack-link{stroke-dasharray:.7 .25;animation:stacklinkfade .7s ease-out forwards}
 @keyframes linkfade{0%{opacity:0}18%{opacity:1}70%{opacity:1}100%{opacity:0}}
+@keyframes stacklinkfade{0%{opacity:0;stroke-width:.08}18%{opacity:1;stroke-width:.28}70%{opacity:1}100%{opacity:0;stroke-width:.08}}
 
 /* 特效層 */
 .fx{position:absolute;inset:0;pointer-events:none;z-index:7;overflow:hidden}
