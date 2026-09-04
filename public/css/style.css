@@ -580,7 +580,9 @@ body.reduce-motion .tile.gone{opacity:0}
  * 由 render.js 依層數寫在每個 .cell 上。
  * ================================================================ */
 .board.stacked .cell.lay{filter:drop-shadow(0 2px 2px rgba(74,59,85,.3))}
-.board.stacked .tile{inset:1.6%}
+.board.stacked .tile{inset:0}
+/* 麻將牌身是直式比例，橫向補滿牌格後相鄰牌才會緊貼；點擊範圍仍維持原本的牌格 */
+.board.stacked .tile .tile-svg-mahjong{transform:scaleX(1.58);transform-origin:center}
 
 /* 被壓住的牌：壓暗但仍然看得出是哪一張（玩家要能先看好再規劃），
    點不動則靠 pointer-events 與 render.js 拿掉的 tabIndex。 */

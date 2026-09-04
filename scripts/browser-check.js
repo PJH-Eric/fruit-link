@@ -422,6 +422,16 @@ async function main() {
       check('一開局就有牌被壓在下面', info.locked > 0, '被壓住 ' + info.locked + ' 張');
       check('麻將盤沒有 JS 錯誤', errors.length === 0, errors.join('\n'));
       check('麻將牌下方不顯示文字', await page.locator('#board .tile .tile-name').count() === 0);
+      const mahjongGap = await page.evaluate(() => {
+        const G = window.__fruitLink;
+        const row = G.snap.stack.filter((p) => p.z === 0 && p.y === 0).sort((a, b) => a.x - b.x);
+        const rects = row.map((p) => {
+          const svg = document.querySelector('#board .tile[data-i="' + G.snap.stack.indexOf(p) + '"] .tile-svg-mahjong');
+          return svg.querySelectorAll('rect')[1].getBoundingClientRect();
+        });
+        return rects.length > 1 ? Math.max(...rects.slice(1).map((r, i) => r.left - rects[i].right)) : 0;
+      });
+      check('麻將牌面彼此緊貼', mahjongGap <= 1.5, '最大間距 ' + mahjongGap.toFixed(1) + 'px');
       await page.screenshot({ path: path.join(SHOTS, 'mahjong-stack.png') });
 
       const lock = await page.evaluate(() => {
