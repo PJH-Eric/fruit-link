@@ -144,6 +144,13 @@ body{
   border:3px solid var(--ink);border-radius:18px;background:var(--paper);
   padding:10px;font:inherit;cursor:pointer;color:var(--ink);text-align:center;
 }
+/* 每個主題用很淡的專屬底色，讓選單掃一眼就能分辨類型；選取狀態仍統一用檸檬黃強調 */
+.themecard[data-v="fruits"]{background:#F1F8E9}
+.themecard[data-v="animals"]{background:#FFF0D6}
+.themecard[data-v="food"]{background:#FFF0F2}
+.themecard[data-v="flags"]{background:#EDF6FF}
+.themecard[data-v="mahjong"]{background:#F3F0FA}
+.themecard[data-v="mixed"]{background:#FFF9DF}
 .themecard[aria-checked="true"]{background:var(--lemon);box-shadow:0 5px 0 var(--lemon-d)}
 .themecard:focus-visible{outline:3px solid var(--sky-d);outline-offset:2px}
 .themecard .tname{font-weight:800;font-size:.98rem}
@@ -353,9 +360,9 @@ body{
   line-height:1.3;padding:0 2px;pointer-events:none;display:none;
   overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
 }
-body.show-label .tile .tile-name{display:block}
+body.show-label .tile:not(.mahjong) .tile-name{display:block}
 /* 開名稱時圖案往上縮，把磚塊下緣整條讓給文字，兩者完全不重疊 */
-body.show-label .tile .tile-art{transform:translateY(-14%) scale(.76)}
+body.show-label .tile:not(.mahjong) .tile-art{transform:translateY(-14%) scale(.76)}
 /* 幼幼班的盤面只有 12 格，格子大得多，名稱也跟著放大讓小朋友看得清楚 */
 body.kids-board .tile .tile-name{display:block;font-size:clamp(11px,10.5cqw,20px);bottom:7%}
 body.kids-board .tile .tile-art{transform:translateY(-14%) scale(.76)}

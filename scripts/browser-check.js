@@ -163,6 +163,9 @@ async function main() {
         themeNames.join('').indexOf('動物') >= 0 && themeNames.join('').indexOf('國旗') >= 0 &&
         themeNames.join('').indexOf('食物') >= 0 && themeNames.join('').indexOf('麻將') >= 0 &&
         themeNames.join('').indexOf('大混搭') >= 0, themeNames.join(' '));
+      const themeBackgrounds = await page.locator('#opt-theme .themecard').evaluateAll((cards) =>
+        new Set(cards.map((card) => getComputedStyle(card).backgroundColor)).size);
+      check('不同主題卡有不同底色', themeBackgrounds >= 5, '實際 ' + themeBackgrounds + ' 種');
 
       /* 換成動物、開最小的一關，確認盤面真的變成動物 */
       await page.locator('#opt-theme .themecard[data-v="animals"]').click();
@@ -418,6 +421,7 @@ async function main() {
       check('畫面上的牌數和盤面對得起來', info.tiles === info.total, info.tiles + ' vs ' + info.total);
       check('一開局就有牌被壓在下面', info.locked > 0, '被壓住 ' + info.locked + ' 張');
       check('麻將盤沒有 JS 錯誤', errors.length === 0, errors.join('\n'));
+      check('麻將牌下方不顯示文字', await page.locator('#board .tile .tile-name').count() === 0);
       await page.screenshot({ path: path.join(SHOTS, 'mahjong-stack.png') });
 
       const lock = await page.evaluate(() => {

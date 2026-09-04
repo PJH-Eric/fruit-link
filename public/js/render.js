@@ -105,7 +105,7 @@
   }
 
   function makeTile(i, onPick) {
-    var btn = el('button', 'tile');
+    var btn = el('button', 'tile' + (theme === 'mahjong' ? ' mahjong' : ''));
     btn.type = 'button';
     btn.dataset.i = i;
     btn.setAttribute('role', 'gridcell');
@@ -194,7 +194,8 @@
         btn.tabIndex = 0;
         btn.dataset.kind = kind;
         btn.innerHTML = w.SvgUI.tileSvg(kind, theme, palette) +
-          '<span class="tile-name">' + w.SvgUI.tileName(kind, theme, palette) + '</span>';
+          (theme === 'mahjong' ? '' :
+            '<span class="tile-name">' + w.SvgUI.tileName(kind, theme, palette) + '</span>');
         btn.setAttribute('aria-label', tileLabel(idx, kind));
         btn.setAttribute('aria-pressed', 'false');
       }
