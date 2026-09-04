@@ -667,11 +667,300 @@
     }
   ];
 
+  /* ---- 第二批：再加 18 種，動物的造型池從 42 種變成 60 種 ----
+     既有的頭像類已經很擠了，所以這批幾乎都走「全身剪影」：長脖子（馬、駱駝、
+     天鵝、紅鶴）、展開的翅膀或尾巴（蝙蝠、孔雀、蜻蜓）、多腳的蟲（螞蟻、蜘蛛、
+     獨角仙）與水裡的（海馬、蝦子、海豹、扇貝），縮到一格四十幾像素也分得出來。 */
+  var MORE = [
+    {
+      id: 'horse', label: '馬',
+      svg: ground(26, 93) +
+        '<path d="M46 40 C62 46 74 62 76 80 C77 88 72 92 64 92 L40 92 C34 84 32 66 36 52 Z" ' +
+        'fill="#8A5A2E" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M48 26 C60 34 72 54 76 78 C70 76 66 72 62 66 C56 54 50 42 44 34 Z" fill="#3B2C22"/>' +
+        '<path d="M44 26 L42 12 L54 22 Z" fill="#9A6836" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<path d="M54 24 L58 12 L66 26 Z" fill="#7A4A22" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<path d="M18 34 C12 32 12 24 18 22 C28 18 40 22 48 30 C54 36 54 46 48 50 C40 55 28 50 22 44 C19 41 18 38 18 34 Z" ' +
+        'fill="#9A6836" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M18 34 C12 32 12 24 18 22 C23 20 28 21 32 23 C28 27 25 32 23 38 C21 38 19 36 18 34 Z" fill="#EFE3D2" opacity="0.9"/>' +
+        '<ellipse cx="17" cy="29" rx="2.4" ry="3.2" fill="#3B2C22"/>' +
+        eye(38, 32, 3.6)
+    },
+    {
+      id: 'camel', label: '駱駝',
+      svg: ground(30, 93) +
+        '<g fill="#B98C4E" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round">' +
+        '<path d="M36 66 L34 90 L42 90 L42 66 Z"/><path d="M48 66 L47 90 L55 90 L54 66 Z"/>' +
+        '<path d="M64 66 L63 90 L71 90 L70 66 Z"/><path d="M74 66 L74 90 L82 90 L80 66 Z"/></g>' +
+        '<path d="M28 60 C28 48 34 42 44 42 C48 32 60 30 64 40 C72 32 84 36 86 46 C88 56 86 66 78 70 L36 70 C30 70 28 66 28 60 Z" ' +
+        'fill="#D3A96A" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M64 40 C72 32 84 36 86 46 C88 56 86 66 78 70 L60 70 C72 64 74 50 64 40 Z" fill="#B4884A" opacity="0.8"/>' +
+        '<path d="M30 58 C22 46 20 30 26 20 L38 22 C34 34 34 46 38 58 Z" ' +
+        'fill="#D3A96A" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M26 20 C18 18 12 20 12 26 C12 32 18 34 24 32 L38 28 C41 22 34 18 26 20 Z" ' +
+        'fill="#DDB477" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<path d="M28 15 L27 20 M36 17 L37 22" fill="none" stroke="' + INK + '" stroke-width="2.4" stroke-linecap="round"/>' +
+        '<ellipse cx="13" cy="27" rx="2.4" ry="3" fill="#3B2C22"/>' +
+        eye(27, 24, 3.2) +
+        '<path d="M86 52 C93 56 93 66 88 72" fill="none" stroke="' + INK + '" stroke-width="3" stroke-linecap="round"/>'
+    },
+    {
+      id: 'sloth', label: '樹懶',
+      svg: '<path d="M6 18 C30 12 70 12 94 18" fill="none" stroke="#6B4A2A" stroke-width="9" stroke-linecap="round"/>' +
+        '<g fill="#8E7657" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round">' +
+        '<path d="M32 22 C20 26 16 40 22 52 C26 60 34 58 34 50 C34 40 34 30 40 26 Z"/>' +
+        '<path d="M68 22 C80 26 84 40 78 52 C74 60 66 58 66 50 C66 40 66 30 60 26 Z"/></g>' +
+        '<g fill="none" stroke="#4E3620" stroke-width="3" stroke-linecap="round">' +
+        '<path d="M26 22 C22 16 24 12 28 12 M34 20 C32 14 34 11 38 12 M74 22 C78 16 76 12 72 12 M66 20 C68 14 66 11 62 12"/></g>' +
+        '<ellipse cx="50" cy="64" rx="23" ry="24" fill="#A08A6E" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M62 46 C70 52 73 62 73 68 C73 80 63 88 50 88 C62 82 66 72 66 62 C66 55 64 49 62 46 Z" fill="#7E6748" opacity="0.85"/>' +
+        '<circle cx="50" cy="44" r="20" fill="#CBB89A" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<g fill="#6E5537"><path d="M32 40 C34 32 42 30 46 36 C44 44 36 46 32 40 Z"/>' +
+        '<path d="M68 40 C66 32 58 30 54 36 C56 44 64 46 68 40 Z"/></g>' +
+        eye(40, 40, 3.4) + eye(60, 40, 3.4) +
+        nose(50, 50, 4.4, '#4E3620') +
+        '<path d="M42 56 C46 60 54 60 58 56" fill="none" stroke="' + INK + '" stroke-width="2.2" stroke-linecap="round"/>'
+    },
+    {
+      id: 'bat', label: '蝙蝠',
+      svg: ground(24, 92) +
+        '<g fill="#4A3A5C" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round">' +
+        '<path d="M38 48 C26 36 12 34 4 42 C12 44 14 50 10 56 C20 56 24 62 22 70 C30 62 36 60 40 62 Z"/>' +
+        '<path d="M62 48 C74 36 88 34 96 42 C88 44 86 50 90 56 C80 56 76 62 78 70 C70 62 64 60 60 62 Z"/></g>' +
+        '<g fill="none" stroke="#2E2438" stroke-width="1.8" opacity="0.8">' +
+        '<path d="M38 50 L14 44 M38 56 L16 54 M38 62 L22 66 M62 50 L86 44 M62 56 L84 54 M62 62 L78 66"/></g>' +
+        '<ellipse cx="50" cy="62" rx="15" ry="20" fill="#5C4A70" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M42 24 L36 6 L54 20 Z" fill="#5C4A70" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<path d="M58 24 L64 6 L46 20 Z" fill="#4A3A5C" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<circle cx="50" cy="36" r="17" fill="#6B5680" stroke="' + INK + '" stroke-width="2.6"/>' +
+        eye(43, 34, 3.6) + eye(57, 34, 3.6) +
+        nose(50, 44, 3.4, '#2E2438') +
+        '<g fill="#FFFFFF"><path d="M45 46 L44 52 L48 47 Z"/><path d="M55 46 L56 52 L52 47 Z"/></g>'
+    },
+    {
+      id: 'swan', label: '天鵝',
+      svg: '<path d="M6 86 C24 80 40 90 58 84 C74 79 86 86 96 82" fill="none" stroke="#8FC5DE" stroke-width="4" stroke-linecap="round" opacity="0.9"/>' +
+        '<path d="M20 72 C20 58 34 50 52 50 C72 50 86 58 86 68 C86 78 72 84 52 84 C32 84 20 80 20 72 Z" ' +
+        'fill="#FBF8F2" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M62 52 C78 56 86 60 86 68 C86 78 72 84 52 84 C72 80 80 70 76 62 C73 57 68 54 62 52 Z" fill="#DED8CC" opacity="0.9"/>' +
+        '<path d="M40 64 C30 54 30 32 42 22 C52 14 68 16 72 26 C63 22 55 24 51 32 C46 42 47 54 51 64 Z" ' +
+        'fill="#FBF8F2" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<ellipse cx="67" cy="24" rx="12" ry="10" fill="#FBF8F2" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M77 21 L92 26 L77 31 Z" fill="#E8892E" stroke="' + INK + '" stroke-width="2.2" stroke-linejoin="round"/>' +
+        '<path d="M72 17 C77 17 79 19 79 22 L70 22 Z" fill="#2E2418"/>' +
+        eye(70, 22, 3) +
+        '<path d="M34 66 C38 54 52 50 64 54 C74 58 78 68 72 78 C62 84 44 80 34 66 Z" ' +
+        'fill="#FFFFFF" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<g fill="none" stroke="#CFC8BA" stroke-width="1.8"><path d="M42 66 C50 60 60 58 68 62 M44 74 C52 68 62 66 71 70"/></g>'
+    },
+    {
+      id: 'flamingo', label: '紅鶴',
+      svg: ground(16, 95) +
+        '<g fill="none" stroke="#E8892E" stroke-width="4" stroke-linecap="round">' +
+        '<path d="M52 68 L50 92 M44 92 L58 92 M60 66 C66 72 63 78 57 78"/></g>' +
+        '<ellipse cx="52" cy="56" rx="26" ry="18" fill="#F49BB4" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M62 42 C74 46 78 54 78 58 C78 68 66 74 52 74 C68 70 74 60 70 50 C68 46 65 43 62 42 Z" fill="#DB7392" opacity="0.85"/>' +
+        '<path d="M36 52 C44 44 60 44 68 52 C62 62 44 64 36 52 Z" fill="#FBC0CE" stroke="' + INK + '" stroke-width="2.2" stroke-linejoin="round"/>' +
+        '<path d="M38 46 C28 36 30 20 42 14 C52 9 65 14 65 24 C58 18 50 18 46 24 C41 32 42 40 46 48 Z" ' +
+        'fill="#F49BB4" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<ellipse cx="60" cy="20" rx="11" ry="9" fill="#F8AEC2" stroke="' + INK + '" stroke-width="2.5"/>' +
+        '<path d="M68 15 L86 21 C81 28 70 28 66 23 Z" fill="#F0E6D2" stroke="' + INK + '" stroke-width="2.2" stroke-linejoin="round"/>' +
+        '<path d="M76 19 L86 21 C84 26 78 26 74 24 Z" fill="#2E2418"/>' +
+        eye(62, 18, 3)
+    },
+    {
+      id: 'peacock', label: '孔雀',
+      svg: ground(22, 93) +
+        '<path d="M50 70 C18 70 6 46 14 26 C22 8 78 8 86 26 C94 46 82 70 50 70 Z" ' +
+        'fill="#2E8B74" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<g fill="none" stroke="#1E6B58" stroke-width="2" opacity="0.9">' +
+        '<path d="M50 68 C40 54 30 36 24 20 M50 68 C46 50 42 30 40 14 M50 68 C54 50 58 30 60 14 M50 68 C60 54 70 36 76 20"/></g>' +
+        '<g stroke="#134C3E" stroke-width="2" fill="#3AA9CF">' +
+        '<circle cx="24" cy="30" r="7"/><circle cx="40" cy="20" r="7"/><circle cx="60" cy="20" r="7"/>' +
+        '<circle cx="76" cy="30" r="7"/><circle cx="32" cy="47" r="6"/><circle cx="68" cy="47" r="6"/><circle cx="50" cy="33" r="7"/></g>' +
+        '<g fill="#F0B429"><circle cx="24" cy="30" r="3"/><circle cx="40" cy="20" r="3"/><circle cx="60" cy="20" r="3"/>' +
+        '<circle cx="76" cy="30" r="3"/><circle cx="32" cy="47" r="2.6"/><circle cx="68" cy="47" r="2.6"/><circle cx="50" cy="33" r="3"/></g>' +
+        '<ellipse cx="50" cy="74" rx="13" ry="16" fill="#1E5FA8" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M50 42 L50 35 M45 43 L43 36 M55 43 L57 36" fill="none" stroke="' + INK + '" stroke-width="2" stroke-linecap="round"/>' +
+        '<g fill="#2472C4"><circle cx="50" cy="34" r="2.6"/><circle cx="42.4" cy="35" r="2.4"/><circle cx="57.6" cy="35" r="2.4"/></g>' +
+        '<circle cx="50" cy="54" r="12" fill="#2472C4" stroke="' + INK + '" stroke-width="2.5"/>' +
+        '<path d="M59 55 L70 58 L59 61 Z" fill="#E8B23C" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>' +
+        eye(47, 52, 3)
+    },
+    {
+      id: 'rooster', label: '公雞',
+      svg: ground(24, 93) +
+        '<g fill="#2E7A4A" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round">' +
+        '<path d="M32 60 C18 54 8 38 12 24 C22 32 30 44 36 52 Z"/>' +
+        '<path d="M32 68 C16 70 4 60 4 46 C16 50 26 56 34 60 Z"/></g>' +
+        '<path d="M34 44 C50 40 66 48 70 62 C74 76 64 86 50 86 C36 86 28 76 28 64 C28 56 30 48 34 44 Z" ' +
+        'fill="#E9A03C" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M58 46 C68 52 74 62 70 74 C66 82 58 86 50 86 C62 80 66 68 62 58 C61 53 59 48 58 46 Z" fill="#C57A1C" opacity="0.85"/>' +
+        '<g fill="none" stroke="#E8892E" stroke-width="3.4" stroke-linecap="round"><path d="M44 86 L42 94 M58 86 L60 94"/></g>' +
+        '<circle cx="58" cy="34" r="16" fill="#F5E7D2" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<g fill="#D6342E" stroke="' + INK + '" stroke-width="2.2" stroke-linejoin="round">' +
+        '<path d="M48 22 C50 12 56 12 58 18 C62 10 69 12 68 22 C62 20 54 20 48 22 Z"/>' +
+        '<path d="M56 46 C54 55 61 59 65 52 C63 48 60 46 56 46 Z"/></g>' +
+        '<path d="M73 31 L88 36 L73 41 Z" fill="#E8B23C" stroke="' + INK + '" stroke-width="2.2" stroke-linejoin="round"/>' +
+        eye(64, 30, 3.4)
+    },
+    {
+      id: 'crocodile', label: '鱷魚',
+      svg: ground(30, 92) +
+        '<path d="M6 62 L74 58 C86 58 92 64 92 70 C92 76 86 80 74 80 L20 80 C10 80 6 74 6 68 Z" ' +
+        'fill="#4E8A3E" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M8 63 L74 59 C85 59 91 64 91 70 L8 70 Z" fill="#69A64E"/>' +
+        '<g fill="#3A6B2C" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round">' +
+        '<path d="M22 59 L26 47 L31 58 Z"/><path d="M36 58 L40 45 L45 57 Z"/>' +
+        '<path d="M50 57 L54 44 L59 56 Z"/><path d="M64 56 L68 45 L73 56 Z"/></g>' +
+        '<g fill="#FBF8F2"><path d="M14 70 L18 78 L22 70 Z"/><path d="M26 70 L30 78 L34 70 Z"/>' +
+        '<path d="M38 70 L42 78 L46 70 Z"/><path d="M50 70 L54 78 L58 70 Z"/><path d="M62 70 L66 78 L70 70 Z"/></g>' +
+        '<ellipse cx="78" cy="53" rx="11" ry="9" fill="#5E9C48" stroke="' + INK + '" stroke-width="2.5"/>' +
+        '<ellipse cx="88" cy="52" rx="7" ry="6" fill="#5E9C48" stroke="' + INK + '" stroke-width="2.5"/>' +
+        eye(78, 51, 3.4) + eye(89, 50, 2.8) +
+        '<g fill="#3A6B2C" stroke="' + INK + '" stroke-width="2.2" stroke-linejoin="round">' +
+        '<path d="M22 80 L17 90 L28 90 Z"/><path d="M52 80 L47 90 L58 90 Z"/><path d="M78 80 L73 90 L84 90 Z"/></g>'
+    },
+    {
+      id: 'snake', label: '蛇',
+      svg: ground(26, 93) +
+        '<path d="M18 88 C40 88 46 74 34 66 C22 58 26 42 44 40 C60 38 66 30 62 22" ' +
+        'fill="none" stroke="' + INK + '" stroke-width="19" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M18 88 C40 88 46 74 34 66 C22 58 26 42 44 40 C60 38 66 30 62 22" ' +
+        'fill="none" stroke="#5EA83C" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<g fill="#2F6B24"><ellipse cx="26" cy="88" rx="3.4" ry="4.4"/><ellipse cx="42" cy="82" rx="3.4" ry="4.4"/>' +
+        '<ellipse cx="38" cy="68" rx="3.4" ry="4.4"/><ellipse cx="27" cy="58" rx="3.4" ry="4.4"/>' +
+        '<ellipse cx="34" cy="45" rx="3.4" ry="4.4"/><ellipse cx="50" cy="39" rx="3.4" ry="4.4"/></g>' +
+        '<ellipse cx="62" cy="20" rx="14" ry="11" fill="#6FBE46" stroke="' + INK + '" stroke-width="2.6" transform="rotate(-16 62 20)"/>' +
+        '<path d="M74 16 C82 14 88 16 92 20 C86 22 80 22 75 21 Z" fill="#D6342E" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>' +
+        '<path d="M86 18 L96 14 M86 19 L96 24" fill="none" stroke="#D6342E" stroke-width="2.4" stroke-linecap="round"/>' +
+        eye(64, 15, 3.2)
+    },
+    {
+      id: 'seahorse', label: '海馬',
+      svg: ground(18, 94) +
+        '<path d="M56 18 C68 18 74 28 72 40 C70 52 60 58 54 68 C48 78 52 86 60 86 C66 86 68 82 66 78" ' +
+        'fill="none" stroke="' + INK + '" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M56 18 C68 18 74 28 72 40 C70 52 60 58 54 68 C48 78 52 86 60 86 C66 86 68 82 66 78" ' +
+        'fill="none" stroke="#F0913C" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M44 24 C32 22 28 30 34 36 C26 38 26 46 34 48 C28 54 32 62 40 60" ' +
+        'fill="none" stroke="#D9762A" stroke-width="6" stroke-linecap="round"/>' +
+        '<path d="M52 14 C40 12 32 18 34 26 C38 32 48 32 55 26 Z" fill="#F5A45C" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<path d="M34 23 L17 30 L34 33 Z" fill="#F5A45C" stroke="' + INK + '" stroke-width="2.3" stroke-linejoin="round"/>' +
+        '<path d="M56 10 C61 3 68 6 65 13" fill="none" stroke="#D9762A" stroke-width="4" stroke-linecap="round"/>' +
+        eye(46, 22, 3.2) +
+        '<g fill="#D9762A" opacity="0.85"><circle cx="67" cy="32" r="2.4"/><circle cx="66" cy="42" r="2.4"/>' +
+        '<circle cx="60" cy="52" r="2.4"/><circle cx="53" cy="62" r="2.4"/><circle cx="52" cy="74" r="2.4"/></g>'
+    },
+    {
+      id: 'shrimp', label: '蝦子',
+      svg: ground(26, 92) +
+        '<path d="M70 22 C46 18 26 34 26 54 C26 72 42 84 58 84 C68 84 74 80 76 74 C68 76 60 74 56 68 ' +
+        'C50 60 52 46 62 40 C70 35 78 36 82 40 C82 30 78 24 70 22 Z" ' +
+        'fill="#F2734E" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<g fill="none" stroke="#C94A2A" stroke-width="2.2" opacity="0.9">' +
+        '<path d="M46 26 C48 34 46 42 40 48 M36 32 C40 40 40 50 34 58 M28 44 C34 52 36 62 32 70"/></g>' +
+        '<path d="M76 74 C86 70 94 74 94 82 C86 87 78 82 76 74 Z" fill="#F79B78" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<path d="M58 84 C58 92 66 96 74 92 C70 86 65 84 58 84 Z" fill="#F79B78" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<g fill="none" stroke="' + INK + '" stroke-width="2.2" stroke-linecap="round">' +
+        '<path d="M72 22 C80 12 90 10 96 14 M67 20 C73 8 84 4 92 6"/></g>' +
+        '<g fill="none" stroke="#C94A2A" stroke-width="3" stroke-linecap="round">' +
+        '<path d="M40 52 L30 62 M46 62 L38 74 M56 70 L52 82"/></g>' +
+        eye(72, 30, 3.4)
+    },
+    {
+      id: 'seal', label: '海豹',
+      svg: ground(30, 92) +
+        '<path d="M26 60 C26 46 40 38 56 40 C74 42 88 54 88 68 C88 80 76 86 60 86 L36 86 C28 86 26 78 26 70 Z" ' +
+        'fill="#8E9AA8" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M70 46 C82 52 88 60 88 68 C88 80 76 86 60 86 C76 82 82 72 78 62 C76 55 73 49 70 46 Z" fill="#6E7A88" opacity="0.85"/>' +
+        '<path d="M84 62 C94 55 99 62 96 71 C91 79 84 76 82 70 Z" fill="#7E8A98" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<path d="M46 84 C40 92 30 92 26 86 C32 82 40 82 46 84 Z" fill="#7E8A98" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<circle cx="34" cy="46" r="21" fill="#A3AFBC" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<ellipse cx="31" cy="55" rx="13" ry="9" fill="#D6DDE4"/>' +
+        eye(26, 42, 3.8) + eye(43, 42, 3.8) +
+        nose(31, 53, 4, '#3B2C22') + whiskers(31, 57)
+    },
+    {
+      id: 'scallop', label: '扇貝',
+      svg: ground(28, 91) +
+        '<path d="M50 20 C74 20 92 44 92 66 C92 74 84 80 74 80 L26 80 C16 80 8 74 8 66 C8 44 26 20 50 20 Z" ' +
+        'fill="#F0A9B4" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M64 24 C82 34 92 50 92 66 C92 74 84 80 74 80 L54 80 C72 76 80 62 76 46 C73 36 68 28 64 24 Z" fill="#D07E8E" opacity="0.75"/>' +
+        '<g fill="none" stroke="#B85F72" stroke-width="2.2" opacity="0.9">' +
+        '<path d="M50 22 L50 78 M38 24 L28 76 M62 24 L72 76 M28 33 L15 70 M72 33 L85 70"/></g>' +
+        '<path d="M40 20 L60 20 L64 12 C58 8 42 8 36 12 Z" fill="#E890A0" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<path d="M12 78 C28 84 72 84 88 78 C88 84 80 88 50 88 C20 88 12 84 12 78 Z" fill="#D07E8E" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>'
+    },
+    {
+      id: 'ant', label: '螞蟻',
+      svg: ground(24, 92) +
+        '<g fill="none" stroke="' + INK + '" stroke-width="3" stroke-linecap="round">' +
+        '<path d="M42 50 L24 40 L16 46 M42 56 L22 58 L14 66 M44 62 L28 74 L26 84"/>' +
+        '<path d="M58 50 L76 40 L84 46 M58 56 L78 58 L86 66 M56 62 L72 74 L74 84"/></g>' +
+        '<ellipse cx="70" cy="62" rx="22" ry="18" fill="#4E3626" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M80 50 C88 56 92 62 92 66 C92 74 82 80 70 80 C82 76 86 66 82 58 C81 55 80 51 80 50 Z" fill="#31220F" opacity="0.85"/>' +
+        '<ellipse cx="46" cy="56" rx="12" ry="11" fill="#5E432E" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<circle cx="26" cy="48" r="15" fill="#5E432E" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<g fill="none" stroke="' + INK + '" stroke-width="2.8" stroke-linecap="round">' +
+        '<path d="M20 36 C16 26 8 22 6 26 M31 34 C31 24 25 16 21 18"/></g>' +
+        eye(21, 45, 3.4) +
+        '<g fill="#FFFFFF" opacity="0.3"><ellipse cx="62" cy="54" rx="8" ry="4" transform="rotate(-24 62 54)"/></g>'
+    },
+    {
+      id: 'dragonfly', label: '蜻蜓',
+      svg: ground(18, 94) +
+        '<g fill="#BFE2EE" stroke="' + INK + '" stroke-width="2.3" stroke-linejoin="round" opacity="0.92">' +
+        '<path d="M46 34 C32 22 12 20 6 28 C12 38 30 42 46 40 Z"/>' +
+        '<path d="M54 34 C68 22 88 20 94 28 C88 38 70 42 54 40 Z"/>' +
+        '<path d="M46 44 C34 40 16 42 12 50 C20 58 36 56 46 50 Z"/>' +
+        '<path d="M54 44 C66 40 84 42 88 50 C80 58 64 56 54 50 Z"/></g>' +
+        '<g fill="none" stroke="#8EBACB" stroke-width="1.4" opacity="0.9">' +
+        '<path d="M40 36 C28 30 16 28 10 30 M40 46 C30 44 20 46 15 50 M60 36 C72 30 84 28 90 30 M60 46 C70 44 80 46 85 50"/></g>' +
+        '<path d="M50 24 C56 24 58 30 58 40 C58 54 56 76 50 92 C44 76 42 54 42 40 C42 30 44 24 50 24 Z" ' +
+        'fill="#3AA9CF" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M54 28 C57 32 58 36 58 42 C58 56 56 76 50 92 C55 72 56 50 54 38 Z" fill="#1E7FA0" opacity="0.85"/>' +
+        '<g fill="none" stroke="#1E7FA0" stroke-width="2" opacity="0.9"><path d="M44 56 L56 56 M45 66 L55 66 M46 76 L54 76"/></g>' +
+        '<circle cx="50" cy="20" r="12" fill="#2E8B74" stroke="' + INK + '" stroke-width="2.6"/>' +
+        eye(45, 18, 4) + eye(55, 18, 4)
+    },
+    {
+      id: 'spider', label: '蜘蛛',
+      svg: ground(24, 92) +
+        '<g fill="none" stroke="' + INK + '" stroke-width="3.2" stroke-linecap="round">' +
+        '<path d="M36 50 L18 36 L8 44 M34 58 L12 54 L4 64 M36 66 L16 72 L12 84 M40 72 L30 84 L34 92"/>' +
+        '<path d="M64 50 L82 36 L92 44 M66 58 L88 54 L96 64 M64 66 L84 72 L88 84 M60 72 L70 84 L66 92"/></g>' +
+        '<ellipse cx="50" cy="62" rx="23" ry="21" fill="#3E3346" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M62 46 C70 52 73 58 73 64 C73 76 63 83 50 83 C63 79 68 68 65 58 C64 53 63 48 62 46 Z" fill="#241D2C" opacity="0.85"/>' +
+        '<g fill="#E8B23C"><path d="M50 50 L56 60 L50 70 L44 60 Z"/><circle cx="41" cy="72" r="3"/><circle cx="59" cy="72" r="3"/></g>' +
+        '<circle cx="50" cy="34" r="15" fill="#4E4058" stroke="' + INK + '" stroke-width="2.6"/>' +
+        eye(44, 31, 3.4) + eye(56, 31, 3.4) +
+        '<g fill="#241D2C"><circle cx="40" cy="40" r="2"/><circle cx="60" cy="40" r="2"/><circle cx="50" cy="25" r="2"/></g>'
+    },
+    {
+      id: 'beetle', label: '獨角仙',
+      svg: ground(26, 92) +
+        '<g fill="none" stroke="' + INK + '" stroke-width="3" stroke-linecap="round">' +
+        '<path d="M32 52 L14 44 L8 52 M30 64 L10 66 L6 76 M34 74 L22 84 L24 92"/>' +
+        '<path d="M68 52 L86 44 L92 52 M70 64 L90 66 L94 76 M66 74 L78 84 L76 92"/></g>' +
+        '<path d="M50 10 C45 17 43 24 46 31 C48 27 52 27 54 31 C57 24 55 17 50 10 Z" ' +
+        'fill="#4E3018" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<ellipse cx="50" cy="36" rx="14" ry="10" fill="#6B4522" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M50 44 C68 44 78 58 78 70 C78 82 66 90 50 90 C34 90 22 82 22 70 C22 58 32 44 50 44 Z" ' +
+        'fill="#7A4E24" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M62 48 C73 54 78 62 78 70 C78 82 66 90 50 90 C66 86 72 76 70 66 C68 58 65 51 62 48 Z" fill="#563416" opacity="0.9"/>' +
+        '<path d="M50 44 C51 60 51 76 50 90" fill="none" stroke="#3E2410" stroke-width="2.6"/>' +
+        '<g fill="#C79A56" opacity="0.45"><ellipse cx="38" cy="58" rx="8" ry="5" transform="rotate(-24 38 58)"/>' +
+        '<ellipse cx="34" cy="74" rx="6" ry="3.4" transform="rotate(-14 34 74)"/></g>' +
+        eye(43, 34, 3) + eye(57, 34, 3)
+    }
+  ];
+
   return {
     key: 'animals',
     label: '動物',
     emoji: '🐻',
     note: '陸海空的動物們',
-    list: LIST
+    list: LIST.concat(MORE)
   };
 }));

@@ -533,11 +533,252 @@
     }
   ];
 
+  /* ---- 第二批：再加 18 種，蔬果的造型池從 42 種變成 60 種 ----
+     挑選原則和上面一樣：輪廓、顏色、切面至少要有一項和既有的拉開，
+     所以這批刻意多放「切面」（無花果、百香果、蓮藕、秋葵）與
+     「長條狀」（芹菜、蘆筍、竹筍），避免又多出一堆圓球。 */
+  var MORE = [
+    {
+      id: 'plum', label: '李子',
+      svg: ground(25) + stem(50, 28, 53, 15, 4) + leaf(53, 19, -26, 0.7) +
+        '<ellipse cx="50" cy="57" rx="29" ry="31" fill="#6E2E63" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M62 30 C74 38 79 47 79 58 C79 76 66 88 50 88 C65 82 73 70 73 56 C73 45 68 35 62 30 Z" fill="#4A1A45" opacity="0.85"/>' +
+        '<path d="M50 27 C45 42 45 73 50 88" fill="none" stroke="#3C1339" stroke-width="2.6" opacity="0.75"/>' +
+        gloss(37, 45, 9, 5.5, -34, 0.34)
+    },
+    {
+      id: 'fig', label: '無花果',
+      svg: ground(23, 94) + stem(50, 18, 50, 8, 4) +
+        '<path d="M50 14 C64 26 79 46 79 63 C79 81 66 91 50 91 C34 91 21 81 21 63 C21 46 36 26 50 14 Z" ' +
+        'fill="#6E3060" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M50 23 C62 33 73 49 73 63 C73 77 63 85 50 85 C37 85 27 77 27 63 C27 49 38 33 50 23 Z" fill="#F3E7DA"/>' +
+        '<path d="M50 32 C60 40 67 51 67 63 C67 74 59 80 50 80 C41 80 33 74 33 63 C33 51 40 40 50 32 Z" fill="#C33A5C"/>' +
+        '<g fill="#8C1F3E" opacity="0.9"><ellipse cx="50" cy="46" rx="2" ry="3"/><ellipse cx="42" cy="55" rx="2" ry="3"/>' +
+        '<ellipse cx="58" cy="55" rx="2" ry="3"/><ellipse cx="46" cy="66" rx="2" ry="3"/><ellipse cx="56" cy="68" rx="2" ry="3"/>' +
+        '<ellipse cx="38" cy="68" rx="2" ry="3"/><ellipse cx="63" cy="64" rx="2" ry="3"/><ellipse cx="50" cy="74" rx="2" ry="3"/></g>'
+    },
+    {
+      id: 'lychee', label: '荔枝',
+      svg: ground(25) + stem(50, 30, 55, 16, 4) + leaf(55, 20, -30, 0.68) +
+        '<circle cx="50" cy="58" r="29" fill="#D2452E" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M64 35 C75 43 79 51 79 59 C79 75 66 87 50 87 C65 81 73 70 73 57 C73 47 69 40 64 35 Z" fill="#A02B1B" opacity="0.8"/>' +
+        '<g fill="#E9755A" stroke="#9E2818" stroke-width="1.2">' +
+        '<circle cx="38" cy="45" r="4"/><circle cx="50" cy="40" r="4"/><circle cx="62" cy="46" r="4"/>' +
+        '<circle cx="32" cy="58" r="4"/><circle cx="44" cy="56" r="4"/><circle cx="56" cy="57" r="4"/><circle cx="68" cy="58" r="4"/>' +
+        '<circle cx="37" cy="70" r="4"/><circle cx="50" cy="72" r="4"/><circle cx="63" cy="70" r="4"/></g>' +
+        gloss(38, 44, 8, 5, -34, 0.34)
+    },
+    {
+      id: 'starfruit', label: '楊桃',
+      svg: ground(27, 94) +
+        '<polygon points="50,8 61,40 94,42 68,62 77,94 50,75 23,94 32,62 6,42 39,40" ' +
+        'fill="#F2CE49" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<polygon points="50,20 58,43 79,45 62,57 68,79 50,66 32,79 38,57 21,45 42,43" fill="#E0B62C" opacity="0.55"/>' +
+        '<polygon points="50,34 54,46 66,47 56,54 59,66 50,58 41,66 44,54 34,47 46,46" fill="#FBEBA6" opacity="0.85"/>' +
+        '<g fill="#8A6A18" opacity="0.8"><ellipse cx="50" cy="45" rx="1.8" ry="2.6"/><ellipse cx="45" cy="53" rx="1.8" ry="2.6"/>' +
+        '<ellipse cx="55" cy="53" rx="1.8" ry="2.6"/></g>'
+    },
+    {
+      id: 'passionfruit', label: '百香果',
+      svg: ground(27) +
+        '<circle cx="50" cy="54" r="33" fill="#5C2A4C" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M68 28 C79 37 83 45 83 54 C83 72 68 87 50 87 C68 80 76 68 76 52 C76 42 72 33 68 28 Z" fill="#3E1733" opacity="0.85"/>' +
+        '<circle cx="50" cy="54" r="26" fill="#F6EEE0"/>' +
+        '<path d="M50 32 C62 32 72 42 72 54 C72 68 62 76 50 76 C36 76 28 66 28 54 C28 41 38 32 50 32 Z" fill="#F0A62C"/>' +
+        '<g fill="#4A3226"><ellipse cx="42" cy="45" rx="2.4" ry="3.4" transform="rotate(-20 42 45)"/>' +
+        '<ellipse cx="56" cy="43" rx="2.4" ry="3.4" transform="rotate(15 56 43)"/>' +
+        '<ellipse cx="36" cy="57" rx="2.4" ry="3.4"/><ellipse cx="50" cy="55" rx="2.4" ry="3.4"/>' +
+        '<ellipse cx="63" cy="55" rx="2.4" ry="3.4"/><ellipse cx="44" cy="68" rx="2.4" ry="3.4"/>' +
+        '<ellipse cx="58" cy="68" rx="2.4" ry="3.4"/></g>' +
+        gloss(34, 38, 8, 5, -34, 0.3)
+    },
+    {
+      id: 'raspberry', label: '覆盆子',
+      svg: ground(21) +
+        '<g fill="' + LEAF + '" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round">' +
+        '<path d="M50 26 L34 16 L44 30 Z"/><path d="M50 26 L66 16 L56 30 Z"/><path d="M50 24 L50 10 L54 24 Z"/></g>' +
+        '<g fill="#C42A4E" stroke="' + INK + '" stroke-width="1.8">' +
+        '<circle cx="36" cy="38" r="8"/><circle cx="50" cy="34" r="8"/><circle cx="64" cy="38" r="8"/>' +
+        '<circle cx="31" cy="52" r="8"/><circle cx="45" cy="50" r="8"/><circle cx="59" cy="50" r="8"/><circle cx="70" cy="53" r="8"/>' +
+        '<circle cx="38" cy="65" r="8"/><circle cx="52" cy="64" r="8"/><circle cx="64" cy="66" r="8"/>' +
+        '<circle cx="45" cy="78" r="7.5"/><circle cx="58" cy="78" r="7.5"/></g>' +
+        '<g fill="#EE7A92" opacity="0.75"><circle cx="33" cy="35" r="2.6"/><circle cx="47" cy="31" r="2.6"/>' +
+        '<circle cx="28" cy="49" r="2.6"/><circle cx="42" cy="47" r="2.6"/><circle cx="35" cy="62" r="2.6"/></g>'
+    },
+    {
+      id: 'mangosteen', label: '山竹',
+      svg: ground(25) +
+        '<circle cx="50" cy="58" r="29" fill="#4B2038" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M64 35 C75 43 79 51 79 59 C79 75 66 87 50 87 C65 81 73 70 73 57 C73 47 69 40 64 35 Z" fill="#33132A" opacity="0.9"/>' +
+        stem(50, 30, 50, 16, 5) +
+        '<g fill="#5E8F32" stroke="' + INK + '" stroke-width="2.2" stroke-linejoin="round">' +
+        '<path d="M50 32 C40 24 28 26 26 34 C34 40 46 40 50 32 Z"/>' +
+        '<path d="M50 32 C60 24 72 26 74 34 C66 40 54 40 50 32 Z"/>' +
+        '<path d="M50 34 C44 26 40 18 44 14 C52 18 54 28 50 34 Z"/>' +
+        '<path d="M50 34 C56 26 60 18 56 14 C48 18 46 28 50 34 Z"/></g>' +
+        '<g fill="#8A6A4A"><circle cx="50" cy="80" r="3"/>' +
+        '<ellipse cx="43" cy="77" rx="4" ry="2.6" transform="rotate(-35 43 77)"/>' +
+        '<ellipse cx="57" cy="77" rx="4" ry="2.6" transform="rotate(35 57 77)"/>' +
+        '<ellipse cx="45" cy="85" rx="4" ry="2.6" transform="rotate(30 45 85)"/>' +
+        '<ellipse cx="55" cy="85" rx="4" ry="2.6" transform="rotate(-30 55 85)"/></g>' +
+        gloss(36, 44, 8, 5, -34, 0.26)
+    },
+    {
+      id: 'loquat', label: '枇杷',
+      svg: ground(26, 94) +
+        '<path d="M50 12 C48 22 44 30 38 38 M50 16 C56 24 62 30 66 38" fill="none" stroke="' + STEM + '" stroke-width="3.6" stroke-linecap="round"/>' +
+        leaf(52, 14, -14, 0.72) +
+        '<ellipse cx="36" cy="60" rx="18" ry="22" fill="#F0A22E" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M44 42 C50 48 54 56 54 62 C54 74 46 82 36 82 C46 78 50 70 50 60 C50 52 47 46 44 42 Z" fill="#C8781A" opacity="0.8"/>' +
+        '<ellipse cx="66" cy="66" rx="16" ry="20" fill="#E8952A" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M72 50 C78 56 82 62 82 68 C82 78 75 86 66 86 C75 82 78 74 78 66 C78 59 75 54 72 50 Z" fill="#C0700F" opacity="0.8"/>' +
+        '<g fill="#7A4A12"><circle cx="36" cy="81" r="2.6"/><circle cx="66" cy="85" r="2.4"/></g>' +
+        gloss(30, 50, 6, 4, -34, 0.36) + gloss(60, 57, 5, 3.4, -34, 0.32)
+    },
+    {
+      id: 'celery', label: '芹菜',
+      svg: ground(20, 94) +
+        '<g fill="#2F6B24"><circle cx="30" cy="20" r="9"/><circle cx="42" cy="13" r="9"/><circle cx="56" cy="14" r="9"/>' +
+        '<circle cx="68" cy="21" r="9"/><circle cx="38" cy="26" r="8"/><circle cx="60" cy="27" r="8"/><circle cx="49" cy="22" r="9"/></g>' +
+        '<g fill="#4E9C3F" opacity="0.85"><circle cx="33" cy="17" r="5"/><circle cx="45" cy="12" r="5"/>' +
+        '<circle cx="58" cy="13" r="5"/><circle cx="52" cy="20" r="5"/></g>' +
+        '<g stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round">' +
+        '<path d="M34 28 C30 48 30 70 34 88 L46 88 C44 68 44 46 46 28 Z" fill="#B7D46A"/>' +
+        '<path d="M46 28 C44 48 44 70 46 88 L58 88 C58 70 58 48 56 28 Z" fill="#C6DE82"/>' +
+        '<path d="M56 28 C58 48 58 70 58 88 L68 88 C72 70 72 48 68 28 Z" fill="#A9C95C"/></g>' +
+        '<g fill="none" stroke="#8FAF44" stroke-width="1.8" opacity="0.9">' +
+        '<path d="M38 34 C36 52 36 70 38 84 M52 34 C51 52 51 70 52 84 M63 34 C64 52 64 70 63 84"/></g>' +
+        '<path d="M32 84 L70 84 C71 90 68 92 50 92 C32 92 30 90 32 84 Z" fill="#E8E2C8" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>'
+    },
+    {
+      id: 'asparagus', label: '蘆筍',
+      svg: ground(18, 94) +
+        '<g stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round">' +
+        '<path d="M30 22 C24 22 22 28 26 34 L36 88 L44 88 L38 32 C40 26 36 22 30 22 Z" fill="#5E9B3A"/>' +
+        '<path d="M50 12 C43 12 41 18 45 25 L47 88 L57 88 L58 25 C62 18 57 12 50 12 Z" fill="#6FAE44"/>' +
+        '<path d="M70 24 C64 24 60 30 64 36 L58 88 L66 88 L74 34 C78 28 76 24 70 24 Z" fill="#548D30"/></g>' +
+        '<g fill="#4A2C6B" opacity="0.55">' +
+        '<path d="M28 24 C24 24 23 29 26 33 L36 32 C39 27 34 24 28 24 Z"/>' +
+        '<path d="M49 14 C43 14 42 19 45 24 L57 24 C60 19 55 14 49 14 Z"/>' +
+        '<path d="M69 26 C64 26 61 31 64 35 L74 34 C77 29 74 26 69 26 Z"/></g>' +
+        '<g fill="none" stroke="#3D7526" stroke-width="1.8" stroke-linecap="round" opacity="0.9">' +
+        '<path d="M28 40 L38 42 M30 52 L40 54 M32 64 L42 66 M46 34 L56 34 M46 48 L57 48 M47 62 L57 62 M63 44 L72 42 M61 56 L70 54"/></g>'
+    },
+    {
+      id: 'spinach', label: '菠菜',
+      svg: ground(24, 94) +
+        '<g fill="#2E6B28" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round">' +
+        '<path d="M46 62 C30 58 16 42 18 24 C34 22 48 34 50 52 Z"/>' +
+        '<path d="M54 62 C70 58 84 42 82 24 C66 22 52 34 50 52 Z"/>' +
+        '<path d="M50 58 C42 44 44 24 50 12 C58 24 58 44 52 58 Z"/></g>' +
+        '<g fill="#3F8A32" opacity="0.9">' +
+        '<path d="M46 60 C34 54 24 42 24 30 C36 32 44 44 46 60 Z"/>' +
+        '<path d="M50 56 C46 44 47 28 50 18 C54 30 54 46 50 56 Z"/></g>' +
+        '<g fill="none" stroke="#1F4A1C" stroke-width="1.6" opacity="0.85">' +
+        '<path d="M46 60 C36 52 26 40 20 27 M54 60 C64 52 74 40 80 27 M50 58 C49 44 50 26 50 15"/></g>' +
+        '<path d="M44 60 C42 74 42 84 44 90 L56 90 C58 84 58 74 56 60 Z" fill="#D8607A" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<path d="M52 62 C54 74 54 84 53 90 L56 90 C58 84 58 74 56 60 Z" fill="#B2405C" opacity="0.8"/>'
+    },
+    {
+      id: 'okra', label: '秋葵',
+      svg: ground(24, 94) +
+        '<path d="M34 20 C30 14 24 14 22 18 C26 22 30 24 34 24 Z" fill="' + STEM + '" stroke="' + INK + '" stroke-width="2.2" stroke-linejoin="round"/>' +
+        '<path d="M34 22 C46 30 54 50 54 74 C54 84 50 90 46 90 C40 90 34 82 32 68 C29 48 30 32 34 22 Z" ' +
+        'fill="#5E9B32" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M42 32 C50 44 54 58 54 74 C54 84 50 90 46 90 C49 82 49 66 46 52 C44 42 43 36 42 32 Z" fill="#417318" opacity="0.85"/>' +
+        '<g fill="none" stroke="#3C6E1C" stroke-width="1.8" opacity="0.9" stroke-linecap="round">' +
+        '<path d="M36 28 C34 46 35 68 39 86 M42 27 C42 46 44 66 47 84 M48 30 C50 48 51 66 51 80"/></g>' +
+        '<circle cx="74" cy="62" r="18" fill="#8FC154" stroke="' + INK + '" stroke-width="2.5"/>' +
+        '<polygon points="74,48 78.5,58.5 90,59 81,66 84,77 74,70.5 64,77 67,66 58,59 69.5,58.5" fill="#DCEBAE"/>' +
+        '<g fill="#F3F7E2"><circle cx="74" cy="55" r="1.8"/><circle cx="67" cy="63" r="1.8"/><circle cx="81" cy="63" r="1.8"/>' +
+        '<circle cx="70" cy="70" r="1.8"/><circle cx="78" cy="70" r="1.8"/></g>'
+    },
+    {
+      id: 'beetroot', label: '甜菜根',
+      svg: ground(22, 94) +
+        '<g fill="#2F6B28" stroke="' + INK + '" stroke-width="2.3" stroke-linejoin="round">' +
+        '<path d="M46 40 C34 34 24 20 26 8 C40 10 48 24 50 38 Z"/>' +
+        '<path d="M54 40 C66 34 76 20 74 8 C60 10 52 24 50 38 Z"/></g>' +
+        '<g fill="none" stroke="#B22C52" stroke-width="2.4" stroke-linecap="round">' +
+        '<path d="M47 44 C42 32 34 20 29 12 M53 44 C58 32 66 20 71 12"/></g>' +
+        '<path d="M50 40 C68 40 78 52 78 64 C78 78 66 88 56 92 C52 94 48 94 44 92 C34 88 22 78 22 64 C22 52 32 40 50 40 Z" ' +
+        'fill="#9C1F4C" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M62 43 C73 48 78 55 78 64 C78 78 66 88 56 92 C66 82 72 70 70 58 C69 51 66 46 62 43 Z" fill="#701034" opacity="0.9"/>' +
+        '<path d="M50 92 C50 96 51 99 53 100" fill="none" stroke="#701034" stroke-width="3" stroke-linecap="round"/>' +
+        '<g fill="none" stroke="#C4527A" stroke-width="2" opacity="0.6"><path d="M34 54 C30 62 30 72 34 80"/></g>' +
+        gloss(38, 55, 8, 5, -34, 0.26)
+    },
+    {
+      id: 'ginger', label: '薑',
+      svg: ground(28, 92) +
+        '<path d="M24 60 C18 50 22 40 32 40 C40 40 44 46 46 54 C50 44 58 38 66 42 C74 46 74 56 68 60 ' +
+        'C78 60 84 68 80 76 C76 84 64 84 58 78 C56 86 46 90 38 86 C30 82 28 74 32 68 C26 68 24 64 24 60 Z" ' +
+        'fill="#D9BE8E" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M66 42 C74 46 74 56 68 60 C78 60 84 68 80 76 C76 84 64 84 58 78 C68 76 74 68 70 62 C67 57 62 56 60 54 C62 46 64 43 66 42 Z" ' +
+        'fill="#B6975F" opacity="0.85"/>' +
+        '<g fill="none" stroke="#9B7C48" stroke-width="1.9" stroke-linecap="round" opacity="0.9">' +
+        '<path d="M30 48 C36 50 40 54 42 60 M36 74 C42 72 46 68 48 62 M62 50 C60 56 58 60 54 63 M64 74 C62 70 62 66 64 62"/></g>' +
+        '<g fill="#EFDCB8" opacity="0.75"><ellipse cx="34" cy="47" rx="5" ry="3" transform="rotate(-24 34 47)"/>' +
+        '<ellipse cx="64" cy="48" rx="5" ry="3" transform="rotate(24 64 48)"/>' +
+        '<ellipse cx="74" cy="70" rx="5" ry="3" transform="rotate(30 74 70)"/></g>'
+    },
+    {
+      id: 'lotus-root', label: '蓮藕',
+      svg: ground(28, 92) +
+        '<path d="M18 34 L64 34 C74 34 82 42 82 52 L82 62 C82 72 74 80 64 80 L18 80 C22 74 24 66 24 57 C24 48 22 40 18 34 Z" ' +
+        'fill="#E8DCC2" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M64 34 C74 34 82 42 82 52 L82 62 C82 72 74 80 64 80 C70 72 72 64 72 57 C72 48 70 40 64 34 Z" fill="#CBBB99" opacity="0.9"/>' +
+        '<ellipse cx="24" cy="57" rx="10" ry="23" fill="#F5EEDD" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<g fill="#B7A57F"><ellipse cx="24" cy="42" rx="3" ry="4.6"/><ellipse cx="24" cy="57" rx="3.4" ry="5"/>' +
+        '<ellipse cx="24" cy="72" rx="3" ry="4.6"/><ellipse cx="19" cy="50" rx="2.6" ry="4"/><ellipse cx="19" cy="65" rx="2.6" ry="4"/>' +
+        '<ellipse cx="29" cy="50" rx="2.6" ry="4"/><ellipse cx="29" cy="65" rx="2.6" ry="4"/></g>' +
+        '<g fill="none" stroke="#B7A57F" stroke-width="2.2" opacity="0.8"><path d="M46 34 C44 46 44 68 46 80 M64 34 C62 46 62 68 64 80"/></g>' +
+        gloss(40, 42, 10, 4, -6, 0.3)
+    },
+    {
+      id: 'bamboo-shoot', label: '竹筍',
+      svg: ground(24, 92) +
+        '<path d="M50 8 C62 24 74 54 74 74 C74 84 64 88 50 88 C36 88 26 84 26 74 C26 54 38 24 50 8 Z" ' +
+        'fill="#D6BE8A" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M58 22 C68 40 74 60 74 74 C74 84 64 88 50 88 C62 84 68 78 68 68 C68 54 64 36 58 22 Z" fill="#B69A63" opacity="0.9"/>' +
+        '<g fill="none" stroke="#8B7038" stroke-width="2.4" stroke-linejoin="round">' +
+        '<path d="M35 46 C42 52 58 52 65 46 M30 62 C40 70 60 70 70 62 M40 30 C45 34 55 34 60 30"/></g>' +
+        '<g fill="#8B7038" opacity="0.55"><ellipse cx="40" cy="40" rx="2.4" ry="3.4"/><ellipse cx="60" cy="40" rx="2.4" ry="3.4"/>' +
+        '<ellipse cx="34" cy="56" rx="2.4" ry="3.4"/><ellipse cx="66" cy="56" rx="2.4" ry="3.4"/><ellipse cx="50" cy="58" rx="2.4" ry="3.4"/>' +
+        '<ellipse cx="42" cy="74" rx="2.4" ry="3.4"/><ellipse cx="58" cy="74" rx="2.4" ry="3.4"/></g>' +
+        '<path d="M50 8 C54 14 56 20 56 24 C52 22 48 22 44 24 C44 20 46 14 50 8 Z" fill="#A8C46A"/>'
+    },
+    {
+      id: 'taro', label: '芋頭',
+      svg: ground(25, 92) +
+        '<path d="M50 14 C66 14 76 30 76 52 C76 74 64 88 50 88 C36 88 24 74 24 52 C24 30 34 14 50 14 Z" ' +
+        'fill="#8A6A4E" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M62 20 C71 28 76 38 76 52 C76 74 64 88 50 88 C62 82 68 68 68 52 C68 36 65 26 62 20 Z" fill="#66492F" opacity="0.9"/>' +
+        '<g fill="none" stroke="#4E3620" stroke-width="2.4" opacity="0.85">' +
+        '<path d="M27 34 C38 40 62 40 73 34 M25 48 C36 55 64 55 75 48 M27 62 C38 69 62 69 73 62 M31 75 C40 80 60 80 69 75"/></g>' +
+        '<g stroke="#3E2A18" stroke-width="1.4" stroke-linecap="round" opacity="0.7">' +
+        '<path d="M32 28 L28 24 M44 24 L42 19 M58 24 L60 19 M70 30 L74 26 M30 44 L25 42 M72 44 L77 42 M30 58 L25 57 M72 58 L77 57"/></g>' +
+        '<path d="M44 14 C46 8 54 8 56 14 C54 18 46 18 44 14 Z" fill="#B78CC4" stroke="' + INK + '" stroke-width="2.2" stroke-linejoin="round"/>'
+    },
+    {
+      id: 'chestnut', label: '栗子',
+      svg: ground(26) +
+        '<path d="M50 16 C54 22 56 26 58 30 C74 36 84 52 84 66 C84 80 70 88 50 88 C30 88 16 80 16 66 C16 52 26 36 42 30 C44 26 46 22 50 16 Z" ' +
+        'fill="#7A4A22" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M62 32 C76 39 84 53 84 66 C84 80 70 88 50 88 C68 84 76 74 76 62 C76 50 70 39 62 32 Z" fill="#5A3213" opacity="0.9"/>' +
+        '<path d="M22 78 C30 86 40 88 50 88 C60 88 70 86 78 78 C74 74 62 72 50 72 C38 72 26 74 22 78 Z" ' +
+        'fill="#E6D3B0" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<g fill="none" stroke="#C4AC85" stroke-width="1.8" opacity="0.9"><path d="M34 76 L34 86 M44 74 L44 87 M56 74 L56 87 M66 76 L66 86"/></g>' +
+        '<path d="M50 16 C48 12 47 8 50 6 C53 8 52 12 50 16 Z" fill="#4E3620"/>' +
+        gloss(36, 46, 9, 5.5, -36, 0.3)
+    }
+  ];
+
   return {
     key: 'fruits',
     label: '蔬果',
     emoji: '🍓',
     note: '水果與蔬菜',
-    list: LIST
+    list: LIST.concat(MORE)
   };
 }));

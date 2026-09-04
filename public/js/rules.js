@@ -37,6 +37,7 @@
   var TIME_BONUS_PER_SEC = 2;   // 單機過關時每剩 1 秒的加分
   var MAX_TURNS = 2;            // 最多轉彎次數（三折以內）
   var SHUFFLE_TRIES = 400;      // 洗牌後重試找解的次數上限
+  var STACK_THEME = 'mahjong';   // 只有這個主題會疊起來玩（見下面的疊疊樂盤面）
 
   /* 四個關卡：格數、水果種類、時間、提示與洗牌次數一起往上調。
      第一個「幼幼班」是給 3～5 歲小朋友的：盤面很小、只有三種水果、
@@ -45,22 +46,26 @@
     {
       key: 'kids', no: 1, label: '幼幼班 · 一起認水果', short: '幼幼', emoji: '🍼',
       cols: 4, rows: 3, kinds: 3, sec: 600, hints: 99, shuffles: 99, showNames: true,
+      stack: { cols: 4, rows: 3 },
       blurb: '4 × 3，只有 3 種水果。格子很大、時間很長、提示和洗牌不限次數，適合 3～5 歲的小朋友。'
     },
     {
       key: 'easy', no: 2, label: '第一關 · 果園入門', short: '簡單', emoji: '🍓',
-      cols: 8, rows: 6, kinds: 6, sec: 240, hints: 5, shuffles: 5,
-      blurb: '8 × 6，6 種水果。時間很寬鬆，先熟悉三折以內怎麼連。'
+      cols: 8, rows: 6, kinds: 8, sec: 240, hints: 5, shuffles: 5,
+      stack: { cols: 8, rows: 4 },
+      blurb: '8 × 6，8 種水果。時間很寬鬆，先熟悉三折以內怎麼連。'
     },
     {
       key: 'normal', no: 3, label: '第二關 · 果園日常', short: '普通', emoji: '🍍',
-      cols: 10, rows: 8, kinds: 10, sec: 300, hints: 3, shuffles: 3,
-      blurb: '10 × 8，10 種水果。提示和洗牌都變少了，要開始看路徑。'
+      cols: 10, rows: 8, kinds: 14, sec: 300, hints: 3, shuffles: 3,
+      stack: { cols: 10, rows: 5 },
+      blurb: '10 × 8，14 種水果。提示和洗牌都變少了，要開始看路徑。'
     },
     {
       key: 'hard', no: 4, label: '第三關 · 果園大亂', short: '困難', emoji: '🥑',
-      cols: 12, rows: 10, kinds: 14, sec: 360, hints: 2, shuffles: 2,
-      blurb: '12 × 10，14 種水果（開始混進蔬菜）。眼睛要放亮一點。'
+      cols: 12, rows: 10, kinds: 20, sec: 360, hints: 2, shuffles: 2,
+      stack: { cols: 12, rows: 6 },
+      blurb: '12 × 10，20 種水果（開始混進蔬菜）。眼睛要放亮一點。'
     }
   ];
   /* 次數 >= UNLIMITED 就當成「不限」，畫面上顯示 ∞ 而不是一個大數字 */
@@ -279,6 +284,137 @@
     return b;
   }
 
+  /* ------------------------------------------------------------ 疊疊樂盤面（麻將模式）
+   *
+   * 麻將主題不是平面連連看，而是像真的麻將牌一樣「疊起來」：
+   *   - 一張牌佔 2×2 個半格；上面那一層整層往右下偏半格，
+   *     所以一張上層牌會壓住下層的 4 張牌（角落與邊上會少於 4 張）。
+   *   - 被壓住的牌點不動，畫面上也會壓暗；要先把壓在它上面的牌都消掉。
+   *   - 消除規則跟著改成「兩張都露出來、而且是同一種」就好，不用連線 ——
+   *     疊起來之後路徑沒有意義（下層根本走不進去）。
+   *
+   * 位置存在 state.stack（和 state.grid 同一組索引），grid[i] 仍然是「第幾種」，
+   * 0 代表已經被消掉，所以 attempt / 分數 / 快照那一套完全不用改索引的形式。
+   */
+
+  /** 疊出一座金字塔的座標表；座標單位是半格 */
+  function stackLayout(cols, rows) {
+    var layers = [], z = 0, c = cols, r = rows;
+    while (c >= 2 && r >= 1 && z < 6) {
+      /* 偏移量：每往上一層就內縮一格，再往右下推半格，壓住的才會是 4 張 */
+      var off = 2 * z + (z % 2);
+      var one = [];
+      for (var j = 0; j < r; j++) {
+        for (var i = 0; i < c; i++) one.push({ x: off + 2 * i, y: off + 2 * j, z: z });
+      }
+      /* 每一層都要是偶數張：發牌是同一層兩兩配對，這樣才配得完 */
+      if (one.length % 2) one.pop();
+      if (one.length) layers.push(one);
+      z += 1; c -= 2; r -= 2;
+    }
+    var out = [];
+    layers.forEach(function (one) { out = out.concat(one); });
+    return out;
+  }
+
+  /** 盤面在半格座標下的寬高（給畫面排版用） */
+  function stackExtent(pos) {
+    var w = 0, h = 0, i;
+    for (i = 0; i < pos.length; i++) {
+      if (pos[i].x + 2 > w) w = pos[i].x + 2;
+      if (pos[i].y + 2 > h) h = pos[i].y + 2;
+    }
+    return { W: w, H: h };
+  }
+
+  /** i 有沒有被上面的牌壓住（只算還在盤面上的牌） */
+  function stackCovered(pos, grid, i) {
+    var a = pos[i], b, j;
+    for (j = 0; j < pos.length; j++) {
+      if (j === i || !grid[j]) continue;
+      b = pos[j];
+      if (b.z > a.z && Math.abs(b.x - a.x) < 2 && Math.abs(b.y - a.y) < 2) return true;
+    }
+    return false;
+  }
+
+  /** 露出來、可以點的牌 */
+  function stackFree(pos, grid, i) {
+    return !!grid[i] && !stackCovered(pos, grid, i);
+  }
+
+  function stackFreeList(pos, grid) {
+    var out = [], i;
+    for (i = 0; i < grid.length; i++) if (stackFree(pos, grid, i)) out.push(i);
+    return out;
+  }
+
+  /** 找一組「兩張都露出來、而且同一種」的牌；找不到就回 null */
+  function stackFindPair(pos, grid) {
+    var free = stackFreeList(pos, grid), seen = {}, i, k;
+    for (i = 0; i < free.length; i++) {
+      k = grid[free[i]];
+      if (seen[k] !== undefined) return { a: seen[k], b: free[i], path: [] };
+      seen[k] = free[i];
+    }
+    return null;
+  }
+
+  /**
+   * 發牌：由最上層往下，一層之內兩兩配成一對。
+   * 每一層都是偶數張，所以「由上往下一層一層拆」一定拆得完 ——
+   * 也就是說發出來的盤一定有解，不會一開局就死。
+   */
+  function createStack(pos, kinds, rng) {
+    var grid = [], byLayer = {}, maxZ = 0, i, z, ids, j, kind = 0;
+    for (i = 0; i < pos.length; i++) {
+      grid[i] = 0;
+      if (!byLayer[pos[i].z]) byLayer[pos[i].z] = [];
+      byLayer[pos[i].z].push(i);
+      if (pos[i].z > maxZ) maxZ = pos[i].z;
+    }
+    for (z = maxZ; z >= 0; z--) {
+      ids = (byLayer[z] || []).slice();
+      shuffleArray(ids, rng);
+      for (j = 0; j + 1 < ids.length; j += 2) {
+        kind = (kind % kinds) + 1;
+        grid[ids[j]] = kind;
+        grid[ids[j + 1]] = kind;
+      }
+    }
+    var ext = stackExtent(pos);
+    return { grid: grid, pos: pos, W: ext.W, H: ext.H };
+  }
+
+  /** 洗牌：位置不動，只把剩下的牌重新分配，洗到「有得消」為止 */
+  function shuffleStack(pos, grid, rng) {
+    var ids = [], vals = [], i, t;
+    for (i = 0; i < grid.length; i++) if (grid[i]) { ids.push(i); vals.push(grid[i]); }
+    for (t = 0; t < SHUFFLE_TRIES; t++) {
+      shuffleArray(vals, rng);
+      for (i = 0; i < ids.length; i++) grid[ids[i]] = vals[i];
+      if (stackFindPair(pos, grid)) return true;
+    }
+    return false;
+  }
+
+  /** 這個主題要不要疊起來玩 */
+  function isStackTheme(theme) { return sanitizeTheme(theme) === STACK_THEME; }
+
+  /** 現在還有沒有能消的一組（平面看路徑，疊疊樂看兩張有沒有都露出來） */
+  function hasPair(state) {
+    return state.mode === 'stack'
+      ? stackFindPair(state.stack, state.grid)
+      : findPair(state.grid, state.W, state.H);
+  }
+
+  /** 洗牌：兩種盤面各走各的 */
+  function reshuffle(state, rng) {
+    if (state.mode === 'stack') return shuffleStack(state.stack, state.grid, rng);
+    shuffleBoard(state.grid, state.W, state.H, rng);
+    return true;
+  }
+
   /* ------------------------------------------------------------ 對局 */
 
   function makePlayer(p, level) {
@@ -309,10 +445,14 @@
     if (typeof rng !== 'function') throw new Error('createMatch 需要注入 rng');
     /* 主題能提供的造型數；沒給就當成剛好夠用 */
     var maxKinds = Math.max(1, Math.floor(o.maxKinds || level.kinds));
-    var pairs = level.cols * level.rows / 2;
+    /* 麻將主題改成疊疊樂盤面：牌數與「可不可以點」的規則都不一樣 */
+    var stacked = isStackTheme(o.theme) && !!level.stack;
+    var pos = stacked ? stackLayout(level.stack.cols, level.stack.rows) : null;
+    var pairs = (stacked ? pos.length : level.cols * level.rows) / 2;
     var kinds = Math.max(1, Math.min(level.kinds, maxKinds, pairs));
     var palette = pickPalette(maxKinds, kinds, rng);
-    var board = createBoard(level.cols, level.rows, kinds, rng);
+    var board = stacked ? createStack(pos, kinds, rng) : createBoard(level.cols, level.rows, kinds, rng);
+    var total = stacked ? board.grid.length : level.cols * level.rows;
     var countdown = o.countdownMs === undefined ? COUNTDOWN_MS : Math.max(0, o.countdownMs);
     var roundMs = o.roundMs > 0 ? o.roundMs : roundMsOf(level.key);
     var startAt = o.now + countdown;
@@ -332,13 +472,16 @@
       /* palette[kind - 1] = 這一局第 kind 種水果要用主題裡的第幾號造型 */
       palette: palette,
       kinds: kinds,
-      cols: level.cols,
-      rows: level.rows,
+      mode: stacked ? 'stack' : 'flat',
+      /* stack[i] = 第 i 張牌的半格座標與層數；平面模式沒有這一項 */
+      stack: stacked ? board.pos : null,
+      cols: stacked ? level.stack.cols : level.cols,
+      rows: stacked ? level.stack.rows : level.rows,
       W: board.W,
       H: board.H,
       grid: board.grid,
-      total: level.cols * level.rows,
-      left: level.cols * level.rows,
+      total: total,
+      left: total,
       createdAt: o.now,
       startAt: startAt,
       endAt: startAt + roundMs,
@@ -418,7 +561,11 @@
     }
     state.moves += 1;
 
-    var path = link(state.grid, state.W, state.H, a, b);
+    /* 疊疊樂沒有路徑：兩張都露出來、而且同一種就算連上 */
+    var path = state.mode === 'stack'
+      ? ((a !== b && state.grid[a] && state.grid[a] === state.grid[b] &&
+          stackFree(state.stack, state.grid, a) && stackFree(state.stack, state.grid, b)) ? [] : null)
+      : link(state.grid, state.W, state.H, a, b);
     if (!path) {
       /* 連不到不扣分，只斷連擊 —— 對小朋友友善，也避免亂點被懲罰到不想玩 */
       p.combo = 0;
@@ -456,9 +603,9 @@
     if (state.left === 0) {
       finish(state, now, 'cleared');
       extra.push({ k: 'end', reason: 'cleared' });
-    } else if (!findPair(state.grid, state.W, state.H)) {
+    } else if (!hasPair(state)) {
       /* 死局：位置固定的玩法一定要自動洗牌，否則玩家只能乾等時間到 */
-      shuffleBoard(state.grid, state.W, state.H, rng || Math.random);
+      reshuffle(state, rng || Math.random);
       state.autoShuffles += 1;
       extra.push({ k: 'shuffle', auto: true, by: null, grid: state.grid.slice(), left: state.left });
     }
@@ -472,7 +619,7 @@
     if (state.over) return { ok: false, error: '這一局已經結束了。', code: 'over' };
     if (now < state.startAt) return { ok: false, error: '還在倒數，先別急。', code: 'countdown' };
     if (p.hints <= 0) return { ok: false, error: '提示已經用完了。', code: 'nohint' };
-    var hit = findPair(state.grid, state.W, state.H);
+    var hit = hasPair(state);
     if (!hit) return { ok: false, error: '現在沒有可以連的水果，用洗牌吧。', code: 'nopair' };
     p.hints -= 1;
     return {
@@ -490,7 +637,7 @@
     if (p.shuffles <= 0) return { ok: false, error: '洗牌次數已經用完了。', code: 'noshuffle' };
     if (state.left < 2) return { ok: false, error: '剩下的水果太少了，不用洗。', code: 'nopair' };
     p.shuffles -= 1;
-    shuffleBoard(state.grid, state.W, state.H, rng || Math.random);
+    reshuffle(state, rng || Math.random);
     return {
       ok: true,
       event: { k: 'shuffle', auto: false, by: p.id, grid: state.grid.slice(), left: state.left, shuffles: p.shuffles }
@@ -528,6 +675,9 @@
       theme: state.theme,
       palette: state.palette.slice(),
       kinds: state.kinds,
+      mode: state.mode || 'flat',
+      /* 疊疊樂才有：每一張牌的半格座標與層數，觀戰者也要拿到才畫得出同一疊 */
+      stack: state.stack ? state.stack.slice() : null,
       cols: state.cols,
       rows: state.rows,
       W: state.W,
@@ -581,6 +731,17 @@
     countLeft: countLeft,
     shuffleBoard: shuffleBoard,
     createBoard: createBoard,
+    STACK_THEME: STACK_THEME,
+    isStackTheme: isStackTheme,
+    stackLayout: stackLayout,
+    stackCovered: stackCovered,
+    stackFree: stackFree,
+    stackFreeList: stackFreeList,
+    stackFindPair: stackFindPair,
+    createStack: createStack,
+    shuffleStack: shuffleStack,
+    hasPair: hasPair,
+    reshuffle: reshuffle,
     pickPalette: pickPalette,
     sanitizeTheme: sanitizeTheme,
 

@@ -14,9 +14,10 @@
         require('./themes/fruits.js'),
         require('./themes/animals.js'),
         require('./themes/food.js'),
-        require('./themes/flags.js')
+        require('./themes/flags.js'),
+        require('./themes/mahjong.js')
       ]
-    : [root.THEME_FRUITS, root.THEME_ANIMALS, root.THEME_FOOD, root.THEME_FLAGS];
+    : [root.THEME_FRUITS, root.THEME_ANIMALS, root.THEME_FOOD, root.THEME_FLAGS, root.THEME_MAHJONG];
   var api = factory(parts);
   if (isNode) module.exports = api;
   root.Themes = api;

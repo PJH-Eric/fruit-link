@@ -684,9 +684,9 @@ test('房間開的那一局用房號＋種子當亂數來源，同一組一定�
 
 group('造型主題');
 
-test('五個主題都在，而且每個主題的造型數量足夠', () => {
+test('六個主題都在，而且每個主題的造型數量足夠', () => {
   const menu = Themes.menu();
-  assert.deepStrictEqual(menu.map((t) => t.key), ['fruits', 'animals', 'food', 'flags', 'mixed']);
+  assert.deepStrictEqual(menu.map((t) => t.key), ['fruits', 'animals', 'food', 'flags', 'mahjong', 'mixed']);
   const most = Rules.LEVELS.reduce((m, l) => Math.max(m, l.kinds), 0);
   menu.forEach((t) => {
     assert.ok(t.count >= most, t.label + ' 只有 ' + t.count + ' 種，不夠最難的關卡用（要 ' + most + ' 種）');
@@ -810,6 +810,225 @@ test('房主與觀戰者看到的主題與造型對照表完全一致', () => {
   assert.strictEqual(a.theme, 'mixed');
   assert.strictEqual(a.match.theme, b.match.theme);
   assert.deepStrictEqual(a.match.palette, b.match.palette);
+});
+
+/* ------------------------------------------------------------ 麻將疊疊樂 */
+
+group('麻將疊疊樂');
+
+/* 開一局麻將（疊疊樂）的對局狀態 */
+function mahjong(levelKey, seed) {
+  return Rules.createMatch({
+    seed: seed, players: [{ id: 'me', name: '我' }], level: levelKey, now: 0,
+    theme: 'mahjong', maxKinds: Themes.count('mahjong'), countdownMs: 0,
+    rng: RNG.createRng(seed)
+  });
+}
+/* 同樣的關卡但換成別的主題，用來對照「只有麻將會疊」 */
+function flat(levelKey, seed) {
+  return Rules.createMatch({
+    seed: seed, players: [{ id: 'me', name: '我' }], level: levelKey, now: 0,
+    theme: 'fruits', maxKinds: Themes.count('fruits'), countdownMs: 0,
+    rng: RNG.createRng(seed)
+  });
+}
+function liveCount(grid) { return grid.filter((k) => k).length; }
+
+test('只有麻將主題會疊起來，其他主題維持平面連連看', () => {
+  Rules.LEVEL_ORDER.forEach((key) => {
+    assert.strictEqual(mahjong(key, 'a').mode, 'stack', key + ' 的麻將盤應該是疊的');
+    assert.strictEqual(flat(key, 'a').mode, 'flat', key + ' 的蔬果盤不該疊');
+  });
+  ['fruits', 'animals', 'food', 'flags', 'mixed'].forEach((t) => {
+    assert.strictEqual(Rules.isStackTheme(t), false, t + ' 不該疊');
+  });
+  assert.strictEqual(Rules.isStackTheme('mahjong'), true);
+});
+
+test('每一層都是偶數張，總牌數也是偶數（不然配不完）', () => {
+  Rules.LEVEL_ORDER.forEach((key) => {
+    const st = mahjong(key, 'b');
+    const byZ = {};
+    st.stack.forEach((p) => { byZ[p.z] = (byZ[p.z] || 0) + 1; });
+    Object.keys(byZ).forEach((z) => {
+      assert.strictEqual(byZ[z] % 2, 0, key + ' 第 ' + z + ' 層有 ' + byZ[z] + ' 張，不是偶數');
+    });
+    assert.strictEqual(st.stack.length % 2, 0, key + ' 的總牌數不是偶數');
+    assert.strictEqual(st.total, st.stack.length);
+    assert.strictEqual(st.left, st.total);
+    assert.ok(Object.keys(byZ).length >= 2, key + ' 至少要疊兩層');
+  });
+});
+
+test('每一種牌都是偶數張，而且用滿了關卡要的種類數', () => {
+  Rules.LEVEL_ORDER.forEach((key) => {
+    const st = mahjong(key, 'c');
+    const c = {};
+    st.grid.forEach((k) => { c[k] = (c[k] || 0) + 1; });
+    assert.ok(!c[0], key + ' 不該有空位');
+    assert.strictEqual(Object.keys(c).length, st.kinds, key + ' 的種類數不對');
+    Object.keys(c).forEach((k) => assert.strictEqual(c[k] % 2, 0, key + ' 第 ' + k + ' 種不是偶數張'));
+  });
+});
+
+test('上層牌壓住下層 4 張，邊角壓得比較少', () => {
+  const st = mahjong('normal', 'd');
+  const upper = st.stack.filter((p) => p.z === 1);
+  assert.ok(upper.length > 0);
+  /* 隨便挑一張正中間的上層牌，它蓋住的下層牌應該剛好 4 張 */
+  const mid = upper[Math.floor(upper.length / 2)];
+  const under = st.stack.filter((p) => p.z === 0 &&
+    Math.abs(p.x - mid.x) < 2 && Math.abs(p.y - mid.y) < 2);
+  assert.strictEqual(under.length, 4, '中間的上層牌應該壓住 4 張，實際 ' + under.length);
+  /* 最左上角那一張上層牌壓到的一定少於 4 張（下層沒有更左上的了） */
+  const corner = upper[0];
+  const underCorner = st.stack.filter((p) => p.z === 0 &&
+    Math.abs(p.x - corner.x) < 2 && Math.abs(p.y - corner.y) < 2);
+  assert.ok(underCorner.length <= 4 && underCorner.length >= 1);
+});
+
+test('被壓住的牌不算露出來；把上面的拿掉就解鎖', () => {
+  const st = mahjong('normal', 'e');
+  const maxZ = st.stack.reduce((m, p) => Math.max(m, p.z), 0);
+  const topIds = [];
+  st.stack.forEach((p, i) => { if (p.z === maxZ) topIds.push(i); });
+  /* 最上層一定沒有東西壓著 */
+  topIds.forEach((i) => assert.strictEqual(Rules.stackFree(st.stack, st.grid, i), true, '最上層應該露出來'));
+  /* 被最上層蓋到的那一層，蓋到的每一張現在都不能點 */
+  const under = [];
+  st.stack.forEach((p, i) => {
+    if (p.z !== maxZ - 1) return;
+    if (topIds.some((t) => Math.abs(st.stack[t].x - p.x) < 2 && Math.abs(st.stack[t].y - p.y) < 2)) under.push(i);
+  });
+  assert.ok(under.length > 0);
+  under.forEach((i) => {
+    assert.strictEqual(Rules.stackCovered(st.stack, st.grid, i), true, '第 ' + i + ' 張應該被壓住');
+    assert.strictEqual(Rules.stackFree(st.stack, st.grid, i), false);
+  });
+  topIds.forEach((i) => { st.grid[i] = 0; });   /* 把整層上面的拿走 */
+  under.forEach((i) => {
+    assert.strictEqual(Rules.stackFree(st.stack, st.grid, i), true, '拿掉上面那層就該解鎖');
+  });
+});
+
+test('發出來的牌一定拆得完：由上往下一層一層拆都是露出來的', () => {
+  Rules.LEVEL_ORDER.forEach((key) => {
+    for (let s = 0; s < 5; s++) {
+      const st = mahjong(key, 'solve-' + s);
+      const grid = st.grid.slice();
+      const byZ = {};
+      st.stack.forEach((p, i) => { (byZ[p.z] = byZ[p.z] || []).push(i); });
+      Object.keys(byZ).map(Number).sort((a, b) => b - a).forEach((z) => {
+        byZ[z].forEach((i) => {
+          assert.strictEqual(Rules.stackFree(st.stack, grid, i), true,
+            key + '/' + s + '：第 ' + z + ' 層第 ' + i + ' 張拆到時竟然被壓住');
+          grid[i] = 0;
+        });
+      });
+      assert.strictEqual(liveCount(grid), 0);
+    }
+  });
+});
+
+test('配對規則換成「同一種而且兩張都露出來」，不看路徑', () => {
+  const st = mahjong('normal', 'f');
+  const hit = Rules.stackFindPair(st.stack, st.grid);
+  assert.ok(hit, '一開局一定要有得消');
+  assert.deepStrictEqual(hit.path, [], '疊疊樂沒有路徑');
+  const ok = Rules.attempt(st, 'me', hit.a, hit.b, 1, RNG.createRng('f1'));
+  assert.strictEqual(ok.event.k, 'match');
+  assert.strictEqual(st.grid[hit.a], 0);
+  assert.strictEqual(st.grid[hit.b], 0);
+  assert.strictEqual(st.left, st.total - 2);
+
+  /* 被壓住的那張就算同種也不能消 */
+  const covered = st.stack.findIndex((p, i) => st.grid[i] && Rules.stackCovered(st.stack, st.grid, i));
+  assert.ok(covered >= 0);
+  const twin = st.grid.findIndex((k, i) => i !== covered && k === st.grid[covered]);
+  assert.ok(twin >= 0);
+  const bad = Rules.attempt(st, 'me', covered, twin, 2, RNG.createRng('f2'));
+  assert.strictEqual(bad.event.k, 'miss', '壓住的牌不該消得掉');
+  assert.ok(st.grid[covered] > 0);
+});
+
+test('提示指出來的兩張一定都是露出來的', () => {
+  const st = mahjong('easy', 'g');
+  for (let n = 0; n < 12; n++) {
+    const res = Rules.useHint(st, 'me', 10);
+    if (!res.ok) break;
+    const { a, b } = res.event;
+    assert.strictEqual(Rules.stackFree(st.stack, st.grid, a), true);
+    assert.strictEqual(Rules.stackFree(st.stack, st.grid, b), true);
+    assert.strictEqual(st.grid[a], st.grid[b]);
+    Rules.attempt(st, 'me', a, b, 10, RNG.createRng('g' + n));
+  }
+});
+
+test('洗牌不動位置只換牌面，而且洗完一定有得消', () => {
+  const st = mahjong('normal', 'h');
+  const posBefore = JSON.stringify(st.stack);
+  const before = st.grid.slice();
+  const res = Rules.useShuffle(st, 'me', 10, RNG.createRng('h1'));
+  assert.strictEqual(res.ok, true);
+  assert.strictEqual(JSON.stringify(st.stack), posBefore, '洗牌不該搬動位置');
+  assert.strictEqual(liveCount(st.grid), liveCount(before), '洗牌不能憑空生出或吃掉牌');
+  const c1 = {}, c2 = {};
+  before.forEach((k) => { c1[k] = (c1[k] || 0) + 1; });
+  st.grid.forEach((k) => { c2[k] = (c2[k] || 0) + 1; });
+  assert.deepStrictEqual(c2, c1, '每一種的張數不能變');
+  assert.ok(Rules.stackFindPair(st.stack, st.grid), '洗完一定要有得消');
+});
+
+test('死局會自動洗牌，整局一定清得完', () => {
+  Rules.LEVEL_ORDER.forEach((key) => {
+    const st = mahjong(key, 'clear-' + key);
+    let guard = 0, autoBefore = st.autoShuffles;
+    while (guard++ < 5000 && st.left > 0) {
+      const hit = Rules.stackFindPair(st.stack, st.grid);
+      assert.ok(hit, key + '：沒得消卻沒有自動洗牌（剩 ' + st.left + ' 張）');
+      Rules.attempt(st, 'me', hit.a, hit.b, 10 + guard, RNG.createRng('c' + guard));
+    }
+    assert.strictEqual(st.left, 0, key + ' 沒清完');
+    assert.strictEqual(st.cleared, true, key + ' 沒判過關');
+    assert.ok(st.autoShuffles >= autoBefore);
+  });
+});
+
+test('快照帶著 mode 與每張牌的座標，觀戰者才畫得出同一疊', () => {
+  const st = mahjong('normal', 'i');
+  const snap = Rules.snapshot(st, 10);
+  assert.strictEqual(snap.mode, 'stack');
+  assert.strictEqual(snap.stack.length, snap.grid.length);
+  snap.stack.forEach((p) => {
+    assert.ok(Number.isFinite(p.x) && Number.isFinite(p.y) && Number.isFinite(p.z));
+    assert.ok(p.x + 2 <= snap.W && p.y + 2 <= snap.H, '座標不能超出半格範圍');
+  });
+  /* 平面模式不帶這些，畫面才知道要走哪一套 */
+  const f = Rules.snapshot(flat('normal', 'i'), 10);
+  assert.strictEqual(f.mode, 'flat');
+  assert.strictEqual(f.stack, null);
+});
+
+test('同一個種子一定疊出同一副牌（線上全場才會一致）', () => {
+  const a = mahjong('hard', 'same-seed');
+  const b = mahjong('hard', 'same-seed');
+  assert.deepStrictEqual(a.grid, b.grid);
+  assert.deepStrictEqual(a.stack, b.stack);
+  const c = mahjong('hard', 'other-seed');
+  assert.notDeepStrictEqual(a.grid, c.grid);
+});
+
+test('房間開麻將主題時，房主與觀戰者拿到的是同一副疊牌', () => {
+  const store = newStore();
+  const room = mkRoom(store, { theme: 'mahjong' });
+  room.join('spec', { name: '觀眾', role: 'spectator', now: 0 });
+  room.setReady('host-client-01', true);
+  room.start('host-client-01', 0, { countdownMs: 0 });
+  const a = room.viewFor('host-client-01', 10);
+  const b = room.viewFor('spec', 10);
+  assert.strictEqual(a.match.mode, 'stack');
+  assert.deepStrictEqual(a.match.stack, b.match.stack);
+  assert.deepStrictEqual(a.match.grid, b.match.grid);
 });
 
 /* ------------------------------------------------------------ 收尾 */

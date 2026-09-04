@@ -605,11 +605,284 @@
     }
   ]);
 
+  /* ---- 第三批：再加 18 種，食物的造型池從 42 種變成 60 種 ----
+     容器仍然是主要的分辨方式：這批刻意避開「又一個碗」，改用平盤（義大利麵、
+     炒飯、香腸、生魚片）、玻璃杯（聖代、汽水）、罐子（蜂蜜）、蒸籠（包子）
+     與有特殊輪廓的點心（蝴蝶脆餅、馬卡龍、棉花糖、蛋糕捲）。 */
+  var MORE = [
+    {
+      id: 'spaghetti', label: '義大利麵',
+      svg: ground(34, 90) +
+        '<ellipse cx="50" cy="64" rx="44" ry="24" fill="#F7F3EC" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M78 50 C86 54 90 59 90 64 C90 77 72 88 50 88 C74 84 86 74 86 62 C86 57 82 52 78 50 Z" fill="#DDD6C8" opacity="0.8"/>' +
+        '<ellipse cx="50" cy="62" rx="34" ry="17" fill="#EFE7DA"/>' +
+        '<g fill="none" stroke="#F0D07A" stroke-width="4.4" stroke-linecap="round">' +
+        '<path d="M24 60 C32 50 50 48 62 54 M28 68 C40 60 58 60 70 66 M24 52 C36 46 56 44 70 50 M34 72 C46 68 60 68 72 72"/></g>' +
+        '<g fill="none" stroke="#E0B84E" stroke-width="2" stroke-linecap="round" opacity="0.9">' +
+        '<path d="M26 64 C36 56 52 54 64 58 M32 56 C44 50 58 50 68 54"/></g>' +
+        '<g fill="#C63A2A" stroke="' + INK + '" stroke-width="2.2">' +
+        '<ellipse cx="46" cy="56" rx="11" ry="7"/><ellipse cx="64" cy="62" rx="8" ry="5.4"/></g>' +
+        '<g fill="#8A1F18" opacity="0.45"><ellipse cx="48" cy="55" rx="4" ry="2.4"/></g>' +
+        '<g fill="#4E9C3F"><ellipse cx="36" cy="50" rx="5" ry="3" transform="rotate(-22 36 50)"/>' +
+        '<ellipse cx="68" cy="52" rx="4.4" ry="2.6" transform="rotate(20 68 52)"/></g>' +
+        gloss(30, 56, 7, 3.4, -16, 0.4)
+    },
+    {
+      id: 'taco', label: '塔可餅',
+      svg: ground(32, 92) +
+        '<path d="M24 60 C24 38 34 24 50 24 C66 24 76 38 76 60 Z" fill="#8A4A26" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<g fill="#6FAE3E" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round">' +
+        '<path d="M28 44 C22 36 26 28 34 30 C40 32 42 40 38 46 Z"/>' +
+        '<path d="M50 36 C46 26 54 20 60 24 C66 28 64 38 58 40 Z"/>' +
+        '<path d="M68 46 C74 38 72 30 64 30 C58 32 58 40 62 46 Z"/></g>' +
+        '<g fill="#D6392E" stroke="' + INK + '" stroke-width="2"><rect x="38" y="44" width="10" height="9" rx="2"/>' +
+        '<rect x="56" y="48" width="9" height="8" rx="2"/></g>' +
+        '<g fill="#F0C33C"><rect x="30" y="52" width="14" height="4" rx="2"/><rect x="52" y="40" width="13" height="4" rx="2"/>' +
+        '<rect x="44" y="56" width="12" height="4" rx="2"/></g>' +
+        '<path d="M12 46 C12 74 28 90 50 90 C72 90 88 74 88 46 C88 40 80 40 80 48 C78 68 66 80 50 80 C34 80 22 68 20 48 C20 40 12 40 12 46 Z" ' +
+        'fill="#EFC25E" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M88 46 C88 74 72 90 50 90 C66 84 76 68 76 46 C76 40 84 40 88 46 Z" fill="#CE9E36" opacity="0.75"/>' +
+        '<g fill="#C98A3E" opacity="0.6"><circle cx="30" cy="72" r="3"/><circle cx="50" cy="80" r="3"/><circle cx="68" cy="72" r="3"/></g>'
+    },
+    {
+      id: 'pretzel', label: '蝴蝶脆餅',
+      svg: ground(30, 92) +
+        '<path d="M50 86 C24 86 12 68 18 48 C24 32 44 32 48 50 C50 58 50 64 50 72 C50 64 50 58 52 50 C56 32 76 32 82 48 C88 68 76 86 50 86 Z" ' +
+        'fill="none" stroke="' + INK + '" stroke-width="17" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '<path d="M50 86 C24 86 12 68 18 48 C24 32 44 32 48 50 C50 58 50 64 50 72 C50 64 50 58 52 50 C56 32 76 32 82 48 C88 68 76 86 50 86 Z" ' +
+        'fill="none" stroke="#B4762E" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '<path d="M50 86 C24 86 12 68 18 48 C22 38 32 34 40 38" ' +
+        'fill="none" stroke="#8E5518" stroke-width="3" stroke-linecap="round" opacity="0.55"/>' +
+        '<g fill="#FBF8F2"><circle cx="30" cy="52" r="2.6"/><circle cx="70" cy="52" r="2.6"/><circle cx="38" cy="76" r="2.6"/>' +
+        '<circle cx="62" cy="78" r="2.6"/><circle cx="50" cy="82" r="2.4"/><circle cx="22" cy="66" r="2.4"/><circle cx="78" cy="66" r="2.4"/></g>'
+    },
+    {
+      id: 'macaron', label: '馬卡龍',
+      svg: ground(32, 88) +
+        '<path d="M14 46 C14 32 30 24 50 24 C70 24 86 32 86 46 C86 51 76 54 50 54 C24 54 14 51 14 46 Z" ' +
+        'fill="#F5A7C0" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M66 27 C79 32 86 38 86 46 C86 51 76 54 50 54 C74 52 80 44 74 36 C72 32 69 29 66 27 Z" fill="#DB7E9C" opacity="0.8"/>' +
+        '<g fill="#EE93B0"><ellipse cx="24" cy="52" rx="6" ry="3"/><ellipse cx="40" cy="54" rx="6" ry="3"/>' +
+        '<ellipse cx="60" cy="54" rx="6" ry="3"/><ellipse cx="76" cy="52" rx="6" ry="3"/></g>' +
+        '<path d="M16 54 C24 52 76 52 84 54 C86 59 83 64 76 66 L24 66 C17 64 14 59 16 54 Z" ' +
+        'fill="#F6E3A8" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<path d="M14 66 C14 78 30 86 50 86 C70 86 86 78 86 66 C86 61 76 58 50 58 C24 58 14 61 14 66 Z" ' +
+        'fill="#F5A7C0" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M74 60 C82 62 86 64 86 66 C86 78 70 86 50 86 C72 82 80 72 76 64 Z" fill="#DB7E9C" opacity="0.8"/>' +
+        gloss(32, 36, 10, 5, -22, 0.45)
+    },
+    {
+      id: 'mooncake', label: '月餅',
+      svg: ground(32, 88) +
+        '<path d="M22 26 L78 26 C84 26 88 30 88 36 L88 70 C88 76 84 80 78 80 L22 80 C16 80 12 76 12 70 L12 36 C12 30 16 26 22 26 Z" ' +
+        'fill="#C98A3E" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M70 27 C82 28 88 32 88 40 L88 70 C88 76 84 80 78 80 L52 80 C70 76 78 62 76 48 C75 39 73 31 70 27 Z" fill="#A5691F" opacity="0.75"/>' +
+        '<path d="M20 32 L80 32 C84 32 86 35 86 39 L86 67 C86 71 84 74 80 74 L20 74 C16 74 14 71 14 67 L14 39 C14 35 16 32 20 32 Z" ' +
+        'fill="#DDA155" stroke="#A5691F" stroke-width="2.2"/>' +
+        '<circle cx="50" cy="53" r="14" fill="none" stroke="#A5691F" stroke-width="2.6"/>' +
+        '<g fill="#A5691F" opacity="0.9"><ellipse cx="50" cy="43" rx="4" ry="6"/><ellipse cx="50" cy="63" rx="4" ry="6"/>' +
+        '<ellipse cx="40" cy="53" rx="6" ry="4"/><ellipse cx="60" cy="53" rx="6" ry="4"/></g>' +
+        '<circle cx="50" cy="53" r="4" fill="#8A5318"/>' +
+        '<g fill="none" stroke="#A5691F" stroke-width="2.2" stroke-linecap="round">' +
+        '<path d="M20 38 L26 38 M20 38 L20 44 M80 38 L74 38 M80 38 L80 44 M20 68 L26 68 M20 68 L20 62 M80 68 L74 68 M80 68 L80 62"/></g>'
+    },
+    {
+      id: 'pineapple-cake', label: '鳳梨酥',
+      svg: ground(30, 88) +
+        '<path d="M20 30 L74 30 C78 30 80 33 80 37 L80 73 C80 77 78 80 74 80 L20 80 C16 80 14 77 14 73 L14 37 C14 33 16 30 20 30 Z" ' +
+        'fill="#E8C070" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M64 31 C74 33 80 38 80 44 L80 73 C80 77 78 80 74 80 L54 80 C70 74 74 58 70 44 C68 37 66 33 64 31 Z" fill="#C99C46" opacity="0.8"/>' +
+        '<rect x="21" y="37" width="52" height="36" rx="4" fill="none" stroke="#BE8F32" stroke-width="2.2"/>' +
+        '<path d="M80 37 L80 73 C80 77 78 80 74 80 L74 30 C78 30 80 33 80 37 Z" fill="#F0C33C" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<path d="M86 34 C92 36 94 44 92 52 L92 68 C92 76 88 80 82 80 L74 80 L74 30 Z" fill="#EFB026" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<g fill="#D9891A" opacity="0.85"><ellipse cx="83" cy="46" rx="3.4" ry="4.4"/><ellipse cx="85" cy="62" rx="3.4" ry="4.4"/></g>' +
+        gloss(32, 42, 10, 4, -8, 0.35)
+    },
+    {
+      id: 'bao', label: '包子',
+      svg: steam(50, 24) +
+        '<path d="M50 28 C68 28 80 42 80 56 C80 66 68 72 50 72 C32 72 20 66 20 56 C20 42 32 28 50 28 Z" ' +
+        'fill="#FBF8F2" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M64 33 C74 39 80 47 80 56 C80 66 68 72 50 72 C68 70 76 62 74 52 C72 44 68 37 64 33 Z" fill="#DDD6C8" opacity="0.85"/>' +
+        '<g fill="none" stroke="#D2C9B6" stroke-width="2.4" stroke-linecap="round">' +
+        '<path d="M50 34 C40 40 32 48 26 60 M50 34 C44 42 38 52 34 64 M50 34 C56 42 62 52 66 64 M50 34 C60 40 68 48 74 60"/></g>' +
+        '<circle cx="50" cy="34" r="5" fill="#EFE7D6" stroke="' + INK + '" stroke-width="2.2"/>' +
+        '<path d="M10 68 L90 68 C90 84 80 90 50 90 C20 90 10 84 10 68 Z" ' +
+        'fill="#C9A05E" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M74 68 L90 68 C90 84 80 90 50 90 C72 88 78 80 74 68 Z" fill="#A57F3C" opacity="0.8"/>' +
+        '<g fill="none" stroke="#8E6428" stroke-width="2.2"><path d="M14 76 L86 76 M18 84 L82 84"/></g>'
+    },
+    {
+      id: 'tofu', label: '豆腐',
+      svg: ground(32, 92) +
+        '<ellipse cx="50" cy="80" rx="40" ry="13" fill="#E4EDF2" stroke="' + INK + '" stroke-width="2.5"/>' +
+        '<path d="M78 72 C84 75 86 78 86 80 C86 87 70 92 50 92 C68 90 78 84 78 76 Z" fill="#C4D2DA" opacity="0.85"/>' +
+        '<path d="M26 44 L50 32 L74 44 L50 56 Z" fill="#FBF8EE" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<path d="M26 44 L26 68 L50 80 L50 56 Z" fill="#EFE7D6" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<path d="M74 44 L74 68 L50 80 L50 56 Z" fill="#D9CFB8" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<path d="M36 40 C44 44 56 44 64 40" fill="none" stroke="#D9CFB8" stroke-width="2" opacity="0.8"/>' +
+        '<path d="M40 34 C48 38 56 42 58 50 C60 58 56 66 50 70" fill="none" stroke="#7A4A22" stroke-width="3.4" stroke-linecap="round" opacity="0.9"/>' +
+        '<g fill="#4E9C3F"><rect x="40" y="34" width="8" height="3.4" rx="1.7" transform="rotate(-18 44 36)"/>' +
+        '<rect x="54" y="38" width="8" height="3.4" rx="1.7" transform="rotate(22 58 40)"/>' +
+        '<rect x="46" y="44" width="7" height="3.2" rx="1.6" transform="rotate(-8 50 46)"/></g>'
+    },
+    {
+      id: 'fried-rice', label: '炒飯',
+      svg: steam(50, 26) + ground(36, 92) +
+        '<ellipse cx="50" cy="74" rx="44" ry="18" fill="#F7F3EC" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M80 62 C88 66 94 70 94 74 C94 84 74 92 50 92 C74 88 86 80 86 70 C86 67 83 64 80 62 Z" fill="#DDD6C8" opacity="0.8"/>' +
+        '<path d="M16 70 C16 52 32 40 50 40 C68 40 84 52 84 70 C84 76 70 80 50 80 C30 80 16 76 16 70 Z" ' +
+        'fill="#F0DFA8" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<path d="M66 45 C78 51 84 60 84 70 C84 76 70 80 50 80 C72 78 80 70 78 60 C76 53 70 47 66 45 Z" fill="#D9C480" opacity="0.85"/>' +
+        '<g fill="#FBF2D2"><ellipse cx="34" cy="58" rx="5" ry="3" transform="rotate(-20 34 58)"/>' +
+        '<ellipse cx="48" cy="50" rx="5" ry="3" transform="rotate(15 48 50)"/><ellipse cx="62" cy="58" rx="5" ry="3" transform="rotate(-10 62 58)"/>' +
+        '<ellipse cx="28" cy="68" rx="5" ry="3"/><ellipse cx="44" cy="70" rx="5" ry="3" transform="rotate(20 44 70)"/>' +
+        '<ellipse cx="60" cy="70" rx="5" ry="3" transform="rotate(-16 60 70)"/><ellipse cx="72" cy="64" rx="5" ry="3"/></g>' +
+        '<g fill="#4E9C3F"><circle cx="38" cy="52" r="3.4"/><circle cx="56" cy="64" r="3.4"/><circle cx="70" cy="54" r="3.2"/>' +
+        '<circle cx="30" cy="63" r="3"/></g>' +
+        '<g fill="#F0C33C"><rect x="50" y="55" width="7" height="4" rx="2"/><rect x="34" y="72" width="7" height="4" rx="2"/>' +
+        '<rect x="64" y="70" width="7" height="4" rx="2"/></g>' +
+        '<g fill="#E8892E"><ellipse cx="44" cy="60" rx="5" ry="3.4" transform="rotate(-24 44 60)"/>' +
+        '<ellipse cx="66" cy="62" rx="4.4" ry="3" transform="rotate(16 66 62)"/></g>'
+    },
+    {
+      id: 'sausage', label: '香腸',
+      svg: ground(34, 92) +
+        '<ellipse cx="50" cy="76" rx="42" ry="16" fill="#F7F3EC" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M78 66 C86 69 92 72 92 76 C92 85 74 92 50 92 C74 88 84 82 84 74 C84 71 81 68 78 66 Z" fill="#DDD6C8" opacity="0.8"/>' +
+        '<path d="M14 50 C14 42 22 38 30 40 L74 50 C82 52 86 58 84 64 C82 70 74 72 66 70 L22 60 C16 58 14 55 14 50 Z" ' +
+        'fill="#B4522E" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M62 46 C74 49 84 54 84 62 C84 68 76 72 66 70 L52 67 C68 64 72 54 62 46 Z" fill="#8A3418" opacity="0.85"/>' +
+        '<g fill="none" stroke="#71290F" stroke-width="2.6" stroke-linecap="round" opacity="0.9">' +
+        '<path d="M28 42 L24 58 M44 46 L40 62 M60 50 L56 66 M74 54 L70 69"/></g>' +
+        '<path d="M18 66 C18 60 26 58 34 60 L70 70 C78 72 82 78 80 82 C78 87 70 88 62 86 L26 76 C20 74 18 71 18 66 Z" ' +
+        'fill="#C4602E" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<g fill="none" stroke="#8A3418" stroke-width="2.4" stroke-linecap="round" opacity="0.85">' +
+        '<path d="M32 60 L28 74 M50 65 L46 79 M68 70 L64 84"/></g>' +
+        gloss(30, 48, 8, 3, -14, 0.34)
+    },
+    {
+      id: 'sundae', label: '聖代',
+      svg: ground(20, 94) +
+        '<path d="M26 40 C26 26 36 18 50 18 C64 18 74 26 74 38 C80 40 82 48 76 52 C72 46 66 44 62 46 C58 40 48 40 44 46 C38 42 30 44 26 40 Z" ' +
+        'fill="#FBEBD2" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M60 20 C70 24 74 30 74 38 C80 40 82 48 76 52 C72 46 66 44 62 46 C64 36 63 26 60 20 Z" fill="#E4CFA8" opacity="0.85"/>' +
+        '<path d="M28 44 C36 52 44 46 50 50 C58 54 66 48 74 44 C76 52 72 58 66 60 L34 60 C28 58 26 50 28 44 Z" fill="#D6392E"/>' +
+        '<circle cx="50" cy="14" r="7" fill="#D6342E" stroke="' + INK + '" stroke-width="2.3"/>' +
+        '<path d="M50 8 C52 2 58 2 60 4" fill="none" stroke="#4E9C3F" stroke-width="2.6" stroke-linecap="round"/>' +
+        '<path d="M76 26 L88 22 L84 50 L78 48 Z" fill="#E8C070" stroke="' + INK + '" stroke-width="2.3" stroke-linejoin="round"/>' +
+        '<path d="M28 48 L72 48 L64 80 C64 86 36 86 36 80 Z" fill="#EAF2F6" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round" opacity="0.92"/>' +
+        '<path d="M31 52 L69 52 L63 78 C63 82 37 82 37 78 Z" fill="#F7D9E4" opacity="0.85"/>' +
+        '<path d="M45 84 L55 84 L55 88 L62 94 L38 94 L45 88 Z" fill="#EAF2F6" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>' +
+        gloss(38, 62, 3.4, 12, -4, 0.5)
+    },
+    {
+      id: 'tea', label: '熱茶',
+      svg: steam(50, 28) +
+        '<ellipse cx="50" cy="86" rx="36" ry="10" fill="#F0EAE0" stroke="' + INK + '" stroke-width="2.5"/>' +
+        '<path d="M72 80 C82 82 86 84 86 86 C86 91 70 96 50 96 C70 94 78 88 76 82 Z" fill="#D2C9B6" opacity="0.85"/>' +
+        '<path d="M74 50 C88 50 88 70 74 70" fill="none" stroke="' + INK + '" stroke-width="7" stroke-linecap="round"/>' +
+        '<path d="M74 50 C86 50 86 70 74 70" fill="none" stroke="#FBF8F2" stroke-width="4" stroke-linecap="round"/>' +
+        '<path d="M24 44 L76 44 L70 74 C70 82 30 82 30 74 Z" fill="#FBF8F2" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M62 45 L76 44 L70 74 C70 79 58 81 46 81 C62 79 66 72 66 62 C66 54 64 48 62 45 Z" fill="#DDD6C8" opacity="0.85"/>' +
+        '<ellipse cx="50" cy="44" rx="26" ry="8" fill="#C98A3E" stroke="' + INK + '" stroke-width="2.4"/>' +
+        '<ellipse cx="44" cy="43" rx="9" ry="3" fill="#E0AC63" opacity="0.7"/>' +
+        '<path d="M56 40 L64 22" fill="none" stroke="#D2C9B6" stroke-width="2" stroke-linecap="round"/>' +
+        '<rect x="60" y="14" width="12" height="9" rx="2" fill="#EFC25E" stroke="' + INK + '" stroke-width="2.2"/>'
+    },
+    {
+      id: 'soda', label: '汽水',
+      svg: ground(22, 94) +
+        '<path d="M42 16 L58 16 L58 28 C68 34 72 44 72 56 L72 80 C72 87 65 91 50 91 C35 91 28 87 28 80 L28 56 C28 44 32 34 42 28 Z" ' +
+        'fill="#CFE8F2" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M29 50 L71 50 L71 80 C71 87 65 90 50 90 C35 90 29 87 29 80 Z" fill="#E8892E"/>' +
+        '<path d="M62 50 L71 50 L71 80 C71 87 65 90 50 90 C62 88 66 84 66 76 L66 50 Z" fill="#C46A18" opacity="0.85"/>' +
+        '<g fill="#FBF8F2" opacity="0.75"><circle cx="40" cy="60" r="3"/><circle cx="52" cy="56" r="2.4"/>' +
+        '<circle cx="60" cy="66" r="2.6"/><circle cx="44" cy="72" r="2.6"/><circle cx="56" cy="78" r="2.2"/><circle cx="36" cy="82" r="2.2"/></g>' +
+        '<rect x="30" y="58" width="40" height="15" rx="4" fill="#FBF8F2" stroke="' + INK + '" stroke-width="2.2"/>' +
+        '<path d="M34 65 C40 61 46 69 52 65 C58 61 64 69 66 65" fill="none" stroke="#D6342E" stroke-width="2.6" stroke-linecap="round"/>' +
+        '<rect x="39" y="8" width="22" height="10" rx="3" fill="#D6342E" stroke="' + INK + '" stroke-width="2.4"/>' +
+        '<g fill="none" stroke="#8A1F18" stroke-width="1.6"><path d="M43 9 L43 17 M50 9 L50 17 M57 9 L57 17"/></g>' +
+        gloss(36, 46, 3.4, 12, -4, 0.5)
+    },
+    {
+      id: 'honey', label: '蜂蜜',
+      svg: ground(30, 92) +
+        '<path d="M62 18 C68 14 76 18 74 26 L64 62" fill="none" stroke="#C98A3E" stroke-width="5" stroke-linecap="round"/>' +
+        '<g fill="#E8B23C" stroke="' + INK + '" stroke-width="2.2">' +
+        '<ellipse cx="68" cy="44" rx="8" ry="5"/><ellipse cx="66" cy="52" rx="9" ry="5"/><ellipse cx="64" cy="60" rx="8" ry="5"/></g>' +
+        '<path d="M28 38 L72 38 C77 38 79 42 79 48 L79 78 C79 87 70 92 50 92 C30 92 21 87 21 78 L21 48 C21 42 23 38 28 38 Z" ' +
+        'fill="#F0B429" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M66 39 C75 40 79 43 79 50 L79 78 C79 87 70 92 50 92 C68 89 73 82 72 70 C71 56 69 45 66 39 Z" fill="#CE8F10" opacity="0.8"/>' +
+        '<rect x="24" y="26" width="52" height="14" rx="5" fill="#C98A3E" stroke="' + INK + '" stroke-width="2.5"/>' +
+        '<path d="M76 27 C79 30 79 36 76 39 L66 39 C69 36 69 30 66 27 Z" fill="#9E6A20" opacity="0.8"/>' +
+        '<rect x="30" y="54" width="40" height="24" rx="5" fill="#FBF6E4" stroke="' + INK + '" stroke-width="2.2"/>' +
+        '<g fill="#E8B23C"><polygon points="40,60 45,60 47.5,64.5 45,69 40,69 37.5,64.5"/>' +
+        '<polygon points="53,60 58,60 60.5,64.5 58,69 53,69 50.5,64.5"/>' +
+        '<polygon points="46.5,69.5 51.5,69.5 54,74 51.5,78 46.5,78 44,74"/></g>'
+    },
+    {
+      id: 'swiss-roll', label: '蛋糕捲',
+      svg: ground(32, 90) +
+        '<circle cx="50" cy="54" r="34" fill="#E8B96E" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M74 30 C82 38 84 46 84 54 C84 73 69 88 50 88 C68 84 78 70 78 54 C78 44 76 35 74 30 Z" fill="#C4954A" opacity="0.8"/>' +
+        '<path d="M50 54 C50 44 60 40 68 46 C78 54 76 72 62 80 C46 88 26 76 26 56 C26 36 42 22 62 24" ' +
+        'fill="none" stroke="#FBF0D8" stroke-width="9" stroke-linecap="round"/>' +
+        '<path d="M50 54 C50 44 60 40 68 46 C78 54 76 72 62 80 C46 88 26 76 26 56 C26 36 42 22 62 24" ' +
+        'fill="none" stroke="#B4762E" stroke-width="3.4" stroke-linecap="round" opacity="0.7"/>' +
+        '<circle cx="50" cy="54" r="4.4" fill="#FBF0D8" stroke="#B4762E" stroke-width="2"/>' +
+        gloss(34, 34, 10, 5, -32, 0.35)
+    },
+    {
+      id: 'cotton-candy', label: '棉花糖',
+      svg: ground(16, 95) +
+        '<rect x="46.5" y="56" width="7" height="38" rx="3" fill="#E8DCC2" stroke="' + INK + '" stroke-width="2.3"/>' +
+        '<path d="M50 12 C64 8 78 18 76 30 C88 34 88 50 76 54 C70 64 58 66 50 62 C42 66 30 64 24 54 ' +
+        'C12 50 12 34 24 30 C22 18 36 8 50 12 Z" fill="#F7A8C8" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M64 14 C74 20 78 26 76 30 C88 34 88 50 76 54 C70 64 58 66 50 62 C64 60 72 52 72 42 C72 28 68 18 64 14 Z" ' +
+        'fill="#E07FA8" opacity="0.8"/>' +
+        '<g fill="#FBD0E0" opacity="0.9"><ellipse cx="36" cy="26" rx="10" ry="7" transform="rotate(-18 36 26)"/>' +
+        '<ellipse cx="30" cy="42" rx="8" ry="5.4"/><ellipse cx="52" cy="20" rx="8" ry="5" transform="rotate(8 52 20)"/></g>' +
+        '<g fill="#FFFFFF" opacity="0.5"><circle cx="42" cy="34" r="3"/><circle cx="60" cy="30" r="2.6"/><circle cx="56" cy="48" r="2.6"/></g>'
+    },
+    {
+      id: 'egg-tart', label: '蛋塔',
+      svg: ground(32, 90) +
+        '<path d="M16 50 C16 42 30 38 50 38 C70 38 84 42 84 50 L78 76 C76 83 62 87 50 87 C38 87 24 83 22 76 Z" ' +
+        'fill="#D9A45C" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>' +
+        '<path d="M68 41 C79 44 84 46 84 50 L78 76 C76 83 62 87 50 87 C66 84 72 78 74 68 C77 56 72 46 68 41 Z" fill="#B47F32" opacity="0.8"/>' +
+        '<g fill="none" stroke="#A5691F" stroke-width="2.2" opacity="0.9">' +
+        '<path d="M28 48 L26 78 M40 50 L39 84 M52 50 L52 86 M64 50 L65 84 M74 48 L76 76"/></g>' +
+        '<ellipse cx="50" cy="48" rx="32" ry="12" fill="#F2C34E" stroke="' + INK + '" stroke-width="2.5"/>' +
+        '<ellipse cx="50" cy="47" rx="26" ry="8.4" fill="#F7D66E"/>' +
+        '<g fill="#8A5318" opacity="0.7"><ellipse cx="38" cy="45" rx="3.4" ry="2.2"/><ellipse cx="58" cy="49" rx="4" ry="2.4"/>' +
+        '<ellipse cx="50" cy="42" rx="2.6" ry="1.8"/><ellipse cx="64" cy="44" rx="2.6" ry="1.8"/></g>' +
+        gloss(38, 44, 7, 2.6, -8, 0.4)
+    },
+    {
+      id: 'sashimi', label: '生魚片',
+      svg: ground(34, 92) +
+        '<ellipse cx="50" cy="70" rx="44" ry="20" fill="#F7F3EC" stroke="' + INK + '" stroke-width="2.6"/>' +
+        '<path d="M80 56 C89 61 94 66 94 70 C94 81 74 90 50 90 C74 86 86 77 86 66 C86 62 83 58 80 56 Z" fill="#DDD6C8" opacity="0.8"/>' +
+        '<path d="M22 66 C18 54 26 44 40 44 C54 44 62 52 60 64 C48 70 32 72 22 66 Z" fill="#3F8A32" stroke="' + INK + '" stroke-width="2.3" stroke-linejoin="round"/>' +
+        '<g stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round">' +
+        '<path d="M24 56 C30 46 46 42 56 48 C64 53 62 63 52 68 C40 74 26 68 24 56 Z" fill="#F0805E"/>' +
+        '<path d="M38 50 C44 40 60 36 70 42 C78 47 76 57 66 62 C54 68 40 62 38 50 Z" fill="#F58C6A"/>' +
+        '<path d="M52 58 C58 48 74 44 84 50 C92 55 90 65 80 70 C68 76 54 70 52 58 Z" fill="#F0805E"/></g>' +
+        '<g fill="none" stroke="#FBE0D2" stroke-width="2.6" stroke-linecap="round" opacity="0.95">' +
+        '<path d="M30 58 C36 52 46 50 52 54 M28 64 C34 58 44 56 50 60 M44 52 C50 46 60 44 66 48 M42 58 C48 52 58 50 64 54 ' +
+        'M58 60 C64 54 74 52 80 56 M56 66 C62 60 72 58 78 62"/></g>' +
+        '<g fill="#6FAE3E" stroke="' + INK + '" stroke-width="2"><circle cx="24" cy="76" r="7"/></g>' +
+        '<g fill="none" stroke="#FBF8F2" stroke-width="2.4" stroke-linecap="round">' +
+        '<path d="M64 76 L84 74 M64 80 L82 79 M66 72 L84 69"/></g>'
+    }
+  ];
+
   return {
     key: 'food',
     label: '食物',
     emoji: '🍔',
     note: '正餐、點心與飲料',
-    list: LIST
+    list: LIST.concat(MORE)
   };
 }));

@@ -18,6 +18,8 @@
   var theme = 'fruits', palette = [];
   var tiles = {};          // cellIndex -> button 元素
   var lastGrid = null;
+  /* 麻將疊疊樂才有：stackPos[i] = 第 i 張牌的半格座標與層數。平面模式是 null。 */
+  var stackPos = null;
 
   function el(tag, cls, html) {
     var e = document.createElement(tag);
@@ -44,10 +46,13 @@
   function mount(hosts, snap, onPick) {
     boardEl = hosts.board; lineEl = hosts.line; fxEl = hosts.fx;
     W = snap.W; H = snap.H; cols = snap.cols; rows = snap.rows;
+    stackPos = (snap.mode === 'stack' && snap.stack && snap.stack.length) ? snap.stack : null;
     theme = snap.theme || 'fruits';
     palette = (snap.palette || []).slice();
-    boardEl.style.setProperty('--cols', cols);
-    boardEl.style.setProperty('--rows', rows);
+    boardEl.classList.toggle('stacked', !!stackPos);
+    /* 疊疊樂的網格單位是半格（牌本身佔 2×2 格），所以直接拿 W／H 當格數 */
+    boardEl.style.setProperty('--cols', stackPos ? W : cols);
+    boardEl.style.setProperty('--rows', stackPos ? H : rows);
     lineEl.setAttribute('viewBox', '0 0 ' + vbW() + ' ' + vbH());
     lineEl.setAttribute('preserveAspectRatio', 'none');
     lineEl.innerHTML = '';
@@ -62,36 +67,110 @@
     tiles = {};
 
     var frag = document.createDocumentFragment();
-    for (var y = 0; y < H; y++) {
-      for (var x = 0; x < W; x++) {
-        var i = y * W + x;
-        var pad = (x === 0 || y === 0 || x === W - 1 || y === H - 1);
-        var cell = el('div', 'cell' + (pad ? ' pad' : ''));
-        cell.dataset.i = i;
-        if (!pad) {
-          var btn = el('button', 'tile');
-          btn.type = 'button';
-          btn.dataset.i = i;
-          btn.setAttribute('role', 'gridcell');
-          btn.addEventListener('click', (function (idx) {
-            return function (ev) { ev.preventDefault(); if (onPick) onPick(idx); };
-          }(i)));
-          cell.appendChild(btn);
-          tiles[i] = btn;
-        }
-        frag.appendChild(cell);
-      }
-    }
-    boardEl.appendChild(frag);
+    if (stackPos) { buildStack(frag, onPick); boardEl.appendChild(frag); }
+    else { buildFlat(frag, onPick); boardEl.appendChild(frag); }
     boardEl.appendChild(lineEl);
     boardEl.appendChild(fxEl);
     lastGrid = null;
     sync(snap.grid);
   }
 
+  /** 疊疊樂：每一張牌自己佔 2×2 個半格，層數決定誰蓋在誰上面 */
+  function buildStack(frag, onPick) {
+    for (var i = 0; i < stackPos.length; i++) {
+      var p = stackPos[i];
+      var cell = el('div', 'cell lay');
+      cell.style.gridColumn = (p.x + 2) + ' / span 2';
+      cell.style.gridRow = (p.y + 2) + ' / span 2';
+      cell.style.zIndex = String(10 + p.z);
+      cell.style.setProperty('--z', p.z);
+      cell.dataset.i = i;
+      cell.appendChild(makeTile(i, onPick));
+      frag.appendChild(cell);
+    }
+  }
+
+  /** 平面連連看：含外圈的 W×H 網格 */
+  function buildFlat(frag, onPick) {
+    for (var y = 0; y < H; y++) {
+      for (var x = 0; x < W; x++) {
+        var i = y * W + x;
+        var pad = (x === 0 || y === 0 || x === W - 1 || y === H - 1);
+        var cell = el('div', 'cell' + (pad ? ' pad' : ''));
+        cell.dataset.i = i;
+        if (!pad) cell.appendChild(makeTile(i, onPick));
+        frag.appendChild(cell);
+      }
+    }
+  }
+
+  function makeTile(i, onPick) {
+    var btn = el('button', 'tile');
+    btn.type = 'button';
+    btn.dataset.i = i;
+    btn.setAttribute('role', 'gridcell');
+    btn.addEventListener('click', function (ev) { ev.preventDefault(); if (onPick) onPick(i); });
+    tiles[i] = btn;
+    return btn;
+  }
+
   function tileLabel(i, kind) {
+    var name = kind ? w.SvgUI.tileName(kind, theme, palette) : '空格';
+    if (stackPos) {
+      var p = stackPos[i];
+      return '第 ' + (p.z + 1) + ' 層，第 ' + (Math.floor(p.y / 2) + 1) + ' 列第 ' + (Math.floor(p.x / 2) + 1) + ' 行，' + name;
+    }
     var x = (i % W), y = Math.floor(i / W);
-    return '第 ' + y + ' 列第 ' + x + ' 行，' + (kind ? w.SvgUI.tileName(kind, theme, palette) : '空格');
+    return '第 ' + y + ' 列第 ' + x + ' 行，' + name;
+  }
+
+  /* ---------------------------------------------------------- 疊疊樂：壓住與解鎖
+     規則那邊也有一份一樣的判斷（rules.stackCovered）。這裡是畫面用的，
+     線上模式的盤面由伺服器算，前端只是要知道「哪幾張要壓暗、不能點」。 */
+
+  function coveredNow(grid, i) {
+    var a = stackPos[i], b, j;
+    for (j = 0; j < stackPos.length; j++) {
+      if (j === i || !grid[j]) continue;
+      b = stackPos[j];
+      if (b.z > a.z && Math.abs(b.x - a.x) < 2 && Math.abs(b.y - a.y) < 2) return true;
+    }
+    return false;
+  }
+
+  /** 被壓住的牌：壓暗、不能點、也不進 Tab 順序 */
+  function syncLocks(grid) {
+    for (var i = 0; i < stackPos.length; i++) {
+      var btn = tiles[i];
+      if (!btn) continue;
+      var locked = !!grid[i] && coveredNow(grid, i);
+      btn.classList.toggle('locked', locked);
+      if (grid[i]) {
+        btn.tabIndex = locked ? -1 : 0;
+        btn.setAttribute('aria-disabled', locked ? 'true' : 'false');
+      }
+    }
+  }
+
+  /** 這張現在能不能點（平面模式一律可以） */
+  function isLocked(i) {
+    return !!(stackPos && tiles[i] && tiles[i].classList.contains('locked'));
+  }
+
+  /** 疊疊樂的方向鍵：往 dx/dy 找最近的一張牌（偏離方向的要多算一點距離） */
+  function stackStep(i, dx, dy, grid) {
+    if (!stackPos || !stackPos[i]) return -1;
+    var a = stackPos[i], best = -1, bestScore = Infinity, j, b, fwd, side, score;
+    for (j = 0; j < stackPos.length; j++) {
+      if (j === i || !grid[j]) continue;
+      b = stackPos[j];
+      fwd = (b.x - a.x) * dx + (b.y - a.y) * dy;
+      if (fwd <= 0) continue;
+      side = Math.abs((b.x - a.x) * dy - (b.y - a.y) * dx);
+      score = fwd + side * 3;
+      if (score < bestScore) { bestScore = score; best = j; }
+    }
+    return best;
   }
 
   /** 把畫面上的磚塊對齊到 grid；只動有變的格子 */
@@ -120,6 +199,7 @@
         btn.setAttribute('aria-pressed', 'false');
       }
     }
+    if (stackPos) syncLocks(grid);
     lastGrid = grid.slice();
   }
 
@@ -127,6 +207,10 @@
     var b = tiles[i];
     if (!b) return;
     b.classList.toggle('sel', !!on);
+    /* 疊疊樂：選起來的那一張要浮到最上面，選取框才不會被隔壁的牌切掉 */
+    if (stackPos && b.parentNode) {
+      b.parentNode.style.zIndex = on ? '60' : String(10 + stackPos[i].z);
+    }
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   }
   function clearSelected() {
@@ -156,7 +240,10 @@
   }
   function focusTile(i) { if (tiles[i] && !tiles[i].hidden) tiles[i].focus(); }
   function tileAt(i) { return tiles[i] || null; }
-  function dims() { return { W: W, H: H, cols: cols, rows: rows, theme: theme, palette: palette.slice() }; }
+  function dims() {
+    return { W: W, H: H, cols: cols, rows: rows, theme: theme, palette: palette.slice(),
+      mode: stackPos ? 'stack' : 'flat' };
+  }
 
   /* ---------------------------------------------------------- 連線動畫 */
 
@@ -309,6 +396,7 @@
 
   w.Render = {
     mount: mount, sync: sync, dims: dims, tileAt: tileAt, focusTile: focusTile,
+    isLocked: isLocked, stackStep: stackStep,
     setSelected: setSelected, clearSelected: clearSelected,
     markHint: markHint, clearHints: clearHints, shake: shake,
     drawLink: drawLink, popPair: popPair,

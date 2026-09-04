@@ -493,6 +493,8 @@
   /* ------------------------------------------------------------ 出手 */
 
   function curGrid() { return G.snap ? G.snap.grid : []; }
+  /* 麻將主題是疊起來玩的：規則、提示文案與方向鍵都要換一套 */
+  function isStackBoard() { return !!(G.snap && G.snap.mode === 'stack'); }
 
   function onPick(i) {
     Sound.unlock();
@@ -503,6 +505,11 @@
     }
     var grid = curGrid();
     if (!grid[i]) return;
+    if (R.isLocked(i)) {
+      R.shake(i);
+      toast('這張被壓住了，要先把疊在上面的牌消掉');
+      return;
+    }
 
     if (G.sel === i) { G.sel = null; R.setSelected(i, false); Sound.play('unpick'); return; }
     if (G.sel === null || !grid[G.sel]) { G.sel = i; R.setSelected(i, true); Sound.play('pick'); return; }
@@ -594,7 +601,9 @@
         R.shake(ev.a); R.shake(ev.b);
         Sound.play('miss');
         Sound.vibrate([8, 40, 8]);
-        toast('這兩顆連不起來（路徑要轉彎 2 次以內、而且只能經過空格）');
+        toast(isStackBoard()
+          ? '這兩張配不起來（要同一種，而且兩張都不能被壓住）'
+          : '這兩顆連不起來（路徑要轉彎 2 次以內、而且只能經過空格）');
         if (isOnline() && G.snap) {
           (G.snap.players || []).forEach(function (p) { if (p.id === ev.by) { p.combo = 0; p.misses = ev.misses; } });
         }
@@ -766,6 +775,11 @@
     var act = document.activeElement;
     var cur = (act && act.dataset && act.dataset.i !== undefined) ? Number(act.dataset.i) : null;
     if (cur === null) { focusFirstTile(); return; }
+    if (d.mode === 'stack') {
+      var j = R.stackStep(cur, dir[0], dir[1], G.snap.grid);
+      if (j >= 0) R.focusTile(j);
+      return;
+    }
     var x = cur % d.W, y = Math.floor(cur / d.W);
     for (var step = 0; step < Math.max(d.W, d.H); step++) {
       x += dir[0]; y += dir[1];
@@ -777,7 +791,9 @@
 
   function focusFirstTile() {
     if (!G.snap) return;
-    for (var i = 0; i < G.snap.grid.length; i++) if (G.snap.grid[i]) { R.focusTile(i); return; }
+    for (var i = 0; i < G.snap.grid.length; i++) {
+      if (G.snap.grid[i] && !R.isLocked(i)) { R.focusTile(i); return; }
+    }
   }
 
   /* ------------------------------------------------------------ 線上：連線與大廳 */

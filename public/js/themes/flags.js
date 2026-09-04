@@ -166,11 +166,125 @@
     { id: "egypt", label: "埃及", svg: `<rect x="5" y="18" width="90" height="58" rx="5" fill="#FFFDF8"/><rect x="5" y="18" width="90" height="19.333333333333332" fill="#CE1126"/><rect x="5" y="37.33333333333333" width="90" height="19.333333333333332" fill="#FFFDF8"/><rect x="5" y="56.666666666666664" width="90" height="19.333333333333332" fill="#000"/><circle cx="50" cy="47" r="8" fill="#C09300"/><path d="M44 43h12v8H44z" fill="#FFF"/><rect x="5" y="18" width="90" height="58" rx="5" fill="none" stroke="#5B4636" stroke-width="3"/>` }
   ];
 
+  /* 第三批：再加 19 面，國旗的造型池從 53 面變成 72 面。
+     一樣走上面的產生器，挑的都是「色帶配置或標誌明顯不同」的旗，
+     避免又多出好幾面只差顏色順序的三色旗。 */
+  var MORE2 = [
+    {
+      id: 'colombia', label: '哥倫比亞',
+      svg: frame('<rect x="5" y="18" width="90" height="29" fill="#FCD116"/>' +
+        '<rect x="5" y="47" width="90" height="14.5" fill="#003893"/>' +
+        '<rect x="5" y="61.5" width="90" height="14.5" fill="#CE1126"/>')
+    },
+    { id: 'ghana', label: '迦納', svg: frame(bands(['#CE1126', '#FCD116', '#006B3F']) + star(50, 47, 10, '#111111')) },
+    {
+      id: 'ethiopia', label: '衣索比亞',
+      svg: frame(bands(['#078930', '#FCDD09', '#DA121A']) +
+        '<circle cx="50" cy="47" r="14" fill="#0F47AF"/>' + star(50, 47, 10, '#FCDD09'))
+    },
+    { id: 'senegal', label: '塞內加爾', svg: frame(bands(['#00853F', '#FDEF42', '#E31B23'], true) + star(50, 47, 10, '#00853F')) },
+    { id: 'cameroon', label: '喀麥隆', svg: frame(bands(['#007A5E', '#CE1126', '#FCD116'], true) + star(50, 47, 9, '#FCD116')) },
+    { id: 'armenia', label: '亞美尼亞', svg: frame(bands(['#D90012', '#0033A0', '#F2A800'])) },
+    {
+      id: 'kenya', label: '肯亞',
+      svg: frame('<rect x="5" y="18" width="90" height="17" fill="#111111"/>' +
+        '<rect x="5" y="35" width="90" height="3" fill="#FFFDF8"/>' +
+        '<rect x="5" y="38" width="90" height="18" fill="#BB0000"/>' +
+        '<rect x="5" y="56" width="90" height="3" fill="#FFFDF8"/>' +
+        '<rect x="5" y="59" width="90" height="17" fill="#006600"/>' +
+        '<ellipse cx="50" cy="47" rx="9" ry="19" fill="#BB0000" stroke="#FFFDF8" stroke-width="2.6"/>' +
+        '<path d="M50 30 L50 64" stroke="#111111" stroke-width="2.4"/>')
+    },
+    {
+      id: 'pakistan', label: '巴基斯坦',
+      svg: frame('<rect x="5" y="18" width="90" height="58" fill="#01411C"/>' +
+        '<rect x="5" y="18" width="22" height="58" fill="#FFFDF8"/>' +
+        crescent(56, 47, 15, '#FFFDF8', '#01411C') +
+        star(74, 37, 7, '#FFFDF8'), '#01411C')
+    },
+    {
+      id: 'algeria', label: '阿爾及利亞',
+      svg: frame('<rect x="5" y="18" width="45" height="58" fill="#006233"/>' +
+        '<rect x="50" y="18" width="45" height="58" fill="#FFFDF8"/>' +
+        crescent(62, 47, 13, '#D21034', '#FFFDF8') +
+        star(76, 47, 7, '#D21034'))
+    },
+    {
+      id: 'tunisia', label: '突尼西亞',
+      svg: frame('<rect x="5" y="18" width="90" height="58" fill="#E70013"/>' +
+        '<circle cx="50" cy="47" r="17" fill="#FFFDF8"/>' +
+        crescent(46, 47, 12, '#E70013', '#FFFDF8') +
+        star(58, 47, 6, '#E70013'), '#E70013')
+    },
+    {
+      id: 'israel', label: '以色列',
+      svg: frame('<rect x="5" y="24" width="90" height="8" fill="#0038B8"/>' +
+        '<rect x="5" y="62" width="90" height="8" fill="#0038B8"/>' +
+        '<polygon points="50,33 60.4,51 39.6,51" fill="none" stroke="#0038B8" stroke-width="3"/>' +
+        '<polygon points="50,61 39.6,43 60.4,43" fill="none" stroke="#0038B8" stroke-width="3"/>')
+    },
+    {
+      id: 'uae', label: '阿聯',
+      svg: frame('<rect x="5" y="18" width="90" height="19.33" fill="#00732F"/>' +
+        '<rect x="5" y="37.33" width="90" height="19.33" fill="#FFFDF8"/>' +
+        '<rect x="5" y="56.66" width="90" height="19.34" fill="#111111"/>' +
+        '<rect x="5" y="18" width="24" height="58" fill="#FF0000"/>')
+    },
+    {
+      id: 'bangladesh', label: '孟加拉',
+      svg: frame('<rect x="5" y="18" width="90" height="58" fill="#006A4E"/>' +
+        '<circle cx="44" cy="47" r="17" fill="#F42A41"/>', '#006A4E')
+    },
+    {
+      id: 'laos', label: '寮國',
+      svg: frame('<rect x="5" y="18" width="90" height="14.5" fill="#CE1126"/>' +
+        '<rect x="5" y="32.5" width="90" height="29" fill="#002868"/>' +
+        '<rect x="5" y="61.5" width="90" height="14.5" fill="#CE1126"/>' +
+        '<circle cx="50" cy="47" r="11" fill="#FFFDF8"/>')
+    },
+    {
+      id: 'cambodia', label: '柬埔寨',
+      svg: frame('<rect x="5" y="18" width="90" height="14.5" fill="#032EA1"/>' +
+        '<rect x="5" y="32.5" width="90" height="29" fill="#E00025"/>' +
+        '<rect x="5" y="61.5" width="90" height="14.5" fill="#032EA1"/>' +
+        '<g fill="#FFFDF8"><rect x="34" y="52" width="32" height="6"/>' +
+        '<polygon points="50,34 58,49 42,49"/><polygon points="38,40 44,50 32,50"/><polygon points="62,40 68,50 56,50"/></g>')
+    },
+    { id: 'myanmar', label: '緬甸', svg: frame(bands(['#FECB00', '#34B233', '#EA2839']) + star(50, 47, 17, '#FFFDF8')) },
+    {
+      id: 'cuba', label: '古巴',
+      svg: frame((function () {
+        var out = '', i;
+        for (i = 0; i < 5; i++) {
+          out += '<rect x="5" y="' + (Y + i * (FH / 5)).toFixed(2) + '" width="90" height="' + (FH / 5).toFixed(2) +
+            '" fill="' + (i % 2 === 0 ? '#002A8F' : '#FFFDF8') + '"/>';
+        }
+        return out + '<polygon points="5,18 47,47 5,76" fill="#CF142B"/>' + star(20, 47, 9, '#FFFDF8');
+      }()))
+    },
+    {
+      id: 'jamaica', label: '牙買加',
+      svg: frame('<rect x="5" y="18" width="90" height="58" fill="#009B3A"/>' +
+        '<polygon points="5,18 50,47 5,76" fill="#111111"/>' +
+        '<polygon points="95,18 50,47 95,76" fill="#111111"/>' +
+        '<path d="M5 18 L95 76 M95 18 L5 76" stroke="#FED100" stroke-width="11"/>', '#009B3A')
+    },
+    {
+      id: 'georgia', label: '喬治亞',
+      svg: frame('<rect x="42" y="18" width="16" height="58" fill="#FF0000"/>' +
+        '<rect x="5" y="39" width="90" height="16" fill="#FF0000"/>' +
+        '<g fill="#FF0000"><rect x="20" y="26" width="10" height="3.4"/><rect x="23.3" y="22.7" width="3.4" height="10"/>' +
+        '<rect x="70" y="26" width="10" height="3.4"/><rect x="73.3" y="22.7" width="3.4" height="10"/>' +
+        '<rect x="20" y="64.6" width="10" height="3.4"/><rect x="23.3" y="61.3" width="3.4" height="10"/>' +
+        '<rect x="70" y="64.6" width="10" height="3.4"/><rect x="73.3" y="61.3" width="3.4" height="10"/></g>')
+    }
+  ];
+
   return {
     key: "flags",
     label: "國旗",
     emoji: "🚩",
     note: "各國國旗",
-    list: BASE.concat(MORE)
+    list: BASE.concat(MORE).concat(MORE2)
   };
 }));

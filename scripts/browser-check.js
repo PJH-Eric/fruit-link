@@ -63,6 +63,14 @@ async function boardBox(page) {
   });
 }
 
+/** 等到真的可以出手（倒數遮罩收掉不代表倒數結束） */
+async function waitPlaying(page) {
+  await page.waitForFunction(
+    () => !!(window.__fruitLink && window.__fruitLink.snap && window.__fruitLink.snap.phase === 'playing'),
+    null, { timeout: 12000 });
+  await page.waitForTimeout(120);
+}
+
 /** 對局進行中按離開會跳確認彈窗，測試也要照著點 */
 async function quitGame(page) {
   await page.click('#b-quit');
@@ -103,8 +111,8 @@ async function main() {
       const rows = await page.locator('#level-table tr').count();
       check('玩法頁的關卡表有四關（加上表頭共 5 列）', rows === 5, '實際 ' + rows + ' 列');
       const gallery = await page.locator('#theme-gallery .themerow').count();
-      check('玩法頁列出五個圖案主題', gallery === 5, '實際 ' + gallery);
-      check('主題展示真的畫出造型縮圖', await page.locator('#theme-gallery .tp svg').count() >= 40);
+      check('玩法頁列出六個圖案主題', gallery === 6, '實際 ' + gallery);
+      check('主題展示真的畫出造型縮圖', await page.locator('#theme-gallery .tp svg').count() >= 48);
       await page.screenshot({ path: path.join(SHOTS, 'help.png'), fullPage: true });
 
       await page.click('#s-help [data-back="s-home"]');
@@ -148,12 +156,13 @@ async function main() {
       await page.click('#b-solo');
       await page.waitForTimeout(250);
       const themeCards = await page.locator('#opt-theme .themecard').count();
-      check('單機設定有五個主題可以選', themeCards === 5, '實際 ' + themeCards);
-      check('每張主題卡都有造型縮圖', await page.locator('#opt-theme .themecard .tpics svg').count() === 20);
+      check('單機設定有六個主題可以選', themeCards === 6, '實際 ' + themeCards);
+      check('每張主題卡都有造型縮圖', await page.locator('#opt-theme .themecard .tpics svg').count() === 24);
       const themeNames = await page.locator('#opt-theme .themecard .tname').allInnerTexts();
-      check('主題名稱是蔬果／動物／食物／國旗／大混搭',
+      check('主題名稱是蔬果／動物／食物／國旗／麻將／大混搭',
         themeNames.join('').indexOf('動物') >= 0 && themeNames.join('').indexOf('國旗') >= 0 &&
-        themeNames.join('').indexOf('食物') >= 0 && themeNames.join('').indexOf('大混搭') >= 0, themeNames.join(' '));
+        themeNames.join('').indexOf('食物') >= 0 && themeNames.join('').indexOf('麻將') >= 0 &&
+        themeNames.join('').indexOf('大混搭') >= 0, themeNames.join(' '));
 
       /* 換成動物、開最小的一關，確認盤面真的變成動物 */
       await page.locator('#opt-theme .themecard[data-v="animals"]').click();
@@ -192,7 +201,8 @@ async function main() {
       await page.click('#b-solo-start');
       await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
       const mixedKinds = await page.evaluate(() => window.__fruitLink.snap.kinds);
-      check('大混搭開得了最難的一關（14 種）', mixedKinds === 14, '實際 ' + mixedKinds);
+      const wantKinds = await page.evaluate(() => window.Rules.levelOf('hard').kinds);
+      check('大混搭開得了最難的一關（' + wantKinds + ' 種）', mixedKinds === wantKinds, '實際 ' + mixedKinds);
       await page.screenshot({ path: path.join(SHOTS, 'theme-mixed.png') });
       await quitGame(page);
 
@@ -367,6 +377,148 @@ async function main() {
       check('結算標題說過關了', title.indexOf('過關') >= 0 || title.indexOf('通過') >= 0, title);
       check('結算有「下一關」按鈕', (await page.locator('#ov-result-btns').innerText()).indexOf('下一關') >= 0);
       await page.screenshot({ path: path.join(SHOTS, 'kids-result.png') });
+      await ctx.close();
+    }
+
+    /* 麻將是唯一「疊起來玩」的主題：牌一層層疊上去，被壓住的要先解鎖。
+       這一組驗的是畫面與規則有沒有對上 —— 該壓暗的壓暗、該解鎖的解鎖。 */
+    group('麻將疊疊樂');
+    {
+      const ctx = await browser.newContext({ viewport: { width: 1112, height: 834 } });
+      const page = await ctx.newPage();
+      const errors = [];
+      page.on('pageerror', (e) => errors.push(String(e)));
+      page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+      await page.goto(URL, { waitUntil: 'networkidle' });
+
+      await page.click('#b-solo');
+      await page.waitForTimeout(200);
+      check('單機設定裡有麻將主題', await page.locator('#opt-theme .themecard[data-v="mahjong"]').count() === 1);
+      await page.locator('#opt-theme .themecard[data-v="mahjong"]').click();
+      await page.locator('#opt-level .pickcard').nth(2).click();
+      await page.click('#b-solo-start');
+      await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
+      /* 倒數的遮罩會早一步收掉，真正能不能出手要看快照的 phase */
+      await waitPlaying(page);
+
+      const info = await page.evaluate(() => {
+        const G = window.__fruitLink;
+        const layers = {};
+        G.snap.stack.forEach((p) => { layers[p.z] = (layers[p.z] || 0) + 1; });
+        return {
+          mode: G.snap.mode, theme: G.snap.theme, total: G.snap.total, kinds: G.snap.kinds,
+          layers: layers,
+          stacked: document.getElementById('board').classList.contains('stacked'),
+          tiles: document.querySelectorAll('#board .tile').length,
+          locked: document.querySelectorAll('#board .tile.locked').length
+        };
+      });
+      check('麻將開出來的是疊疊樂盤面', info.mode === 'stack' && info.stacked && info.theme === 'mahjong', JSON.stringify(info));
+      check('牌真的疊了好幾層', Object.keys(info.layers).length >= 2, JSON.stringify(info.layers));
+      check('畫面上的牌數和盤面對得起來', info.tiles === info.total, info.tiles + ' vs ' + info.total);
+      check('一開局就有牌被壓在下面', info.locked > 0, '被壓住 ' + info.locked + ' 張');
+      check('麻將盤沒有 JS 錯誤', errors.length === 0, errors.join('\n'));
+      await page.screenshot({ path: path.join(SHOTS, 'mahjong-stack.png') });
+
+      const lock = await page.evaluate(() => {
+        const el = document.querySelector('#board .tile.locked');
+        const cs = getComputedStyle(el);
+        return { pe: cs.pointerEvents, tab: el.tabIndex, aria: el.getAttribute('aria-disabled') };
+      });
+      check('被壓住的牌點不動，也不進 Tab 順序',
+        lock.pe === 'none' && lock.tab === -1 && lock.aria === 'true', JSON.stringify(lock));
+
+      const top = await page.evaluate(() => {
+        const G = window.__fruitLink;
+        const maxZ = G.snap.stack.reduce((m, p) => Math.max(m, p.z), 0);
+        let n = 0, bad = 0;
+        G.snap.stack.forEach((p, i) => {
+          if (p.z !== maxZ) return;
+          n++;
+          if (document.querySelector('#board .tile[data-i="' + i + '"]').classList.contains('locked')) bad++;
+        });
+        return { n: n, bad: bad };
+      });
+      check('最上層的牌一定點得到', top.n > 0 && top.bad === 0, JSON.stringify(top));
+
+      /* 連消幾組，本來被壓住的牌要跟著亮起來 */
+      const play = await page.evaluate(async () => {
+        const G = window.__fruitLink, R = window.Rules;
+        const wasLocked = [];
+        G.snap.stack.forEach((p, i) => {
+          if (G.snap.grid[i] && R.stackCovered(G.snap.stack, G.snap.grid, i)) wasLocked.push(i);
+        });
+        for (let n = 0; n < 24; n++) {
+          const hit = R.stackFindPair(G.snap.stack, G.snap.grid);
+          if (!hit) break;
+          document.querySelector('#board .tile[data-i="' + hit.a + '"]').click();
+          document.querySelector('#board .tile[data-i="' + hit.b + '"]').click();
+          await new Promise((r) => setTimeout(r, 80));
+        }
+        await new Promise((r) => setTimeout(r, 450));
+        const freed = wasLocked.filter((i) => G.snap.grid[i] &&
+          !document.querySelector('#board .tile[data-i="' + i + '"]').classList.contains('locked'));
+        return { wasLocked: wasLocked.length, freed: freed.length, left: G.snap.left, total: G.snap.total };
+      });
+      check('消掉上面那幾張，被壓住的牌就解鎖了', play.freed > 0, JSON.stringify(play));
+      check('消掉的牌有從盤面上扣掉', play.left < play.total && (play.total - play.left) % 2 === 0, JSON.stringify(play));
+
+      const consistent = await page.evaluate(() => {
+        const G = window.__fruitLink, R = window.Rules;
+        let bad = 0;
+        G.snap.stack.forEach((p, i) => {
+          if (!G.snap.grid[i]) return;
+          const el = document.querySelector('#board .tile[data-i="' + i + '"]');
+          if (el.classList.contains('locked') !== R.stackCovered(G.snap.stack, G.snap.grid, i)) bad++;
+        });
+        return bad;
+      });
+      check('畫面上壓暗的牌和規則算出來的完全一致', consistent === 0, '不一致 ' + consistent + ' 張');
+
+      const hinted = await page.evaluate(async () => {
+        const G = window.__fruitLink, R = window.Rules;
+        document.getElementById('b-hint').click();
+        await new Promise((r) => setTimeout(r, 250));
+        const ids = [...document.querySelectorAll('#board .tile.hint')].map((e) => Number(e.dataset.i));
+        return {
+          n: ids.length,
+          allFree: ids.every((i) => R.stackFree(G.snap.stack, G.snap.grid, i)),
+          same: ids.length === 2 && G.snap.grid[ids[0]] === G.snap.grid[ids[1]]
+        };
+      });
+      check('提示指的兩張都是點得到、而且同一種的', hinted.n === 2 && hinted.allFree && hinted.same, JSON.stringify(hinted));
+
+      const shuffled = await page.evaluate(async () => {
+        const G = window.__fruitLink, R = window.Rules;
+        const posBefore = JSON.stringify(G.snap.stack);
+        const liveBefore = G.snap.grid.filter((k) => k).length;
+        document.getElementById('b-shuffle').click();
+        await new Promise((r) => setTimeout(r, 350));
+        return {
+          posKept: JSON.stringify(G.snap.stack) === posBefore,
+          liveKept: G.snap.grid.filter((k) => k).length === liveBefore,
+          hasPair: !!R.stackFindPair(G.snap.stack, G.snap.grid)
+        };
+      });
+      check('洗牌只換牌面、不搬位置，而且洗完還有得消',
+        shuffled.posKept && shuffled.liveKept && shuffled.hasPair, JSON.stringify(shuffled));
+
+      /* 換回蔬果就要變回平面連連看 */
+      await quitGame(page);
+      await page.click('#b-solo');
+      await page.waitForTimeout(200);
+      await page.locator('#opt-theme .themecard[data-v="fruits"]').click();
+      await page.locator('#opt-level .pickcard').nth(1).click();
+      await page.click('#b-solo-start');
+      await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
+      await waitPlaying(page);
+      const backToFlat = await page.evaluate(() => ({
+        mode: window.__fruitLink.snap.mode,
+        stacked: document.getElementById('board').classList.contains('stacked'),
+        locked: document.querySelectorAll('#board .tile.locked').length
+      }));
+      check('換回蔬果就是平面連連看，沒有任何牌被壓住',
+        backToFlat.mode === 'flat' && !backToFlat.stacked && backToFlat.locked === 0, JSON.stringify(backToFlat));
       await ctx.close();
     }
 
