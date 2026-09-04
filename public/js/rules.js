@@ -40,7 +40,7 @@
   var STACK_THEME = 'mahjong';   // 只有這個主題會疊起來玩（見下面的疊疊樂盤面）
 
   /* 四個關卡：格數、水果種類、時間、提示與洗牌次數一起往上調。
-     平面盤面把種類數控制在每種水果 2～3 對（4～6 顆），讓重複圖案更容易辨認。
+     平面盤面把種類數控制在每種水果最多 2 對（4 顆），讓重複圖案不會太多。
      第一個「幼幼班」是給 3～5 歲小朋友的：盤面很小、只有三種水果、
      時間長到幾乎沒有壓力、提示和洗牌不限次數，而且預設會把水果名稱顯示出來。 */
   var LEVELS = [
@@ -52,21 +52,21 @@
     },
     {
       key: 'easy', no: 2, label: '第一關 · 果園入門', short: '簡單', emoji: '🍓',
-      cols: 8, rows: 6, kinds: 8, sec: 240, hints: 5, shuffles: 5,
+      cols: 8, rows: 6, kinds: 12, sec: 240, hints: 5, shuffles: 5,
       stack: { cols: 8, rows: 4 },
-      blurb: '8 × 6，8 種水果，每種會出現 3 對。時間很寬鬆，先熟悉三折以內怎麼連。'
+      blurb: '8 × 6，12 種水果，每種最多出現 2 對。時間很寬鬆，先熟悉三折以內怎麼連。'
     },
     {
       key: 'normal', no: 3, label: '第二關 · 果園日常', short: '普通', emoji: '🍍',
-      cols: 10, rows: 8, kinds: 14, sec: 300, hints: 3, shuffles: 3,
+      cols: 10, rows: 8, kinds: 20, sec: 300, hints: 3, shuffles: 3,
       stack: { cols: 10, rows: 5 },
-      blurb: '10 × 8，14 種水果，每種會出現 2～3 對。提示和洗牌都變少了，要開始看路徑。'
+      blurb: '10 × 8，20 種水果，每種最多出現 2 對。提示和洗牌都變少了，要開始看路徑。'
     },
     {
       key: 'hard', no: 4, label: '第三關 · 果園大亂', short: '困難', emoji: '🥑',
-      cols: 12, rows: 10, kinds: 20, sec: 360, hints: 2, shuffles: 2,
+      cols: 12, rows: 10, kinds: 30, sec: 360, hints: 2, shuffles: 2,
       stack: { cols: 12, rows: 6 },
-      blurb: '12 × 10，20 種水果，每種會出現 3 對（開始混進蔬菜）。眼睛要放亮一點。'
+      blurb: '12 × 10，30 種水果，每種最多出現 2 對（開始混進蔬菜）。眼睛要放亮一點。'
     }
   ];
   /* 次數 >= UNLIMITED 就當成「不限」，畫面上顯示 ∞ 而不是一個大數字 */
@@ -250,7 +250,7 @@
   /**
    * 從主題可用的 maxKinds 種造型裡，隨機抽 kinds 種來當這一局的水果。
    *
-   * 這樣同一關每次玩到的組合都不一樣（動物 42 種抽 14 種、國旗 53 種抽 14 種…），
+   * 這樣同一關每次玩到的組合都不一樣（動物 60 種抽 30 種、國旗 72 種抽 30 種…），
    * 而且因為用的是可注入的 rng，同一個種子一定抽到同一組，線上才能全場一致。
    */
   function pickPalette(maxKinds, kinds, rng) {

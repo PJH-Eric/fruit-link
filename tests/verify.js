@@ -229,14 +229,16 @@ test('createBoard：格數偶數、每種成雙、開局就有解', () => {
   });
 });
 
-test('平面關卡：每種水果會出現 2～3 對，不超過 3 對', () => {
+test('平面關卡：每種水果最多出現 2 對', () => {
   Rules.LEVELS.forEach((L) => {
     const b = Rules.createBoard(L.cols, L.rows, L.kinds, RNG.createRng('repeat:' + L.key));
     const counts = {};
     Rules.innerCells(b.W, b.H).forEach((i) => { counts[b.grid[i]] = (counts[b.grid[i]] || 0) + 1; });
+    assert.ok(L.kinds >= Math.ceil((L.cols * L.rows) / 4),
+      L.key + ' 的種類數不足以讓每種最多 2 對');
     Object.keys(counts).forEach((kind) => {
-      assert.ok(counts[kind] >= 4 && counts[kind] <= 6,
-        L.key + ' 第 ' + kind + ' 種應該有 2～3 對，實際 ' + counts[kind] + ' 顆');
+      assert.ok(counts[kind] >= 2 && counts[kind] <= 4 && counts[kind] % 2 === 0,
+        L.key + ' 第 ' + kind + ' 種應該是 1～2 對，實際 ' + counts[kind] + ' 顆');
     });
   });
 });
