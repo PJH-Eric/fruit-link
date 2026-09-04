@@ -520,6 +520,15 @@ test('觀戰者不能出手、不能用提示與洗牌', () => {
   assert.strictEqual(room.shuffle('spec', 100).code, 'role');
 });
 
+test('線上玩家不能使用提示與手動洗牌', () => {
+  const store = newStore();
+  const room = mkRoom(store);
+  room.setReady('host-client-01', true);
+  room.start('host-client-01', 0, { countdownMs: 0 });
+  assert.strictEqual(room.hint('host-client-01', 100).code, 'disabled');
+  assert.strictEqual(room.shuffle('host-client-01', 100).code, 'disabled');
+});
+
 test('只有房主能改關卡、能開始；對局中不能改', () => {
   const store = newStore();
   const room = mkRoom(store);

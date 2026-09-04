@@ -46,6 +46,13 @@
   function nowSrv() { return Date.now() + G.timeOffset; }
   function isOnline() { return G.mode === 'online'; }
 
+  function setAssistActionsVisible() {
+    var visible = !isOnline();
+    $('side-actions').hidden = !visible;
+    $('stage-actions').hidden = !visible;
+    return visible;
+  }
+
   /* ------------------------------------------------------------ 小工具 */
 
   var toastTimer = null;
@@ -382,6 +389,7 @@
   }
 
   function paintHud() {
+    var assistsVisible = setAssistActionsVisible();
     if (!G.snap) return;
     var L = Rules.levelOf(G.snap.level);
     var remain = G.snap.over ? 0 : Math.max(0, G.snap.endAt - nowSrv());
@@ -403,7 +411,9 @@
     if (me && me.combo > 1) { combo.hidden = false; $('hud-combo-n').textContent = me.combo; }
     else combo.hidden = true;
 
-    /* 提示與洗牌有兩組按鈕：寬版在左側欄、窄版在盤面下方，狀態要一起更新 */
+    if (!assistsVisible) return;
+
+    /* 單機提示與洗牌有兩組按鈕：寬版在左側欄、窄版在盤面下方，狀態要一起更新 */
     var hintTxt = me ? timesText(me.hints) : '0';
     var shufTxt = me ? timesText(me.shuffles) : '0';
     var playable = canPlay();
@@ -542,7 +552,7 @@
 
   function askHint() {
     Sound.unlock();
-    if (isOnline()) { Online.send('room:hint', {}); return; }
+    if (isOnline()) return;
     var res = Rules.useHint(G.state, 'me', Date.now());
     if (!res.ok) { toast(res.error); return; }
     G.snap = Rules.snapshot(G.state, Date.now());
@@ -551,7 +561,7 @@
 
   function askShuffle() {
     Sound.unlock();
-    if (isOnline()) { Online.send('room:shuffle', {}); return; }
+    if (isOnline()) return;
     var res = Rules.useShuffle(G.state, 'me', Date.now(), G.rng);
     if (!res.ok) { toast(res.error); return; }
     G.snap = Rules.snapshot(G.state, Date.now());
@@ -918,6 +928,7 @@
     G.rng = null;
     G.run = null;
     $('chat-hint').hidden = true;
+    setAssistActionsVisible();
     Online.send('lobby:unsubscribe', {});
     show('s-game');
     startTicker();
@@ -930,6 +941,7 @@
     G.view = null;
     G.snap = null;
     G.mountKey = '';
+    setAssistActionsVisible();
     if (!silent) { show('s-lobby'); Online.send('lobby:subscribe', {}); }
   }
 

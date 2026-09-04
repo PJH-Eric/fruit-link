@@ -2,7 +2,7 @@
  * scripts/online-check.js — 真的開一台伺服器、接真的 Socket.IO 用戶端跑一輪線上流程
  *
  * 這一支不是模擬：它 require 真正的 server.js、用真正的 socket.io-client 連上去，
- * 驗證大廳、建房、加入、觀戰、邀請連結、同盤搶消、提示、洗牌、聊天、
+ * 驗證大廳、建房、加入、觀戰、邀請連結、同盤搶消、線上禁用提示與洗牌、聊天、
  * 斷線重連、再來一局與離開房間。
  *
  *   node scripts/online-check.js
@@ -172,31 +172,26 @@ async function main() {
       matches.length === 1 && matches[0].gain === Rules.BASE_SCORE);
     check('搶消的判定會廣播給觀戰者', spec.events.some((e) => e.k === 'match'));
 
-    group('提示、洗牌與聊天');
-    /* 搶消是用事件推播的，用戶端手上的完整盤面要等下一次 room:sync 才會更新。
-       提示是伺服器依「目前」的盤面算的，所以要先等快照追上，
-       否則會拿還沒消掉的舊盤面去驗證，偶爾就會誤判成失敗。 */
+    group('線上操作限制與聊天');
+    /* 搶消是用事件推播的，用戶端手上的完整盤面要等下一次 room:sync 才會更新。 */
     await host.until((c) => c.view.match && c.view.match.left === matches[0].left, 6000, '盤面快照追上搶消結果');
 
     host.events.length = 0; p2.events.length = 0;
+    host.errors.length = 0;
+    const beforeAssistGrid = host.view.match.grid.slice();
     host.send('room:hint', {});
-    await host.until((c) => c.events.some((e) => e.k === 'hint'), 4000, '提示事件');
-    const hintEv = host.events.find((e) => e.k === 'hint');
-    check('提示會回傳一組真的能連的水果',
-      !!Rules.link(host.view.match.grid, host.view.match.W, host.view.match.H, hintEv.a, hintEv.b));
-    check('提示是個人的，不會幫對手指路', !p2.events.some((e) => e.k === 'hint'));
-
-    spec.send('room:hint', {});
-    await sleep(150);
-    check('觀戰者不能用提示', spec.errors.some((e) => e.code === 'role'));
-
-    host.events.length = 0; p2.events.length = 0;
     host.send('room:shuffle', {});
-    await p2.until((c) => c.events.some((e) => e.k === 'shuffle'), 4000, '洗牌事件');
-    const shuffleEv = p2.events.find((e) => e.k === 'shuffle');
-    check('洗牌會把新盤面廣播給全房', !!shuffleEv.grid && shuffleEv.grid.length > 0);
-    check('洗完的盤面還有解',
-      !!Rules.findPair(shuffleEv.grid, host.view.match.W, host.view.match.H));
+    await sleep(150);
+    const blockedAssist = {
+      disabled: host.errors.filter((e) => e.code === 'disabled').length,
+      hintEvents: host.events.filter((e) => e.k === 'hint').length,
+      shuffleEvents: host.events.filter((e) => e.k === 'shuffle' && !e.auto).length,
+      gridUnchanged: JSON.stringify(host.view.match.grid) === JSON.stringify(beforeAssistGrid)
+    };
+    check('線上模式不提供提示', blockedAssist.disabled >= 1 && blockedAssist.hintEvents === 0,
+      JSON.stringify(blockedAssist));
+    check('線上模式不提供手動洗牌', blockedAssist.disabled >= 2 && blockedAssist.shuffleEvents === 0 && blockedAssist.gridUnchanged,
+      JSON.stringify(blockedAssist));
 
     p2.chat.length = 0;
     host.send('room:chat', { text: '一起加油！' });

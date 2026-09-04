@@ -634,6 +634,24 @@ async function main() {
       }));
       check('換回蔬果就是平面連連看，沒有任何牌被壓住',
         backToFlat.mode === 'flat' && !backToFlat.stacked && backToFlat.locked === 0, JSON.stringify(backToFlat));
+
+      group('線上對戰不提供提示與洗牌');
+      await quitGame(page);
+      await page.click('#b-online');
+      await page.waitForFunction(() => !!(window.Online && window.Online.isConnected()), null, { timeout: 12000 });
+      await page.fill('#lobby-nick', '線上測試');
+      await page.click('#b-create');
+      await page.waitForFunction(() => window.__fruitLink.mode === 'online' && !!window.__fruitLink.view,
+        null, { timeout: 6000 });
+      const onlineAssist = await page.evaluate(() => ({
+        mode: window.__fruitLink.mode,
+        sideHidden: document.getElementById('side-actions').hidden,
+        stageHidden: document.getElementById('stage-actions').hidden
+      }));
+      check('線上對戰畫面隱藏提示與洗牌',
+        onlineAssist.mode === 'online' && onlineAssist.sideHidden && onlineAssist.stageHidden,
+        JSON.stringify(onlineAssist));
+      await quitGame(page);
       await ctx.close();
     }
 
