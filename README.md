@@ -158,6 +158,7 @@ fruit-link/
 │  ├─ index.html
 │  ├─ css/style.css
 │  └─ js/
+│     ├─ keyboard.js   手機軟體鍵盤讓位（量 visualViewport，寫 --app-h／--kb）
 │     ├─ config.js     全站唯一的 server URL 設定入口（?server= / 建置注入 / 同源）
 │     ├─ rng.js        可注入的種子亂數（同一個種子 = 同一張盤面）
 │     ├─ rules.js      規則核心：連線判定、盤面生成、洗牌、計分、造型抽樣（前後端共用）
@@ -174,7 +175,7 @@ fruit-link/
 ├─ tests/verify.js     規則與房間的單元測試
 ├─ scripts/
 │  ├─ online-check.js  真的開伺服器跑一輪線上流程
-│  ├─ browser-check.js 真的開瀏覽器跑 RWD 與單機一局
+│  ├─ browser-check.js 真的開瀏覽器跑 RWD、單機一局與手機鍵盤讓位
 │  └─ inject-server-url.js
 └─ 啟動遊戲.bat
 ```

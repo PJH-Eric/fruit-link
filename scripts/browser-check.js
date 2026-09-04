@@ -370,6 +370,92 @@ async function main() {
       await ctx.close();
     }
 
+    /* Playwright 沒有真的軟體鍵盤，所以直接寫 --app-h／--kb 模擬「可見高度被鍵盤吃掉」。
+       驗的是 CSS 有沒有接好：#app 縮了，抽屜與聊天輸入框要跟著浮到鍵盤上面。 */
+    group('手機軟體鍵盤讓位');
+    {
+      const KB = 340;
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+      const page = await ctx.newPage();
+      const errors = [];
+      page.on('pageerror', (e) => errors.push(String(e)));
+      await page.goto(URL, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(150);
+
+      check('keyboard.js 載入沒有 JS 錯誤，而且掛上了 KeyboardFix',
+        errors.length === 0 && await page.evaluate(() => !!(window.KeyboardFix && window.KeyboardFix.refresh)),
+        errors.join('\n'));
+
+      const meta = await page.getAttribute('meta[name="viewport"]', 'content');
+      check('viewport 不再鎖縮放，並要求鍵盤縮版面',
+        meta.indexOf('user-scalable=no') < 0 && meta.indexOf('maximum-scale') < 0 &&
+        meta.indexOf('interactive-widget=resizes-content') >= 0, meta);
+
+      const idle = await page.evaluate(() => ({
+        appH: Math.round(document.getElementById('app').getBoundingClientRect().height),
+        vh: window.innerHeight,
+        kb: getComputedStyle(document.documentElement).getPropertyValue('--kb').trim(),
+        appVar: document.documentElement.style.getPropertyValue('--app-h')
+      }));
+      check('沒有鍵盤時 --app-h 不設定，版面維持滿版',
+        idle.appVar === '' && Math.abs(idle.appH - idle.vh) <= 1, JSON.stringify(idle));
+      check('沒有鍵盤時 --kb 是 0px', idle.kb === '0px', idle.kb);
+
+      /* 開一局單機，把左側抽屜切到聊天分頁 */
+      await page.click('#b-solo');
+      await page.waitForTimeout(200);
+      await page.locator('#opt-level .pickcard').first().click();
+      await page.click('#b-solo-start');
+      await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
+      await page.click('#b-open-chat');
+      await page.waitForTimeout(320);
+      check('抽屜切到聊天分頁，輸入框看得到', await page.locator('#chat-input').isVisible());
+
+      const fs = await page.evaluate(() => ({
+        coarse: matchMedia('(pointer:coarse)').matches,
+        size: parseFloat(getComputedStyle(document.getElementById('chat-input')).fontSize)
+      }));
+      check('觸控裝置上聊天輸入框至少 16px（iOS 聚焦才不會自動放大整頁）',
+        fs.coarse && fs.size >= 16, JSON.stringify(fs));
+
+      const before = await page.evaluate(() => Math.round(document.getElementById('chat-input').getBoundingClientRect().bottom));
+      check('輸入框本來就貼在畫面底部（所以才會被鍵盤蓋住）', before > 844 - KB, before + 'px');
+
+      const on = await page.evaluate((kb) => {
+        const r = document.documentElement;
+        r.style.setProperty('--app-h', (window.innerHeight - kb) + 'px');
+        r.style.setProperty('--kb', kb + 'px');
+        const box = (id) => {
+          const b = document.getElementById(id).getBoundingClientRect();
+          return { bottom: Math.round(b.bottom), h: Math.round(b.height) };
+        };
+        const t = document.getElementById('toast');
+        t.hidden = false; t.textContent = '測試';
+        const toast = box('toast');
+        t.hidden = true;
+        return { line: window.innerHeight - kb, app: box('app'), side: box('side'), input: box('chat-input'), toast };
+      }, KB);
+      check('鍵盤佔位時 #app 縮成真正看得到的高度', on.app.h === on.line, JSON.stringify(on.app));
+      check('鍵盤佔位時抽屜跟著縮', on.side.bottom <= on.line + 1, JSON.stringify(on.side));
+      check('鍵盤佔位時聊天輸入框浮到鍵盤上面',
+        on.input.h > 0 && on.input.bottom <= on.line + 1, JSON.stringify(on.input));
+      check('鍵盤佔位時提示條也讓開', on.toast.bottom <= on.line, JSON.stringify(on.toast));
+      await page.screenshot({ path: path.join(SHOTS, 'keyboard-open.png') });
+
+      const off = await page.evaluate(() => {
+        const r = document.documentElement;
+        r.style.removeProperty('--app-h');
+        r.style.setProperty('--kb', '0px');
+        return {
+          app: Math.round(document.getElementById('app').getBoundingClientRect().height),
+          input: Math.round(document.getElementById('chat-input').getBoundingClientRect().bottom),
+          vh: window.innerHeight
+        };
+      });
+      check('鍵盤收起來版面就還原', Math.abs(off.app - off.vh) <= 1 && off.input === before, JSON.stringify(off));
+      await ctx.close();
+    }
+
     group('RWD：各尺寸的版面');
     for (const v of VIEWS) {
       const ctx = await browser.newContext({ viewport: { width: v.w, height: v.h }, deviceScaleFactor: 1 });

@@ -45,7 +45,7 @@ body{
 #bgdeco span{position:absolute;display:block;border-radius:38%;animation:float linear infinite}
 @keyframes float{0%{transform:translateY(0) rotate(0)}50%{transform:translateY(-24px) rotate(10deg)}100%{transform:translateY(0) rotate(0)}}
 
-#app{position:relative;z-index:1;height:100%;min-height:100dvh}
+#app{position:relative;z-index:1;height:var(--app-h,100%);min-height:var(--app-h,100dvh)}
 .screen{
   position:absolute;inset:0;display:none;overflow-y:auto;overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
@@ -470,7 +470,7 @@ body.kids-board .tile .tile-art{transform:translateY(-14%) scale(.76)}
 .invrow .txt{flex:1;min-width:110px;color:var(--ink-soft)}
 .invrow.dead{opacity:.5}
 
-.toast{position:fixed;left:50%;bottom:calc(20px + var(--safe-b));transform:translateX(-50%);z-index:120;
+.toast{position:fixed;left:50%;bottom:calc(20px + var(--safe-b) + var(--kb,0px));transform:translateX(-50%);z-index:120;
   background:var(--ink);color:#fff;padding:11px 18px;border-radius:16px;font-size:.9rem;font-weight:700;
   max-width:min(92vw,420px);text-align:center;line-height:1.5;box-shadow:0 6px 18px rgba(0,0,0,.2)}
 
@@ -551,3 +551,17 @@ body.reduce-motion #bgdeco{display:none}
 body.reduce-motion .tile{transition:none}
 body.reduce-motion .tile.gone,body.reduce-motion .tile.hint,body.reduce-motion .tile.shake{animation:none}
 body.reduce-motion .tile.gone{opacity:0}
+
+/* ================================================================
+ * 手機軟體鍵盤（js/keyboard.js 量測後把 --app-h／--kb 寫在 :root）
+ * 版面是滿版固定高度，鍵盤彈出時瀏覽器不一定會縮版面，底部的聊天輸入框
+ * 就會被鍵盤整條蓋住。--app-h 讓 #app 改用「真正看得到的高度」（見上方
+ * #app 規則），抽屜與各畫面都跟著縮，輸入框自然浮到鍵盤上面；--kb 則給
+ * position:fixed 的提示條（.toast）讓開。沒有鍵盤時兩個變數都不生效。
+ * ================================================================ */
+
+/* iOS 對 font-size < 16px 的欄位聚焦時會自動放大整頁，放大後輸入框常被推出畫面。
+   選擇器要跟原規則同樣具體才蓋得過去。 */
+@media (pointer:coarse){
+  .chatbar .field,.invite-out .field{font-size:16px}
+}
