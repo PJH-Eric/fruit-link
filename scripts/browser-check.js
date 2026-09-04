@@ -431,6 +431,24 @@ async function main() {
       await page.locator('#opt-theme .themecard[data-v="mahjong"]').click();
       await page.locator('#opt-level .pickcard').nth(2).click();
       await page.click('#b-solo-start');
+      await page.waitForTimeout(400);
+      const mahjongCountdown = await page.evaluate(() => {
+        const countdown = document.getElementById('countdown').getBoundingClientRect();
+        const stage = document.getElementById('stage').getBoundingClientRect();
+        return {
+          visible: !document.getElementById('countdown').hidden,
+          countdownCenter: { x: countdown.left + countdown.width / 2, y: countdown.top + countdown.height / 2 },
+          stageCenter: { x: stage.left + stage.width / 2, y: stage.top + stage.height / 2 },
+          dx: countdown.left + countdown.width / 2 - (stage.left + stage.width / 2),
+          dy: countdown.top + countdown.height / 2 - (stage.top + stage.height / 2),
+          topAtStageCenter: document.elementsFromPoint(stage.left + stage.width / 2, stage.top + stage.height / 2)[0].id
+        };
+      });
+      check('麻將開局倒數位於遊戲主舞台正中央', mahjongCountdown.visible &&
+        Math.abs(mahjongCountdown.dx) <= 2 && Math.abs(mahjongCountdown.dy) <= 2 &&
+        mahjongCountdown.topAtStageCenter === 'countdown',
+      JSON.stringify(mahjongCountdown));
+      await page.screenshot({ path: path.join(SHOTS, 'mahjong-countdown.png') });
       await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
       /* 倒數的遮罩會早一步收掉，真正能不能出手要看快照的 phase */
       await waitPlaying(page);

@@ -283,7 +283,7 @@ body{
 .chatbar .btn3d{flex:0 0 auto;--d:5px;min-height:44px;padding:8px 12px calc(8px + var(--d))}
 
 /* ---- 主舞台：盤面吃掉所有剩下的空間 ---- */
-.stage{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;
+.stage{position:relative;z-index:1;flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;
   padding:0 calc(6px + var(--safe-r)) calc(5px + var(--safe-b)) 6px}
 .hud{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:calc(8px + var(--safe-t)) 62px 6px 0}
 .hud-lbl{font-size:.68rem;color:var(--ink-soft);display:block;line-height:1}
@@ -417,7 +417,7 @@ body.kids-board .tile .tile-art{transform:translateY(-14%) scale(.76)}
   font-size:clamp(1.5rem,6.5vmin,3.2rem);font-weight:900;color:var(--ink);
   text-shadow:0 3px 0 #fff,0 0 14px #fff;animation:shout 1s ease-out forwards;text-align:center}
 @keyframes shout{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-70%) scale(1)}}
-.countdown{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:9;
+.countdown{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:90;
   font-size:clamp(3rem,16vmin,8rem);font-weight:900;color:var(--ink);
   text-shadow:0 4px 0 #fff,0 0 22px #fff;background:rgba(255,253,248,.4)}
 
