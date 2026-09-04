@@ -351,8 +351,9 @@
   }
 
   /**
-   * 把疊牌投影到半格再細分一次的路徑盤面。
-   * 每張牌的完整 2×2 範圍都算障礙，避免視覺上緊貼的牌之間出現假縫隙。
+   * 把同一層的疊牌投影到半格再細分一次的路徑盤面。
+   * 該層每張牌的完整 2×2 範圍都算障礙，避免視覺上緊貼的牌之間出現假縫隙；
+   * 其他層不參與路徑，符合「同層才能配對」的規則。
    */
   function stackLink(pos, grid, a, b) {
     a = Number(a); b = Number(b);
@@ -378,7 +379,9 @@
       }
     }
 
-    for (var i = 0; i < grid.length; i++) if (grid[i]) fillTile(i, 1);
+    for (var i = 0; i < grid.length; i++) {
+      if (grid[i] && pos[i].z === pos[a].z) fillTile(i, 1);
+    }
     /* 端點本身要清空，路徑才可以從牌的中心離開。 */
     fillTile(a, 0);
     fillTile(b, 0);
@@ -422,12 +425,12 @@
   }
 
   /**
-   * 發牌：由最上層往下，把同一列相鄰的牌兩兩配成一對。
+   * 發牌：由最上層往下，把同一層的位置隨機打散後兩兩配成一對。
    * 每一層都是偶數張，所以「由上往下一層一層拆」一定拆得完 ——
-   * 相鄰牌之間是 0 折路徑，因此發出來的盤一定有解，不會一開局就死。
+   * 開局必定有同層合法路徑，死局時也會自動洗牌，不會卡住。
    */
   function createStack(pos, kinds, rng) {
-    var grid = [], byLayer = {}, maxZ = 0, i, z, ids, pairs, j, kind = 0;
+    var grid = [], byLayer = {}, maxZ = 0, i, z, ids, j, kind = 0;
     for (i = 0; i < pos.length; i++) {
       grid[i] = 0;
       if (!byLayer[pos[i].z]) byLayer[pos[i].z] = [];
@@ -436,15 +439,11 @@
     }
     for (z = maxZ; z >= 0; z--) {
       ids = (byLayer[z] || []).slice();
-      pairs = [];
+      shuffleArray(ids, rng);
       for (j = 0; j + 1 < ids.length; j += 2) {
-        pairs.push([ids[j], ids[j + 1]]);
-      }
-      shuffleArray(pairs, rng);
-      for (j = 0; j < pairs.length; j++) {
         kind = (kind % kinds) + 1;
-        grid[pairs[j][0]] = kind;
-        grid[pairs[j][1]] = kind;
+        grid[ids[j]] = kind;
+        grid[ids[j + 1]] = kind;
       }
     }
     var ext = stackExtent(pos);
@@ -453,11 +452,20 @@
 
   /** 洗牌：位置不動，只把剩下的牌重新分配，洗到「有得消」為止 */
   function shuffleStack(pos, grid, rng) {
-    var ids = [], vals = [], i, t;
-    for (i = 0; i < grid.length; i++) if (grid[i]) { ids.push(i); vals.push(grid[i]); }
+    var idsByLayer = {}, valsByLayer = {}, i, z, ids, vals, t;
+    for (i = 0; i < grid.length; i++) if (grid[i]) {
+      z = pos[i].z;
+      if (!idsByLayer[z]) { idsByLayer[z] = []; valsByLayer[z] = []; }
+      idsByLayer[z].push(i);
+      valsByLayer[z].push(grid[i]);
+    }
     for (t = 0; t < SHUFFLE_TRIES; t++) {
-      shuffleArray(vals, rng);
-      for (i = 0; i < ids.length; i++) grid[ids[i]] = vals[i];
+      for (z in idsByLayer) {
+        ids = idsByLayer[z];
+        vals = valsByLayer[z];
+        shuffleArray(vals, rng);
+        for (i = 0; i < ids.length; i++) grid[ids[i]] = vals[i];
+      }
       if (stackFindPair(pos, grid)) return true;
     }
     return false;

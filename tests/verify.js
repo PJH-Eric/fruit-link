@@ -1019,6 +1019,21 @@ test('麻將路徑超過 2 折時不能配對', () => {
     '需要 3 折以上的路徑不算合法');
 });
 
+test('麻將發牌不應讓每局第一組可消牌都固定相鄰', () => {
+  const firstPairs = ['layout-a', 'layout-b', 'layout-c', 'layout-d', 'layout-e'].map((seed) => {
+    const st = mahjong('normal', seed);
+    const pair = Rules.stackFindPair(st.stack, st.grid);
+    return {
+      pathLength: pair.path.length,
+      positions: [st.stack[pair.a], st.stack[pair.b]].map((p) => p.x + ',' + p.y).join('|')
+    };
+  });
+  assert.ok(firstPairs.some((pair) => pair.pathLength > 2),
+    '固定種子仍全部是相鄰 0 折：' + firstPairs.map((pair) => pair.pathLength).join(', '));
+  assert.ok(new Set(firstPairs.map((pair) => pair.positions)).size > 1,
+    '不同種子仍產生相同的配對位置：' + firstPairs.map((pair) => pair.positions).join('; '));
+});
+
 test('提示指出來的兩張一定都是露出來的', () => {
   const st = mahjong('easy', 'g');
   for (let n = 0; n < 12; n++) {
