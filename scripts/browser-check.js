@@ -451,9 +451,9 @@ async function main() {
         G.snap.stack.forEach((p, i) => {
           if (!G.snap.grid[i] || R.stackCovered(G.snap.stack, G.snap.grid, i)) return;
           const tile = document.querySelector('#board .tile[data-i="' + i + '"]');
-          const front = tile.querySelectorAll('.tile-svg-mahjong rect')[1].getBoundingClientRect();
-          [[.25, .25], [.75, .25], [.25, .75], [.75, .75]].forEach((point) => {
-            const hit = document.elementFromPoint(front.left + front.width * point[0], front.top + front.height * point[1]);
+          const rect = tile.getBoundingClientRect();
+          [[.25, .25], [.5, .25], [.75, .25], [.25, .5], [.5, .5], [.75, .5], [.25, .75], [.5, .75], [.75, .75]].forEach((point) => {
+            const hit = document.elementFromPoint(rect.left + rect.width * point[0], rect.top + rect.height * point[1]);
             const owner = hit && hit.closest('.tile');
             if (!owner || Number(owner.dataset.i) !== i) bad.push({ i: i, point: point, hit: owner && owner.dataset.i });
           });
@@ -461,14 +461,46 @@ async function main() {
         return bad;
       });
       check('可點麻將牌的牌面都能正確點到', hitMismatches.length === 0, JSON.stringify(hitMismatches.slice(0, 4)));
+      const firstPair = await page.evaluate(() => {
+        const G = window.__fruitLink, R = window.Rules, pair = R.stackFindPair(G.snap.stack, G.snap.grid);
+        const point = (i) => {
+          const rect = document.querySelector('#board .tile[data-i="' + i + '"]').getBoundingClientRect();
+          return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        };
+        return pair ? { pair, left: G.snap.left, a: point(pair.a), b: point(pair.b) } : null;
+      });
+      if (firstPair) {
+        await page.mouse.click(firstPair.a.x, firstPair.a.y);
+        await page.mouse.click(firstPair.b.x, firstPair.b.y);
+        await page.waitForFunction((before) => window.__fruitLink.snap && window.__fruitLink.snap.left < before,
+          firstPair.left, { timeout: 1200 });
+        await page.waitForTimeout(350);
+      }
+      const unlockedHitMismatches = await page.evaluate(() => {
+        const G = window.__fruitLink, R = window.Rules, bad = [];
+        G.snap.stack.forEach((p, i) => {
+          if (!G.snap.grid[i] || R.stackCovered(G.snap.stack, G.snap.grid, i)) return;
+          const tile = document.querySelector('#board .tile[data-i="' + i + '"]');
+          const rect = tile.getBoundingClientRect();
+          const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+          const hit = document.elementFromPoint(x, y), owner = hit && hit.closest('.tile');
+          if (!owner || Number(owner.dataset.i) !== i) bad.push({ i: i, hit: owner && owner.dataset.i });
+        });
+        return bad;
+      });
+      check('消掉上層後新解鎖的麻將牌也能點到', unlockedHitMismatches.length === 0,
+        JSON.stringify(unlockedHitMismatches.slice(0, 4)));
       const mahjongGap = await page.evaluate(() => {
         const G = window.__fruitLink;
-        const row = G.snap.stack.filter((p) => p.z === 0 && p.y === 0).sort((a, b) => a.x - b.x);
-        const rects = row.map((p) => {
-          const svg = document.querySelector('#board .tile[data-i="' + G.snap.stack.indexOf(p) + '"] .tile-svg-mahjong');
+        const row = G.snap.stack.map((p, i) => ({ p: p, i: i })).filter((item) =>
+          item.p.z === 0 && item.p.y === 0 && G.snap.grid[item.i]).sort((a, b) => a.p.x - b.p.x);
+        const rects = row.map((item) => {
+          const svg = document.querySelector('#board .tile[data-i="' + item.i + '"] .tile-svg-mahjong');
           return svg.querySelectorAll('rect')[1].getBoundingClientRect();
         });
-        return rects.length > 1 ? Math.max(...rects.slice(1).map((r, i) => r.left - rects[i].right)) : 0;
+        const gaps = rects.slice(1).map((r, i) => r.left - rects[i].right).filter((gap, i) =>
+          row[i + 1].p.x - row[i].p.x === 2);
+        return gaps.length ? Math.max(...gaps) : 0;
       });
       check('麻將牌面彼此緊貼', mahjongGap <= 1.5, '最大間距 ' + mahjongGap.toFixed(1) + 'px');
       await page.screenshot({ path: path.join(SHOTS, 'mahjong-stack.png') });
