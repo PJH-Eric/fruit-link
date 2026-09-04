@@ -138,7 +138,8 @@
   function tileSvg(kind, theme, palette) {
     var art = artOf(theme, palette, kind);
     var c = tileColors(kind);
-    return '<svg class="tile-svg" viewBox="0 0 100 100" aria-hidden="true">' +
+    var isMahjong = theme === 'mahjong';
+    var frame = isMahjong ? '' :
       /* 落地陰影：讓磚看起來是浮在盤面上的 */
       '<ellipse cx="50" cy="96" rx="41" ry="3.6" fill="#4A3B55" opacity="0.18"/>' +
       /* 側面（厚度）：這一條深色也是這種圖案最好認的顏色標記 */
@@ -151,11 +152,16 @@
       '<path d="M7 71 A15 15 0 0 0 22 86 L78 86 A15 15 0 0 0 93 71" fill="none" stroke="' + c[1] + '" ' +
         'stroke-width="4" stroke-linecap="round" opacity="0.85"/>' +
       /* 頂部光澤 */
-      '<rect x="13" y="7" width="74" height="19" rx="9.5" fill="#FFFFFF" opacity="0.42"/>' +
+      '<rect x="13" y="7" width="74" height="19" rx="9.5" fill="#FFFFFF" opacity="0.42"/>';
+    var artTransform = isMahjong
+      ? 'translate(50 48) scale(1.18) translate(-50 -50)'
+      : 'translate(50 46) scale(.88) translate(-50 -50)';
+    return '<svg class="tile-svg' + (isMahjong ? ' tile-svg-mahjong' : '') + '" viewBox="0 0 100 100" aria-hidden="true">' +
+      frame +
       /* 圖案層。裡面先放一個看不見的 100×100 定位框：每一種圖案的實際外框大小
          都不一樣（香蕉扁、玉米長），少了這個框，CSS 依 fill-box 縮放時每一種
          讓位的幅度就會不同，名稱標籤有時候還是會被蓋到。 */
-      '<g class="tile-art" transform="translate(50 46) scale(0.88) translate(-50 -50)">' +
+      '<g class="tile-art" transform="' + artTransform + '">' +
       '<rect x="0" y="0" width="100" height="100" fill="none" stroke="none"/>' +
       (art ? art.svg : '') + '</g>' +
       '</svg>';

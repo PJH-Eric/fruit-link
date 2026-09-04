@@ -32,6 +32,7 @@
   /* 和 body 同一套字型堆疊；屬性值用雙引號包住，裡面的字型名稱用單引號 */
   var FONT = "'Yuanti TC','PingFang TC','Microsoft JhengHei','Noto Sans TC',serif";
   var MARK_SCALE = 0.72;       // 牌面符號縮小，留下接近實體麻將的象牙色留白
+  var MARK_CENTER_Y = 48;      // 對齊前牌面（y=6～90）的幾何中心
 
   /** 牌身：右下先畫一塊綠色牌背當厚度，再蓋上象牙色牌面 */
   function tile(inner) {
@@ -39,7 +40,7 @@
       '<rect x="21" y="6" width="58" height="84" rx="10" fill="#FBF6E4" stroke="' + INK + '" stroke-width="2.6"/>' +
       '<rect x="26" y="11" width="48" height="74" rx="7" fill="#F3EAD2"/>' +
       '<path d="M26 16 A5 5 0 0 1 31 11 L69 11" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.75"/>' +
-      '<g transform="translate(50 50) scale(' + MARK_SCALE + ') translate(-50 -50)">' + inner + '</g>';
+      '<g transform="translate(50 ' + MARK_CENTER_Y + ') scale(' + MARK_SCALE + ') translate(-50 -50)">' + inner + '</g>';
   }
 
   /** 一顆筒：外環 → 中心色 → 小點，三層同心圓 */
