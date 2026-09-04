@@ -446,13 +446,34 @@ async function main() {
       check('一開局就有牌被壓在下面', info.locked > 0, '被壓住 ' + info.locked + ' 張');
       check('麻將盤沒有 JS 錯誤', errors.length === 0, errors.join('\n'));
       check('麻將牌下方不顯示文字', await page.locator('#board .tile .tile-name').count() === 0);
+      const selectionProbe = await page.evaluate(() => {
+        const G = window.__fruitLink, R = window.Rules;
+        const i = R.stackFreeList(G.snap.stack, G.snap.grid)[0];
+        const tile = document.querySelector('#board .tile[data-i="' + i + '"]');
+        const face = tile.querySelector('.tile-svg-mahjong .tile-art > rect:nth-of-type(3)').getBoundingClientRect();
+        return { i: i, x: face.left + face.width / 2, y: face.top + face.height / 2 };
+      });
+      await page.mouse.click(selectionProbe.x, selectionProbe.y);
+      const selection = await page.evaluate((i) => {
+        const tile = document.querySelector('#board .tile[data-i="' + i + '"]');
+        const face = tile.querySelector('.tile-svg-mahjong .tile-art > rect:nth-of-type(3)').getBoundingClientRect();
+        const marker = tile.querySelector('.mahjong-selection');
+        const mark = marker && marker.getBoundingClientRect();
+        const contains = !!mark && mark.left <= face.left + 1 && mark.top <= face.top + 1 &&
+          mark.right >= face.right - 1 && mark.bottom >= face.bottom - 1;
+        const tight = !!mark && mark.width <= face.width * 1.35 && mark.height <= face.height * 1.35;
+        return { selected: tile.classList.contains('sel'), marker: !!marker && mark.width > 0, contains: contains, tight: tight };
+      }, selectionProbe.i);
+      check('點擊麻將實際牌面會選中', selection.selected, JSON.stringify(selection));
+      check('麻將選取框緊貼實際牌面', selection.marker && selection.contains && selection.tight, JSON.stringify(selection));
+      await page.mouse.click(selectionProbe.x, selectionProbe.y);
       const hitMismatches = await page.evaluate(() => {
         const G = window.__fruitLink, R = window.Rules, bad = [];
         G.snap.stack.forEach((p, i) => {
           if (!G.snap.grid[i] || R.stackCovered(G.snap.stack, G.snap.grid, i)) return;
           const tile = document.querySelector('#board .tile[data-i="' + i + '"]');
-          const rect = tile.getBoundingClientRect();
-          [[.25, .25], [.5, .25], [.75, .25], [.25, .5], [.5, .5], [.75, .5], [.25, .75], [.5, .75], [.75, .75]].forEach((point) => {
+          const rect = tile.querySelector('.tile-svg-mahjong .tile-art > rect:nth-of-type(3)').getBoundingClientRect();
+          [[.2, .2], [.5, .2], [.8, .2], [.2, .5], [.5, .5], [.8, .5], [.2, .8], [.5, .8], [.8, .8]].forEach((point) => {
             const hit = document.elementFromPoint(rect.left + rect.width * point[0], rect.top + rect.height * point[1]);
             const owner = hit && hit.closest('.tile');
             if (!owner || Number(owner.dataset.i) !== i) bad.push({ i: i, point: point, hit: owner && owner.dataset.i });
@@ -464,7 +485,7 @@ async function main() {
       const firstPair = await page.evaluate(() => {
         const G = window.__fruitLink, R = window.Rules, pair = R.stackFindPair(G.snap.stack, G.snap.grid);
         const point = (i) => {
-          const rect = document.querySelector('#board .tile[data-i="' + i + '"]').getBoundingClientRect();
+          const rect = document.querySelector('#board .tile[data-i="' + i + '"] .tile-svg-mahjong .tile-art > rect:nth-of-type(3)').getBoundingClientRect();
           return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
         };
         return pair ? { pair, left: G.snap.left, a: point(pair.a), b: point(pair.b) } : null;
@@ -481,7 +502,7 @@ async function main() {
         G.snap.stack.forEach((p, i) => {
           if (!G.snap.grid[i] || R.stackCovered(G.snap.stack, G.snap.grid, i)) return;
           const tile = document.querySelector('#board .tile[data-i="' + i + '"]');
-          const rect = tile.getBoundingClientRect();
+          const rect = tile.querySelector('.tile-svg-mahjong .tile-art > rect:nth-of-type(3)').getBoundingClientRect();
           const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
           const hit = document.elementFromPoint(x, y), owner = hit && hit.closest('.tile');
           if (!owner || Number(owner.dataset.i) !== i) bad.push({ i: i, hit: owner && owner.dataset.i });

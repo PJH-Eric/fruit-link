@@ -194,8 +194,9 @@
         btn.tabIndex = 0;
         btn.dataset.kind = kind;
         btn.innerHTML = w.SvgUI.tileSvg(kind, theme, palette) +
-          (theme === 'mahjong' ? '' :
-            '<span class="tile-name">' + w.SvgUI.tileName(kind, theme, palette) + '</span>');
+          (theme === 'mahjong'
+            ? '<span class="mahjong-selection" aria-hidden="true"></span>'
+            : '<span class="tile-name">' + w.SvgUI.tileName(kind, theme, palette) + '</span>');
         btn.setAttribute('aria-label', tileLabel(idx, kind));
         btn.setAttribute('aria-pressed', 'false');
       }

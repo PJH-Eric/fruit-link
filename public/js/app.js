@@ -39,7 +39,8 @@
     lastTick: 0,
     pendingLevel: 'easy',
     pendingTheme: 'fruits',
-    inviteRole: 'player'
+    inviteRole: 'player',
+    pendingInvite: null
   };
 
   function nowSrv() { return Date.now() + G.timeOffset; }
@@ -856,7 +857,13 @@
     Sound.unlock();
     var code = $('join-code').value.trim().toUpperCase();
     if (!code) { toast('請先輸入房號'); return; }
+    if (G.pendingInvite && G.pendingInvite.code === code) return joinPendingInvite();
     joinRoom(code, null);
+  });
+
+  $('b-invite-join').addEventListener('click', function () {
+    Sound.unlock();
+    joinPendingInvite();
   });
 
   function joinRoom(code, token) {
@@ -867,6 +874,10 @@
       Online.send('room:join', { code: code, name: Store.nick(), token: token }, function (res) {
         G.joining = false;
         if (!res || !res.ok) return;
+        if (G.pendingInvite && G.pendingInvite.code === code) {
+          G.pendingInvite = null;
+          $('invite-gate').hidden = true;
+        }
         if (res.downgraded) toast('玩家席位滿了，你先以觀戰身分進來');
         else if (res.waiting) toast('這一局已經開始了，先觀戰，下一局再下場');
         else if (res.note) toast(res.note);
@@ -875,6 +886,29 @@
     };
     if (Online.isConnected()) go();
     else connect().then(go).catch(function (e) { G.joining = false; setConn('error', e.message); });
+  }
+
+  function joinPendingInvite() {
+    var invite = G.pendingInvite;
+    if (!invite) return;
+    var name = $('lobby-nick').value.trim().slice(0, 12);
+    if (!name) {
+      toast('請先輸入暱稱，再加入邀請房間');
+      $('lobby-nick').focus();
+      return;
+    }
+    Store.nick(name);
+    joinRoom(invite.code, invite.token);
+  }
+
+  function prepareInvite(entry) {
+    G.pendingInvite = { code: entry.room, token: entry.invite || '' };
+    $('join-code').value = entry.room;
+    $('invite-gate').hidden = false;
+    $('invite-gate-note').textContent = entry.invite
+      ? '請先設定你的暱稱，再加入這間受邀的水果連線房間。'
+      : '請先設定你的暱稱，再加入這間水果連線房間。';
+    $('b-invite-join').disabled = !!entry.invite;
   }
 
   function enterRoom() {
@@ -1172,15 +1206,28 @@
     document.addEventListener('pointerdown', once);
     document.addEventListener('keydown', once);
 
-    /* 邀請連結：?room=XXXXX&invite=... 直接進房 */
+    /* 邀請連結：先停在大廳，讓被邀請者確認暱稱後再進房 */
     var entry = Config.entry();
     if (entry.room) {
+      prepareInvite(entry);
       enterLobby();
       connect().then(function () {
+        if (!entry.invite) {
+          $('b-invite-join').disabled = false;
+          return;
+        }
         Online.send('invite:check', { code: entry.room, token: entry.invite }, function (res) {
-          if (!res || !res.ok) { toast((res && res.error) || '這個邀請連結沒有用了'); return; }
+          if (!res || !res.ok) {
+            G.pendingInvite = null;
+            $('invite-gate').hidden = true;
+            toast((res && res.error) || '這個邀請連結沒有用了');
+            return;
+          }
           if (res.note) toast(res.note);
-          joinRoom(entry.room, entry.invite);
+          $('invite-gate-note').textContent = res.role === 'spectator'
+            ? '這是觀戰邀請，請設定暱稱後加入。'
+            : '這是玩家邀請，請設定暱稱後加入。';
+          $('b-invite-join').disabled = false;
         });
       }).catch(function (e) { setConn('error', e.message); });
     }

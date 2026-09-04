@@ -342,9 +342,15 @@ body{
   position:absolute;inset:0.8%;padding:0;margin:0;border:0;background:none;cursor:pointer;
   border-radius:16%;touch-action:manipulation;transition:transform .12s ease,filter .12s ease;
 }
-/* 麻將牌的 SVG 有象牙色留白；按鈕本體也要有命中面，空白處才不會穿透到棋盤。 */
-.tile.mahjong{background:rgba(255,255,255,.001)}
 .tile .tile-svg{width:100%;height:100%;display:block;overflow:visible}
+.tile.mahjong{pointer-events:none}
+.tile.mahjong .tile-svg-mahjong{pointer-events:auto}
+/* 麻將選取框跟著實際牌面走，不使用整個 2×2 牌格的外框。 */
+.tile.mahjong .mahjong-selection{
+  display:none;position:absolute;z-index:2;left:-15%;right:11%;top:-15%;bottom:11%;
+  border:4px solid var(--grape-d);border-radius:20%;pointer-events:none;
+  box-shadow:0 0 0 2px rgba(255,255,255,.85) inset;
+}
 /* 圖案獨立一層：開「顯示名稱」時往上縮，名稱才有自己的位置，不會蓋到圖 */
 .tile .tile-art{transform-box:fill-box;transform-origin:center;transition:transform .15s ease}
 .tile:focus-visible{outline:3px solid var(--sky-d);outline-offset:2px;z-index:4}
@@ -354,6 +360,9 @@ body{
   content:"";position:absolute;inset:-7%;border:4px solid var(--grape-d);border-radius:20%;
   pointer-events:none;box-shadow:0 0 0 2px rgba(255,255,255,.85) inset;
 }
+.tile.mahjong.sel{transform:none;filter:drop-shadow(0 3px 5px rgba(74,59,85,.45));z-index:5}
+.tile.mahjong.sel::after{display:none}
+.tile.mahjong.sel .mahjong-selection{display:block}
 .tile.hint{animation:hintpulse 1s ease-in-out infinite;z-index:5}
 @keyframes hintpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 .tile.gone{animation:pop .3s ease-out forwards;pointer-events:none}
@@ -593,6 +602,8 @@ body.reduce-motion .tile.gone{opacity:0}
 .board.stacked .tile{inset:0}
 /* 疊牌容器只負責定位與層次，不能攔截下層已解鎖牌的點擊。 */
 .board.stacked .cell.lay .tile{pointer-events:auto}
+.board.stacked .cell.lay .tile.mahjong{pointer-events:none}
+.board.stacked .cell.lay .tile.mahjong .tile-svg-mahjong{pointer-events:auto}
 /* 麻將牌身是直式比例，橫向補滿牌格後相鄰牌才會緊貼；點擊範圍仍維持原本的牌格 */
 .board.stacked .tile .tile-svg-mahjong{transform:scaleX(1.45);transform-origin:center}
 
@@ -600,4 +611,6 @@ body.reduce-motion .tile.gone{opacity:0}
    點不動則靠 pointer-events 與 render.js 拿掉的 tabIndex。 */
 .tile.locked{filter:grayscale(.5) brightness(.84);cursor:default;pointer-events:none}
 .board.stacked .cell.lay .tile.locked{pointer-events:none}
+.board.stacked .cell.lay .tile.mahjong.locked{pointer-events:none}
+.board.stacked .cell.lay .tile.mahjong.locked .tile-svg-mahjong{pointer-events:none}
 .tile.locked .tile-name{opacity:.7}
