@@ -291,8 +291,8 @@
    *   - 一張牌佔 2×2 個半格；上面那一層整層往右下偏半格，
    *     所以一張上層牌會壓住下層的 4 張牌（角落與邊上會少於 4 張）。
    *   - 被壓住的牌點不動，畫面上也會壓暗；要先把壓在它上面的牌都消掉。
-   *   - 消除規則跟著改成「兩張都露出來、而且是同一種」就好，不用連線 ——
-   *     疊起來之後路徑沒有意義（下層根本走不進去）。
+   *   - 兩張牌必須同圖案、同層、都露出來，並且和其他主題一樣能用
+   *     0／1／2 折的直角路徑連起來。
    *
    * 位置存在 state.stack（和 state.grid 同一組索引），grid[i] 仍然是「第幾種」，
    * 0 代表已經被消掉，所以 attempt / 分數 / 快照那一套完全不用改索引的形式。
@@ -350,24 +350,84 @@
     return out;
   }
 
-  /** 找一組「兩張都露出來、而且同一種」的牌；找不到就回 null */
+  /**
+   * 把疊牌投影到半格再細分一次的路徑盤面。
+   * 每張牌的完整 2×2 範圍都算障礙，避免視覺上緊貼的牌之間出現假縫隙。
+   */
+  function stackLink(pos, grid, a, b) {
+    a = Number(a); b = Number(b);
+    if (!isFinite(a) || !isFinite(b) || a < 0 || b < 0 ||
+        a >= grid.length || b >= grid.length || a === b) return null;
+    if (!grid[a] || grid[a] !== grid[b] || pos[a].z !== pos[b].z) return null;
+    if (!stackFree(pos, grid, a) || !stackFree(pos, grid, b)) return null;
+
+    var scale = 2;
+    var ext = stackExtent(pos);
+    var W = ext.W * scale + 3;
+    var H = ext.H * scale + 3;
+    var routeGrid = new Array(W * H).fill(0);
+
+    function fillTile(i, value) {
+      var p = pos[i];
+      var left = 1 + p.x * scale;
+      var top = 1 + p.y * scale;
+      var right = 1 + (p.x + 2) * scale;
+      var bottom = 1 + (p.y + 2) * scale;
+      for (var y = top; y <= bottom; y++) {
+        for (var x = left; x <= right; x++) routeGrid[idx(x, y, W)] = value;
+      }
+    }
+
+    for (var i = 0; i < grid.length; i++) if (grid[i]) fillTile(i, 1);
+    /* 端點本身要清空，路徑才可以從牌的中心離開。 */
+    fillTile(a, 0);
+    fillTile(b, 0);
+
+    function center(i) {
+      return idx(1 + (pos[i].x + 1) * scale, 1 + (pos[i].y + 1) * scale, W);
+    }
+
+    var start = center(a), end = center(b);
+    routeGrid[start] = grid[a];
+    routeGrid[end] = grid[b];
+    var route = link(routeGrid, W, H, start, end);
+    if (!route) return null;
+
+    return route.map(function (point) {
+      var x = xOf(point, W), y = yOf(point, W);
+      return {
+        x: x === 0 ? 0.25 : x / scale,
+        y: y === 0 ? 0.25 : y / scale
+      };
+    });
+  }
+
+  /** 找一組符合「同圖案、同層、露出、0／1／2 折」的牌；找不到就回 null */
   function stackFindPair(pos, grid) {
-    var free = stackFreeList(pos, grid), seen = {}, i, k;
+    var free = stackFreeList(pos, grid), groups = {}, i, j, key, path;
     for (i = 0; i < free.length; i++) {
-      k = grid[free[i]];
-      if (seen[k] !== undefined) return { a: seen[k], b: free[i], path: [] };
-      seen[k] = free[i];
+      key = pos[free[i]].z + ':' + grid[free[i]];
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(free[i]);
+    }
+    for (key in groups) {
+      for (i = 0; i < groups[key].length; i++) {
+        for (j = i + 1; j < groups[key].length; j++) {
+          path = stackLink(pos, grid, groups[key][i], groups[key][j]);
+          if (path) return { a: groups[key][i], b: groups[key][j], path: path };
+        }
+      }
     }
     return null;
   }
 
   /**
-   * 發牌：由最上層往下，一層之內兩兩配成一對。
+   * 發牌：由最上層往下，把同一列相鄰的牌兩兩配成一對。
    * 每一層都是偶數張，所以「由上往下一層一層拆」一定拆得完 ——
-   * 也就是說發出來的盤一定有解，不會一開局就死。
+   * 相鄰牌之間是 0 折路徑，因此發出來的盤一定有解，不會一開局就死。
    */
   function createStack(pos, kinds, rng) {
-    var grid = [], byLayer = {}, maxZ = 0, i, z, ids, j, kind = 0;
+    var grid = [], byLayer = {}, maxZ = 0, i, z, ids, pairs, j, kind = 0;
     for (i = 0; i < pos.length; i++) {
       grid[i] = 0;
       if (!byLayer[pos[i].z]) byLayer[pos[i].z] = [];
@@ -376,11 +436,15 @@
     }
     for (z = maxZ; z >= 0; z--) {
       ids = (byLayer[z] || []).slice();
-      shuffleArray(ids, rng);
+      pairs = [];
       for (j = 0; j + 1 < ids.length; j += 2) {
+        pairs.push([ids[j], ids[j + 1]]);
+      }
+      shuffleArray(pairs, rng);
+      for (j = 0; j < pairs.length; j++) {
         kind = (kind % kinds) + 1;
-        grid[ids[j]] = kind;
-        grid[ids[j + 1]] = kind;
+        grid[pairs[j][0]] = kind;
+        grid[pairs[j][1]] = kind;
       }
     }
     var ext = stackExtent(pos);
@@ -402,7 +466,7 @@
   /** 這個主題要不要疊起來玩 */
   function isStackTheme(theme) { return sanitizeTheme(theme) === STACK_THEME; }
 
-  /** 現在還有沒有能消的一組（平面看路徑，疊疊樂看兩張有沒有都露出來） */
+  /** 現在還有沒有能消的一組 */
   function hasPair(state) {
     return state.mode === 'stack'
       ? stackFindPair(state.stack, state.grid)
@@ -562,10 +626,8 @@
     }
     state.moves += 1;
 
-    /* 疊疊樂沒有路徑：兩張都露出來、而且同一種就算連上 */
     var path = state.mode === 'stack'
-      ? ((a !== b && state.grid[a] && state.grid[a] === state.grid[b] &&
-          stackFree(state.stack, state.grid, a) && stackFree(state.stack, state.grid, b)) ? [] : null)
+      ? stackLink(state.stack, state.grid, a, b)
       : link(state.grid, state.W, state.H, a, b);
     if (!path) {
       /* 連不到不扣分，只斷連擊 —— 對小朋友友善，也避免亂點被懲罰到不想玩 */
@@ -738,6 +800,7 @@
     stackCovered: stackCovered,
     stackFree: stackFree,
     stackFreeList: stackFreeList,
+    stackLink: stackLink,
     stackFindPair: stackFindPair,
     createStack: createStack,
     shuffleStack: shuffleStack,

@@ -261,15 +261,20 @@
     setTimeout(function () { if (g.parentNode) g.parentNode.removeChild(g); }, 700);
   }
 
-  /** 疊牌沒有平面路徑，改用兩張牌的中心畫出配對特效 */
-  function drawStackLink(a, b) {
-    if (!lineEl || !stackPos || !stackPos[a] || !stackPos[b]) return;
-    var point = function (i) {
-      return (stackPos[i].x + 1.5).toFixed(3) + ',' + (stackPos[i].y + 1.5).toFixed(3);
-    };
-    var pts = point(a) + ' ' + point(b);
+  /** 把麻將判定器回傳的實際 0／1／2 折路徑畫出來 */
+  function drawStackLink(path, a, b) {
+    if (!lineEl || !stackPos || !path || path.length < 2 || !stackPos[a] || !stackPos[b]) return;
+    var layerColors = ['#19A77C', '#7B5AD8', '#E27A2D', '#237FC1', '#D94375', '#98711A'];
+    var layer = stackPos[a].z;
+    var pts = path.map(function (point) {
+      return Number(point.x).toFixed(3) + ',' + Number(point.y).toFixed(3);
+    }).join(' ');
     var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.classList.add('stack-link-group');
+    g.setAttribute('data-layer', String(layer));
+    g.style.setProperty('--stack-link-color', layerColors[layer % layerColors.length]);
     g.innerHTML =
+      '<polyline class="stack-link stack-link-glow" points="' + pts + '"/>' +
       '<polyline class="lk-bg stack-link" points="' + pts + '"/>' +
       '<polyline class="lk stack-link" points="' + pts + '"/>';
     lineEl.appendChild(g);
@@ -281,7 +286,7 @@
       [a, b].forEach(function (i) {
         if (tiles[i]) tiles[i].classList.remove('mahjong-match');
       });
-    }, 700);
+    }, 950);
   }
 
   /** 消除動畫：先彈一下再消失，動畫結束才真的把磚塊拿掉 */
@@ -299,8 +304,10 @@
   function flyScore(i, text, mine) {
     if (!fxEl) return;
     var s = el('div', 'flyscore' + (mine ? '' : ' other'), text);
-    s.style.left = (cx(i) / vbW() * 100).toFixed(2) + '%';
-    s.style.top = (cy(i) / vbH() * 100).toFixed(2) + '%';
+    var x = stackPos && stackPos[i] ? stackPos[i].x + 1.5 : cx(i);
+    var y = stackPos && stackPos[i] ? stackPos[i].y + 1.5 : cy(i);
+    s.style.left = (x / vbW() * 100).toFixed(2) + '%';
+    s.style.top = (y / vbH() * 100).toFixed(2) + '%';
     fxEl.appendChild(s);
     setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 950);
   }
@@ -389,7 +396,8 @@
   /* ---------------------------------------------------------- 玩法頁示範圖 */
 
   /** 玩法說明用的三張小圖：0 折、1 折、2 折 */
-  function pathDemos(host) {
+  function pathDemos(host, demoTheme) {
+    var themeName = demoTheme === 'mahjong' ? 'mahjong' : 'fruits';
     var demos = [
       { title: '0 折 · 直線', w: 5, h: 3, a: [1, 1], b: [3, 1], path: [[1, 1], [3, 1]], k: [1, 2] },
       { title: '1 折 · 轉一次', w: 5, h: 4, a: [1, 1], b: [3, 2], path: [[1, 1], [1, 2], [3, 2]], k: [3, 4] },
@@ -403,8 +411,12 @@
             'fill="' + ((x + y) % 2 ? '#FFF6E9' : '#FBEEDC') + '" stroke="#EADFC8" stroke-width="0.03"/>';
         }
       }
-      /* 兩顆要連的水果 */
-      var fruit = function (p, kind) {
+      /* 兩個要連的圖案；麻將造型本身已包含牌身，不再加外框。 */
+      var piece = function (p, kind) {
+        if (themeName === 'mahjong') {
+          return '<g transform="translate(' + p[0] + ' ' + p[1] + ') scale(0.01)">' +
+            (w.Themes ? w.Themes.art('mahjong', kind).svg : '') + '</g>';
+        }
         return '<g transform="translate(' + p[0] + ' ' + p[1] + ') scale(0.01)">' +
           '<rect x="8" y="8" width="84" height="84" rx="18" fill="#FFF3F5" stroke="#4A3B55" stroke-width="5"/>' +
           '<g transform="translate(50 52) scale(0.66) translate(-50 -50)">' +
@@ -414,7 +426,7 @@
       return '<figure><svg viewBox="0 0 ' + d.w + ' ' + d.h + '" aria-hidden="true">' + cells +
         '<polyline points="' + pts + '" fill="none" stroke="#FFFFFF" stroke-width="0.22" stroke-linecap="round" stroke-linejoin="round"/>' +
         '<polyline points="' + pts + '" fill="none" stroke="#3FAF8B" stroke-width="0.13" stroke-linecap="round" stroke-linejoin="round"/>' +
-        fruit(d.a, d.k[0] % 17) + fruit(d.b, d.k[0] % 17) +
+        piece(d.a, d.k[0] % 17) + piece(d.b, d.k[0] % 17) +
         '</svg><figcaption>' + d.title + '</figcaption></figure>';
     }).join('');
   }

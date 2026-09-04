@@ -954,11 +954,21 @@ test('發出來的牌一定拆得完：由上往下一層一層拆都是露出�
   });
 });
 
-test('配對規則換成「同一種而且兩張都露出來」，不看路徑', () => {
+test('麻將配對要同圖案、同層、都露出，且路徑不超過 2 折', () => {
   const st = mahjong('normal', 'f');
   const hit = Rules.stackFindPair(st.stack, st.grid);
   assert.ok(hit, '一開局一定要有得消');
-  assert.deepStrictEqual(hit.path, [], '疊疊樂沒有路徑');
+  assert.strictEqual(st.stack[hit.a].z, st.stack[hit.b].z, '只能和同層的麻將配對');
+  assert.ok(hit.path.length >= 2 && hit.path.length <= 4,
+    '麻將路徑必須是 0／1／2 折');
+  assert.deepStrictEqual(hit.path[0], {
+    x: st.stack[hit.a].x + 1.5,
+    y: st.stack[hit.a].y + 1.5
+  }, '麻將路徑起點要對準牌面中心');
+  assert.deepStrictEqual(hit.path[hit.path.length - 1], {
+    x: st.stack[hit.b].x + 1.5,
+    y: st.stack[hit.b].y + 1.5
+  }, '麻將路徑終點要對準牌面中心');
   const ok = Rules.attempt(st, 'me', hit.a, hit.b, 1, RNG.createRng('f1'));
   assert.strictEqual(ok.event.k, 'match');
   assert.strictEqual(st.grid[hit.a], 0);
@@ -975,6 +985,40 @@ test('配對規則換成「同一種而且兩張都露出來」，不看路徑',
   assert.ok(st.grid[covered] > 0);
 });
 
+test('不同層的麻將即使同圖案、都露出也不能配對', () => {
+  const pos = [
+    { x: 0, y: 0, z: 0 },
+    { x: 4, y: 0, z: 1 }
+  ];
+  const grid = [1, 1];
+  assert.strictEqual(Rules.stackLink(pos, grid, 0, 1), null);
+});
+
+test('麻將路徑超過 2 折時不能配對', () => {
+  const rows = [
+    'BBBBBB',
+    'BA...B',
+    'BBBB.B',
+    'B....B',
+    'B.BBBB',
+    'B...AB'
+  ];
+  const pos = [];
+  const grid = [];
+  const targets = [];
+  rows.forEach((row, y) => {
+    Array.from(row).forEach((cell, x) => {
+      if (cell === '.') return;
+      pos.push({ x: x * 2, y: y * 2, z: 0 });
+      grid.push(cell === 'A' ? 1 : 2);
+      if (cell === 'A') targets.push(grid.length - 1);
+    });
+  });
+  assert.strictEqual(targets.length, 2);
+  assert.strictEqual(Rules.stackLink(pos, grid, targets[0], targets[1]), null,
+    '需要 3 折以上的路徑不算合法');
+});
+
 test('提示指出來的兩張一定都是露出來的', () => {
   const st = mahjong('easy', 'g');
   for (let n = 0; n < 12; n++) {
@@ -984,6 +1028,8 @@ test('提示指出來的兩張一定都是露出來的', () => {
     assert.strictEqual(Rules.stackFree(st.stack, st.grid, a), true);
     assert.strictEqual(Rules.stackFree(st.stack, st.grid, b), true);
     assert.strictEqual(st.grid[a], st.grid[b]);
+    assert.strictEqual(st.stack[a].z, st.stack[b].z);
+    assert.ok(Rules.stackLink(st.stack, st.grid, a, b));
     Rules.attempt(st, 'me', a, b, 10, RNG.createRng('g' + n));
   }
 });

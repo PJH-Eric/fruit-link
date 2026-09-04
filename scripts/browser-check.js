@@ -108,6 +108,13 @@ async function main() {
       await page.click('#b-help');
       await page.waitForTimeout(200);
       check('玩法頁的路徑示範有三張圖', await page.locator('#path-demo figure').count() === 3);
+      check('玩法頁有麻將 0／1／2 折示範',
+        await page.locator('#mahjong-path-demo figure').count() === 3 &&
+        (await page.locator('#mahjong-rule').innerText()).indexOf('麻將') >= 0);
+      const mahjongRule = await page.locator('#mahjong-rule + .note').innerText();
+      check('玩法頁寫明麻將要同層、露出且不超過 2 折',
+        mahjongRule.indexOf('同一層') >= 0 && mahjongRule.indexOf('沒有被') >= 0 &&
+        mahjongRule.indexOf('0／1／2 折') >= 0, mahjongRule);
       const rows = await page.locator('#level-table tr').count();
       check('玩法頁的關卡表有四關（加上表頭共 5 列）', rows === 5, '實際 ' + rows + ' 列');
       const gallery = await page.locator('#theme-gallery .themerow').count();
@@ -488,19 +495,31 @@ async function main() {
           const rect = document.querySelector('#board .tile[data-i="' + i + '"] .tile-svg-mahjong .tile-art > rect:nth-of-type(3)').getBoundingClientRect();
           return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
         };
-        return pair ? { pair, left: G.snap.left, a: point(pair.a), b: point(pair.b) } : null;
+        return pair ? {
+          pair, left: G.snap.left, layer: G.snap.stack[pair.a].z,
+          a: point(pair.a), b: point(pair.b)
+        } : null;
       });
       if (firstPair) {
         await page.mouse.click(firstPair.a.x, firstPair.a.y);
         await page.mouse.click(firstPair.b.x, firstPair.b.y);
         const matchEffect = await page.evaluate((data) => {
           const ids = data ? [data.pair.a, data.pair.b] : [];
+          const line = document.querySelector('#linkline .lk.stack-link');
           return {
             link: document.querySelectorAll('#linkline .stack-link').length,
-            tiles: ids.filter((i) => document.querySelector('#board .tile[data-i="' + i + '"]').classList.contains('mahjong-match')).length
+            glow: document.querySelectorAll('#linkline .stack-link-glow').length,
+            layer: line && line.parentNode.getAttribute('data-layer'),
+            color: line && line.parentNode.style.getPropertyValue('--stack-link-color'),
+            tiles: ids.filter((i) => document.querySelector('#board .tile[data-i="' + i + '"]').classList.contains('mahjong-match')).length,
+            points: line ? line.getAttribute('points').trim().split(/\s+/).length : 0
           };
         }, firstPair);
-        check('麻將配對會顯示連線特效', matchEffect.link >= 2 && matchEffect.tiles === 2,
+        check('麻將配對會照實際折點顯示連線特效',
+          firstPair.pair.path.length >= 2 && firstPair.pair.path.length <= 4 &&
+          matchEffect.link >= 3 && matchEffect.glow === 1 && matchEffect.tiles === 2 &&
+          matchEffect.layer === String(firstPair.layer) && !!matchEffect.color &&
+          matchEffect.points === firstPair.pair.path.length,
           JSON.stringify(matchEffect));
         await page.waitForFunction((before) => window.__fruitLink.snap && window.__fruitLink.snap.left < before,
           firstPair.left, { timeout: 1200 });

@@ -258,6 +258,7 @@
 
   function buildHelp() {
     R.pathDemos($('path-demo'));
+    R.pathDemos($('mahjong-path-demo'), 'mahjong');
     buildThemeGallery();
     $('level-table').innerHTML =
       '<tr><th>關卡</th><th>盤面</th><th>水果種類</th><th>時間</th><th>提示</th><th>洗牌</th></tr>' +
@@ -594,7 +595,7 @@
           if (p.id === ev.by) { p.score = ev.score; p.combo = ev.combo; p.pairs = ev.pairs; }
         });
       }
-      if (isStackBoard()) R.drawStackLink(ev.a, ev.b);
+      if (isStackBoard()) R.drawStackLink(ev.path, ev.a, ev.b);
       else R.drawLink(ev.path);
       R.popPair(ev.a, ev.b);
       R.flyScore(ev.b, '+' + ev.gain + (ev.combo > 1 ? ' ×' + ev.mult : ''), mine);
@@ -614,7 +615,7 @@
         Sound.play('miss');
         Sound.vibrate([8, 40, 8]);
         toast(isStackBoard()
-          ? '這兩張配不起來（要同一種，而且兩張都不能被壓住）'
+          ? '這兩張配不起來（要同圖案、同層、都露出，路徑也要在 2 折以內）'
           : '這兩顆連不起來（路徑要轉彎 2 次以內、而且只能經過空格）');
         if (isOnline() && G.snap) {
           (G.snap.players || []).forEach(function (p) { if (p.id === ev.by) { p.combo = 0; p.misses = ev.misses; } });

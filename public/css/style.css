@@ -392,9 +392,19 @@ body.kids-board .tile .tile-art{transform:translateY(-14%) scale(.76)}
   filter:drop-shadow(0 0 .06px #fff);animation:linkfade .55s ease-out forwards}
 .linkline .lk-bg{fill:none;stroke:#FFFFFF;stroke-width:.28;stroke-linecap:round;stroke-linejoin:round;
   opacity:.85;animation:linkfade .55s ease-out forwards}
-.linkline .stack-link{stroke-dasharray:.7 .25;animation:stacklinkfade .7s ease-out forwards}
+.board.stacked>.linkline{z-index:80}
+.linkline .stack-link{stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:.55 .18}
+.linkline .lk.stack-link{stroke:var(--stack-link-color,#19A77C);stroke-width:.24;
+  filter:drop-shadow(0 0 .09px #fff) drop-shadow(0 0 .16px var(--stack-link-color,#19A77C));
+  animation:stacklinkfade .9s ease-out forwards}
+.linkline .lk-bg.stack-link{stroke:#fff;stroke-width:.46;opacity:.98;animation:stacklinkfade .9s ease-out forwards}
+.linkline .stack-link-glow{fill:none;stroke:var(--stack-link-color,#19A77C);stroke-width:.62;opacity:.35;
+  filter:drop-shadow(0 0 .2px var(--stack-link-color,#19A77C));animation:stacklinkglow .9s ease-out forwards}
 @keyframes linkfade{0%{opacity:0}18%{opacity:1}70%{opacity:1}100%{opacity:0}}
-@keyframes stacklinkfade{0%{opacity:0;stroke-width:.08}18%{opacity:1;stroke-width:.28}70%{opacity:1}100%{opacity:0;stroke-width:.08}}
+@keyframes stacklinkfade{0%{opacity:0;stroke-dashoffset:1.46}14%{opacity:1}72%{opacity:1;stroke-dashoffset:0}100%{opacity:0}}
+@keyframes stacklinkglow{0%{opacity:0;stroke-width:.18}22%{opacity:.5;stroke-width:.72}68%{opacity:.32;stroke-width:.58}100%{opacity:0;stroke-width:.9}}
+.board.stacked .tile.mahjong-match .tile-svg-mahjong{animation:mahjongmatch .9s ease-out}
+@keyframes mahjongmatch{0%{filter:none}22%{filter:brightness(1.2) drop-shadow(0 0 7px #fff) drop-shadow(0 0 10px #19A77C)}70%{filter:brightness(1.1) drop-shadow(0 0 5px #fff)}100%{filter:none}}
 
 /* 特效層 */
 .fx{position:absolute;inset:0;pointer-events:none;z-index:7;overflow:hidden}
