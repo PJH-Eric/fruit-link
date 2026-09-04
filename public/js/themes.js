@@ -26,14 +26,15 @@
 
   var BASE = parts.filter(function (t) { return t && t.list && t.list.length; });
 
-  /* 大混搭：把所有主題接起來，種類最多的一個模式。
+  /* 大混搭：把四個平面主題接起來，麻將保留給專用疊牌模式。
      id 前面加上來源主題，避免不同主題剛好撞名。 */
+  var MIXED_BASE = BASE.filter(function (t) { return t.key !== 'mahjong'; });
   var MIXED = {
     key: 'mixed',
     label: '大混搭',
     emoji: '🎲',
-    note: '上面全部混在一起',
-    list: BASE.reduce(function (acc, t) {
+    note: '蔬果、動物、食物和國旗混在一起',
+    list: MIXED_BASE.reduce(function (acc, t) {
       return acc.concat(t.list.map(function (x) {
         return { id: t.key + ':' + x.id, label: x.label, svg: x.svg };
       }));

@@ -166,6 +166,25 @@ async function main() {
       const themeBackgrounds = await page.locator('#opt-theme .themecard').evaluateAll((cards) =>
         new Set(cards.map((card) => getComputedStyle(card).backgroundColor)).size);
       check('不同主題卡有不同底色', themeBackgrounds >= 5, '實際 ' + themeBackgrounds + ' 種');
+      const themeLayout = await page.evaluate(() => {
+        const pick = document.querySelector('#opt-theme.themepick');
+        const cards = Array.from(document.querySelectorAll('#opt-theme .themecard'));
+        const rows = cards.reduce((map, card) => {
+          const top = Math.round(card.getBoundingClientRect().top);
+          map[top] = (map[top] || 0) + 1;
+          return map;
+        }, {});
+        const firstTop = Math.min.apply(null, Object.keys(rows).map(Number));
+        const mixed = document.querySelector('#opt-theme .themecard[data-v="mixed"]');
+        return {
+          firstRow: rows[firstTop],
+          mixedWidth: mixed.getBoundingClientRect().width,
+          pickWidth: pick.getBoundingClientRect().width
+        };
+      });
+      check('寬版主題選單五格佔滿，混搭填滿第二列',
+        themeLayout.firstRow === 5 && themeLayout.mixedWidth >= themeLayout.pickWidth - 2,
+        JSON.stringify(themeLayout));
 
       /* 換成動物、開最小的一關，確認盤面真的變成動物 */
       await page.locator('#opt-theme .themecard[data-v="animals"]').click();
@@ -203,9 +222,14 @@ async function main() {
       await page.locator('#opt-level .pickcard').last().click();
       await page.click('#b-solo-start');
       await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
-      const mixedKinds = await page.evaluate(() => window.__fruitLink.snap.kinds);
+      const mixedInfo = await page.evaluate(() => ({
+        kinds: window.__fruitLink.snap.kinds,
+        count: window.Themes.count('mixed'),
+        hasMahjong: window.Themes.of('mixed').list.some((t) => t.id.indexOf('mahjong:') === 0)
+      }));
       const wantKinds = await page.evaluate(() => window.Rules.levelOf('hard').kinds);
-      check('大混搭開得了最難的一關（' + wantKinds + ' 種）', mixedKinds === wantKinds, '實際 ' + mixedKinds);
+      check('大混搭開得了最難的一關（' + wantKinds + ' 種）', mixedInfo.kinds === wantKinds, '實際 ' + mixedInfo.kinds);
+      check('大混搭不加入麻將牌', mixedInfo.hasMahjong === false, JSON.stringify(mixedInfo));
       await page.screenshot({ path: path.join(SHOTS, 'theme-mixed.png') });
       await quitGame(page);
 
@@ -422,6 +446,21 @@ async function main() {
       check('一開局就有牌被壓在下面', info.locked > 0, '被壓住 ' + info.locked + ' 張');
       check('麻將盤沒有 JS 錯誤', errors.length === 0, errors.join('\n'));
       check('麻將牌下方不顯示文字', await page.locator('#board .tile .tile-name').count() === 0);
+      const hitMismatches = await page.evaluate(() => {
+        const G = window.__fruitLink, R = window.Rules, bad = [];
+        G.snap.stack.forEach((p, i) => {
+          if (!G.snap.grid[i] || R.stackCovered(G.snap.stack, G.snap.grid, i)) return;
+          const tile = document.querySelector('#board .tile[data-i="' + i + '"]');
+          const front = tile.querySelectorAll('.tile-svg-mahjong rect')[1].getBoundingClientRect();
+          [[.25, .25], [.75, .25], [.25, .75], [.75, .75]].forEach((point) => {
+            const hit = document.elementFromPoint(front.left + front.width * point[0], front.top + front.height * point[1]);
+            const owner = hit && hit.closest('.tile');
+            if (!owner || Number(owner.dataset.i) !== i) bad.push({ i: i, point: point, hit: owner && owner.dataset.i });
+          });
+        });
+        return bad;
+      });
+      check('可點麻將牌的牌面都能正確點到', hitMismatches.length === 0, JSON.stringify(hitMismatches.slice(0, 4)));
       const mahjongGap = await page.evaluate(() => {
         const G = window.__fruitLink;
         const row = G.snap.stack.filter((p) => p.z === 0 && p.y === 0).sort((a, b) => a.x - b.x);

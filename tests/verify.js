@@ -718,10 +718,11 @@ test('每個主題裡的 id 不重複、造型都有內容', () => {
   });
 });
 
-test('大混搭把所有主題接起來，數量剛好是總和', () => {
-  const base = Themes.LIST.filter((t) => t.key !== 'mixed');
+test('大混搭只接四個平面主題，不加入麻將', () => {
+  const base = Themes.LIST.filter((t) => !['mixed', 'mahjong'].includes(t.key));
   const total = base.reduce((n, t) => n + t.list.length, 0);
   assert.strictEqual(Themes.count('mixed'), total);
+  assert.ok(Themes.of('mixed').list.every((t) => !t.id.startsWith('mahjong:')));
 });
 
 test('不認得的主題名稱會收斂回預設，art 取值會繞回頭', () => {
