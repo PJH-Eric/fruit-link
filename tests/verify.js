@@ -978,6 +978,21 @@ test('麻將連線不能穿過中間其他層的牌', () => {
   assert.ok(path.length > 2, '中間的牌應該阻擋 0 折直線');
 });
 
+test('麻將連線不能穿過仍在盤面上的被壓住牌', () => {
+  const pos = Rules.stackLayout(10, 5);
+  const st = Rules.createStack(pos, 34, RNG.createRng('find2:10,5:2'));
+  const a = 65;
+  const b = 72;
+  const blocker = 64;
+  assert.strictEqual(st.grid[a], st.grid[b], '測試端點應該是同一種牌');
+  assert.strictEqual(Rules.stackCovered(pos, st.grid, blocker), true,
+    '中間牌應該是被壓住的');
+  assert.strictEqual(Rules.stackFree(pos, st.grid, a), true);
+  assert.strictEqual(Rules.stackFree(pos, st.grid, b), true);
+  assert.strictEqual(Rules.stackLink(pos, st.grid, a, b), null,
+    '被壓住但仍在盤面上的牌也必須阻擋路徑');
+});
+
 test('麻將配對要同圖案、同層、都露出，且路徑不超過 2 折', () => {
   const st = mahjong('normal', 'f');
   const hit = Rules.stackFindPair(st.stack, st.grid);

@@ -352,8 +352,8 @@
 
   /**
    * 把同一層的疊牌投影到半格再細分一次的路徑盤面。
-   * 每張露出的牌的完整 2×2 範圍都算障礙，避免路徑穿過中間的牌；
-   * 只有配對端點必須同層，路徑上的其他層露出牌也不能被穿過。
+   * 配對所在層的每張仍在盤面牌都算障礙，避免路徑穿過同層隔壁牌；
+   * 其他層只有露出的牌算障礙，端點下方重疊的隱藏牌不會封住路徑。
    */
   function stackLink(pos, grid, a, b) {
     a = Number(a); b = Number(b);
@@ -379,12 +379,48 @@
       }
     }
 
+    function overlaps(a, b) {
+      return Math.abs(a.x - b.x) < 2 && Math.abs(a.y - b.y) < 2;
+    }
+
+    function fillTileOutside(i, excluded) {
+      var p = pos[i];
+      var left = 1 + p.x * scale;
+      var top = 1 + p.y * scale;
+      var right = 1 + (p.x + 2) * scale;
+      var bottom = 1 + (p.y + 2) * scale;
+      var ex = excluded.map(function (j) {
+        var q = pos[j];
+        return {
+          i: j,
+          left: 1 + q.x * scale, top: 1 + q.y * scale,
+          right: 1 + (q.x + 2) * scale, bottom: 1 + (q.y + 2) * scale
+        };
+      });
+      for (var y = top; y <= bottom; y++) {
+        for (var x = left; x <= right; x++) {
+          var underEndpoint = ex.some(function (r) {
+            return pos[i].z < pos[r.i].z && overlaps(pos[i], pos[r.i]) &&
+              x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+          });
+          if (!underEndpoint) routeGrid[idx(x, y, W)] = 1;
+        }
+      }
+    }
+
     for (var i = 0; i < grid.length; i++) {
-      if (grid[i] && stackFree(pos, grid, i)) fillTile(i, 1);
+      if (grid[i] && (pos[i].z === pos[a].z || stackFree(pos, grid, i))) fillTile(i, 1);
     }
     /* 端點本身要清空，路徑才可以從牌的中心離開。 */
     fillTile(a, 0);
     fillTile(b, 0);
+    /* 端點清空可能抹掉共用邊界；把其他仍在盤面的牌障礙補回來。 */
+    for (var j = 0; j < grid.length; j++) {
+      if (grid[j] && j !== a && j !== b &&
+          (pos[j].z === pos[a].z || stackFree(pos, grid, j))) {
+        fillTileOutside(j, [a, b]);
+      }
+    }
 
     function center(i) {
       return idx(1 + (pos[i].x + 1) * scale, 1 + (pos[i].y + 1) * scale, W);
