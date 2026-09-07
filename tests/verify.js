@@ -840,6 +840,16 @@ test('房主與觀戰者看到的主題與造型對照表完全一致', () => {
 
 group('麻將疊疊樂');
 
+test('九條使用中央一列紅色竹節的牌面', () => {
+  const art = Themes.of('mahjong').list.find((item) => item.id === 'bam-9');
+  const redXs = Array.from(art.svg.matchAll(
+    /<rect x="([^"]+)" y="[^"]+" width="[^"]+" height="[^"]+" rx="[^"]+" fill="#C4302B"/g
+  )).map((match) => Number(match[1]));
+  assert.strictEqual(redXs.length, 3, '九條應該有 3 根紅色竹節');
+  redXs.forEach((x) => assert.ok(Math.abs(x - 46.58) < 0.01,
+    '九條的紅色竹節應該位於中央列，實際 x=' + x));
+});
+
 /* 開一局麻將（疊疊樂）的對局狀態 */
 function mahjong(levelKey, seed) {
   return Rules.createMatch({
@@ -1071,6 +1081,16 @@ test('麻將發牌不應讓每局第一組可消牌都固定相鄰', () => {
     '固定種子仍全部是相鄰 0 折：' + firstPairs.map((pair) => pair.pathLength).join(', '));
   assert.ok(new Set(firstPairs.map((pair) => pair.positions)).size > 1,
     '不同種子仍產生相同的配對位置：' + firstPairs.map((pair) => pair.positions).join('; '));
+});
+
+test('同一麻將牌面不應跨層造成看似相同卻無法配對', () => {
+  const st = mahjong('normal', 'normal-nine-70');
+  const kind = st.palette.findIndex((i) => Themes.art('mahjong', i).id === 'man-9') + 1;
+  const layers = new Set();
+  st.grid.forEach((value, i) => {
+    if (value === kind) layers.add(st.stack[i].z);
+  });
+  assert.strictEqual(layers.size, 1, '九萬不應同時出現在不同層：' + Array.from(layers).join(','));
 });
 
 test('提示指出來的兩張一定都是露出來的', () => {

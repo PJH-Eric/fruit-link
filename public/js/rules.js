@@ -463,21 +463,40 @@
   /**
    * 發牌：由最上層往下，把同一層的位置隨機打散後兩兩配成一對。
    * 每一層都是偶數張，所以「由上往下一層一層拆」一定拆得完 ——
-   * 開局必定有同層合法路徑，死局時也會自動洗牌，不會卡住。
-   */
+  * 開局必定有同層合法路徑，死局時也會自動洗牌，不會卡住。
+  */
   function createStack(pos, kinds, rng) {
-    var grid = [], byLayer = {}, maxZ = 0, i, z, ids, j, kind = 0;
+    var grid = [], byLayer = {}, i, z, ids, j, kind = 0;
     for (i = 0; i < pos.length; i++) {
       grid[i] = 0;
       if (!byLayer[pos[i].z]) byLayer[pos[i].z] = [];
       byLayer[pos[i].z].push(i);
-      if (pos[i].z > maxZ) maxZ = pos[i].z;
     }
-    for (z = maxZ; z >= 0; z--) {
+
+    /*
+     * 先把每種牌分配給固定的一層，再在該層內重複。
+     * 如果同一牌面跨層，玩家會看到兩張都露出的九萬，卻因「同層」規則
+     * 無法配對；牌值和畫面應該要一起遵守同一個層級條件。
+     * 目前各關卡的底層容量足以承接多出的牌對，因此所有重複都留在底層。
+     */
+    var layers = Object.keys(byLayer).map(Number).sort(function (a, b) { return b - a; });
+    var bottomZ = layers[layers.length - 1];
+    var nextKind = 1;
+    var bottomKinds = [];
+    for (var layer = 0; layer < layers.length; layer++) {
+      z = layers[layer];
       ids = (byLayer[z] || []).slice();
       shuffleArray(ids, rng);
+      var layerKinds = [];
       for (j = 0; j + 1 < ids.length; j += 2) {
-        kind = (kind % kinds) + 1;
+        if (nextKind <= kinds) {
+          kind = nextKind++;
+          layerKinds.push(kind);
+          if (z === bottomZ) bottomKinds.push(kind);
+        } else {
+          var repeatKinds = z === bottomZ ? bottomKinds : layerKinds;
+          kind = repeatKinds.length ? repeatKinds[(j / 2) % repeatKinds.length] : 1;
+        }
         grid[ids[j]] = kind;
         grid[ids[j + 1]] = kind;
       }

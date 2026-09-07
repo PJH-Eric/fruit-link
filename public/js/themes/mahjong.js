@@ -100,7 +100,7 @@
     9: [[RED, GREEN], [RED, GREEN], [RED, GREEN], [BLUE, GREEN], [BLUE, GREEN], [BLUE, GREEN], [GREEN, RED], [GREEN, RED], [GREEN, RED]]
   };
   /* 五條中間、七條最上面那一根是紅的，和真的牌一樣 */
-  var STICK_RED = { 5: [2], 7: [1], 1: [] };
+  var STICK_RED = { 5: [2], 7: [1], 9: [1, 4, 7], 1: [] };
 
   var NUM = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
   var LIST = [];
