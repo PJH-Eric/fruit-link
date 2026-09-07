@@ -1102,8 +1102,10 @@ test('麻將各牌面重複不應集中在少數牌面', () => {
     const counts = {};
     st.grid.forEach((value) => { if (value) counts[value] = (counts[value] || 0) + 1; });
     const maxPairs = Math.max(...Object.values(counts).map((count) => count / 2));
-    assert.ok(maxPairs <= 3,
-      level.key + ' 單一麻將牌面最多只能重複 3 對，實際 ' + maxPairs + ' 對');
+    assert.strictEqual(st.kinds, Math.min(Themes.count('mahjong'), st.total / 2),
+      level.key + ' 應優先使用可用的不同麻將牌面');
+    assert.ok(maxPairs <= 2,
+      level.key + ' 單一麻將牌面最多只能重複 2 對，實際 ' + maxPairs + ' 對');
   });
 });
 

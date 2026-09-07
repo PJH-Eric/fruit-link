@@ -644,7 +644,11 @@
     var stacked = isStackTheme(o.theme) && !!level.stack;
     var pos = stacked ? stackLayout(level.stack.cols, level.stack.rows) : null;
     var pairs = (stacked ? pos.length : level.cols * level.rows) / 2;
-    var kinds = Math.max(1, Math.min(level.kinds, maxKinds, pairs));
+    /* 麻將牌面優先使用整副牌的種類，減少同一牌面重複出現；
+       平面水果仍依關卡 kinds 控制，維持原本的難度分配。 */
+    var kinds = stacked
+      ? Math.max(1, Math.min(maxKinds, pairs))
+      : Math.max(1, Math.min(level.kinds, maxKinds, pairs));
     var palette = pickPalette(maxKinds, kinds, rng);
     var board = stacked ? createStack(pos, kinds, rng) : createBoard(level.cols, level.rows, kinds, rng);
     var total = stacked ? board.grid.length : level.cols * level.rows;
