@@ -18,7 +18,7 @@
   var theme = 'fruits', palette = [];
   var tiles = {};          // cellIndex -> button 元素
   var lastGrid = null;
-  /* 麻將疊疊樂才有：stackPos[i] = 第 i 張牌的半格座標與層數。平面模式是 null。 */
+  /* 麻將才有：stackPos[i] = 第 i 張牌的半格座標與層數。平面模式是 null。 */
   var stackPos = null;
 
   function el(tag, cls, html) {
@@ -75,7 +75,7 @@
     sync(snap.grid);
   }
 
-  /** 疊疊樂：每一張牌自己佔 2×2 個半格，層數決定誰蓋在誰上面 */
+  /** 麻將視覺：每一張牌自己佔 2×2 個半格，層數只決定畫面前後 */
   function buildStack(frag, onPick) {
     for (var i = 0; i < stackPos.length; i++) {
       var p = stackPos[i];
@@ -124,20 +124,15 @@
     return '第 ' + y + ' 列第 ' + x + ' 行，' + name;
   }
 
-  /* ---------------------------------------------------------- 疊疊樂：壓住與解鎖
-     共用 Rules.stackFree 的上方遮擋判斷，
-     線上模式的盤面由伺服器算，前端只是要知道「哪幾張要壓暗、不能點」。 */
+  /* ---------------------------------------------------------- 麻將各層獨立平面
+     連線只看所在層；層與層的重疊仍會鎖住被蓋住的牌。 */
 
-  function coveredNow(grid, i) {
-    return !w.Rules.stackFree(stackPos, grid, i);
-  }
-
-  /** 被壓住的牌：壓暗、不能點、也不進 Tab 順序 */
+  /** 被上層蓋住的牌要壓暗、不能點、也不進 Tab 順序。 */
   function syncLocks(grid) {
     for (var i = 0; i < stackPos.length; i++) {
       var btn = tiles[i];
       if (!btn) continue;
-      var locked = !!grid[i] && coveredNow(grid, i);
+      var locked = !!grid[i] && !w.Rules.stackFree(stackPos, grid, i);
       btn.classList.toggle('locked', locked);
       if (grid[i]) {
         btn.tabIndex = locked ? -1 : 0;
@@ -146,7 +141,7 @@
     }
   }
 
-  /** 這張現在能不能點（平面模式一律可以） */
+  /** 只有沒有被上層蓋住的麻將能點。 */
   function isLocked(i) {
     return !!(stackPos && tiles[i] && tiles[i].classList.contains('locked'));
   }
@@ -158,6 +153,7 @@
     for (j = 0; j < stackPos.length; j++) {
       if (j === i || !grid[j]) continue;
       b = stackPos[j];
+      if (b.z !== a.z) continue;
       fwd = (b.x - a.x) * dx + (b.y - a.y) * dy;
       if (fwd <= 0) continue;
       side = Math.abs((b.x - a.x) * dy - (b.y - a.y) * dx);

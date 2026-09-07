@@ -112,9 +112,10 @@ async function main() {
         await page.locator('#mahjong-path-demo figure').count() === 3 &&
         (await page.locator('#mahjong-rule').innerText()).indexOf('麻將') >= 0);
       const mahjongRule = await page.locator('#mahjong-rule + .note').innerText();
-      check('玩法頁寫明麻將要同層、露出且不超過 2 折',
-        mahjongRule.indexOf('同一層') >= 0 && mahjongRule.indexOf('沒有被') >= 0 &&
-        mahjongRule.indexOf('轉彎不超過 2 次') >= 0 && mahjongRule.indexOf('只經過空格') >= 0, mahjongRule);
+      check('玩法頁寫明麻將分層平面、露出且不超過 2 折',
+        mahjongRule.indexOf('獨立的平面') >= 0 && mahjongRule.indexOf('同一層') >= 0 &&
+        mahjongRule.indexOf('上層') >= 0 && mahjongRule.indexOf('轉彎不超過 2 次') >= 0 &&
+        mahjongRule.indexOf('空格') >= 0, mahjongRule);
       const rows = await page.locator('#level-table tr').count();
       check('玩法頁的關卡表有四關（加上表頭共 5 列）', rows === 5, '實際 ' + rows + ' 列');
       const gallery = await page.locator('#theme-gallery .themerow').count();

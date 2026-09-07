@@ -921,7 +921,7 @@ test('上層牌壓住下層 4 張，邊角壓得比較少', () => {
   assert.ok(underCorner.length <= 4 && underCorner.length >= 1);
 });
 
-test('被壓住的牌不算露出來；把上面的拿掉就解鎖', () => {
+test('牌面重疊會鎖住被蓋住的牌，移除上層後解鎖', () => {
   const st = mahjong('normal', 'e');
   const maxZ = st.stack.reduce((m, p) => Math.max(m, p.z), 0);
   const topIds = [];
@@ -937,11 +937,12 @@ test('被壓住的牌不算露出來；把上面的拿掉就解鎖', () => {
   assert.ok(under.length > 0);
   under.forEach((i) => {
     assert.strictEqual(Rules.stackCovered(st.stack, st.grid, i), true, '第 ' + i + ' 張應該被壓住');
-    assert.strictEqual(Rules.stackFree(st.stack, st.grid, i), false);
+    assert.strictEqual(Rules.stackFree(st.stack, st.grid, i), false, '被蓋住的牌不能操作');
   });
   topIds.forEach((i) => { st.grid[i] = 0; });   /* 把整層上面的拿走 */
   under.forEach((i) => {
     assert.strictEqual(Rules.stackCovered(st.stack, st.grid, i), false, '拿掉上面那層就不再被壓住');
+    assert.strictEqual(Rules.stackFree(st.stack, st.grid, i), true);
   });
 });
 
@@ -976,7 +977,7 @@ test('麻將和其他模式一樣，相鄰同圖案可直連，不要求左右�
   assert.ok(Rules.stackLink(pos, grid, 1, 2));
 });
 
-test('麻將連線不能穿過中間其他層的牌', () => {
+test('麻將連線忽略其他層，只遵守所在平面的空格規則', () => {
   const pos = [
     { x: 0, y: 0, z: 1 },
     { x: 2, y: 0, z: 0 },
@@ -984,26 +985,23 @@ test('麻將連線不能穿過中間其他層的牌', () => {
   ];
   const grid = [1, 2, 1];
   const path = Rules.stackLink(pos, grid, 0, 2);
-  assert.ok(path, '中間有牌時仍可繞路，但不能穿過牌面');
-  assert.ok(path.length > 2, '中間的牌應該阻擋 0 折直線');
+  assert.ok(path, '其他層的牌不應讓同層配對失效');
+  assert.strictEqual(path.length, 2, '其他層的牌不應阻擋同層 0 折直線');
 });
 
-test('麻將連線不能穿過仍在盤面上的被壓住牌', () => {
-  const pos = Rules.stackLayout(10, 5);
-  const st = Rules.createStack(pos, 34, RNG.createRng('find2:10,5:2'));
-  const a = 65;
-  const b = 72;
-  const blocker = 64;
-  assert.strictEqual(st.grid[a], st.grid[b], '測試端點應該是同一種牌');
-  assert.strictEqual(Rules.stackCovered(pos, st.grid, blocker), true,
-    '中間牌應該是被壓住的');
-  assert.strictEqual(Rules.stackFree(pos, st.grid, a), true);
-  assert.strictEqual(Rules.stackFree(pos, st.grid, b), true);
-  assert.strictEqual(Rules.stackLink(pos, st.grid, a, b), null,
-    '被壓住但仍在盤面上的牌也必須阻擋路徑');
+test('麻將路徑仍會被同層仍在盤面上的牌阻擋，只能繞行', () => {
+  const pos = [
+    { x: 0, y: 0, z: 0 },
+    { x: 2, y: 0, z: 0 },
+    { x: 4, y: 0, z: 0 }
+  ];
+  const grid = [1, 2, 1];
+  const path = Rules.stackLink(pos, grid, 0, 2);
+  assert.ok(path, '同層牌可以依平面規則繞開阻擋');
+  assert.ok(path.length > 2, '同層中間的牌應該阻擋 0 折直線');
 });
 
-test('麻將配對要同圖案、同層、都露出，且路徑不超過 2 折', () => {
+test('麻將配對要同圖案、同層，且路徑不超過 2 折', () => {
   const st = mahjong('normal', 'f');
   const hit = Rules.stackFindPair(st.stack, st.grid);
   assert.ok(hit, '一開局一定要有得消');
@@ -1023,15 +1021,6 @@ test('麻將配對要同圖案、同層、都露出，且路徑不超過 2 折',
   assert.strictEqual(st.grid[hit.a], 0);
   assert.strictEqual(st.grid[hit.b], 0);
   assert.strictEqual(st.left, st.total - 2);
-
-  /* 被壓住的那張就算同種也不能消 */
-  const covered = st.stack.findIndex((p, i) => st.grid[i] && Rules.stackCovered(st.stack, st.grid, i));
-  assert.ok(covered >= 0);
-  const twin = st.grid.findIndex((k, i) => i !== covered && k === st.grid[covered]);
-  assert.ok(twin >= 0);
-  const bad = Rules.attempt(st, 'me', covered, twin, 2, RNG.createRng('f2'));
-  assert.strictEqual(bad.event.k, 'miss', '壓住的牌不該消得掉');
-  assert.ok(st.grid[covered] > 0);
 });
 
 test('不同層的麻將即使同圖案、都露出也不能配對', () => {
@@ -1081,6 +1070,29 @@ test('麻將發牌不應讓每局第一組可消牌都固定相鄰', () => {
     '固定種子仍全部是相鄰 0 折：' + firstPairs.map((pair) => pair.pathLength).join(', '));
   assert.ok(new Set(firstPairs.map((pair) => pair.positions)).size > 1,
     '不同種子仍產生相同的配對位置：' + firstPairs.map((pair) => pair.positions).join('; '));
+});
+
+test('麻將各牌面重複不應集中在少數牌面', () => {
+  Rules.LEVELS.forEach((level) => {
+    const st = mahjong(level.key, 'repeat-mahjong:' + level.key);
+    const counts = {};
+    st.grid.forEach((value) => { if (value) counts[value] = (counts[value] || 0) + 1; });
+    const maxPairs = Math.max(...Object.values(counts).map((count) => count / 2));
+    assert.ok(maxPairs <= 3,
+      level.key + ' 單一麻將牌面最多只能重複 3 對，實際 ' + maxPairs + ' 對');
+  });
+});
+
+test('麻將每層都是獨立平面，不受其他層阻擋但仍遵守覆蓋鎖定', () => {
+  const pos = [
+    { x: 0, y: 0, z: 0 },
+    { x: 2, y: 0, z: 1 },
+    { x: 4, y: 0, z: 0 }
+  ];
+  const grid = [1, 2, 1];
+  assert.strictEqual(Rules.stackFree(pos, grid, 0), true, '未被覆蓋的下層牌可以操作');
+  assert.strictEqual(Rules.stackLink(pos, grid, 0, 2).length, 2,
+    '其他層的牌不應阻擋同層的 0 折直線');
 });
 
 test('同一麻將牌面不應跨層造成看似相同卻無法配對', () => {

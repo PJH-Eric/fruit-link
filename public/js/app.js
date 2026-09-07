@@ -505,7 +505,7 @@
   /* ------------------------------------------------------------ 出手 */
 
   function curGrid() { return G.snap ? G.snap.grid : []; }
-  /* 麻將主題是疊起來玩的：規則、提示文案與方向鍵都要換一套 */
+  /* 麻將主題視覺上會疊起來：路徑以單層平面處理，覆蓋牌仍要先解鎖 */
   function isStackBoard() { return !!(G.snap && G.snap.mode === 'stack'); }
 
   function onPick(i) {
@@ -615,7 +615,7 @@
         Sound.play('miss');
         Sound.vibrate([8, 40, 8]);
         toast(isStackBoard()
-          ? '這兩張配不起來（要同圖案、同層、上方露出，路徑只經過空格且在 2 折以內）'
+          ? '這兩張配不起來（要同圖案、同層、上方露出，路徑只經過該層空格且在 2 折以內）'
           : '這兩顆連不起來（路徑要轉彎 2 次以內、而且只能經過空格）');
         if (isOnline() && G.snap) {
           (G.snap.players || []).forEach(function (p) { if (p.id === ev.by) { p.combo = 0; p.misses = ev.misses; } });

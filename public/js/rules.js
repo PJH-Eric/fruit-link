@@ -287,11 +287,11 @@
 
   /* ------------------------------------------------------------ 疊疊樂盤面（麻將模式）
    *
-   * 麻將主題不是平面連連看，而是像真的麻將牌一樣「疊起來」：
+   * 麻將主題在畫面上像真的麻將牌一樣「疊起來」，但每層的規則各自獨立：
    *   - 一張牌佔 2×2 個半格；上面那一層整層往右下偏半格，
    *     所以一張上層牌會壓住下層的 4 張牌（角落與邊上會少於 4 張）。
-   *   - 被壓住的牌點不動，畫面上也會壓暗；要先把壓在它上面的牌都消掉。
-   *   - 兩張牌必須同圖案、同層、都露出來，並且和其他主題一樣能用
+   *   - 牌的重疊會鎖住被蓋住的牌；但其他層不會成為連線路徑的障礙。
+   *   - 兩張牌必須同圖案、同層，並且和其他主題一樣能用
    *     0／1／2 折的直角路徑連起來。
    *
    * 位置存在 state.stack（和 state.grid 同一組索引），grid[i] 仍然是「第幾種」，
@@ -328,7 +328,7 @@
     return { W: w, H: h };
   }
 
-  /** i 有沒有被上面的牌壓住（只算還在盤面上的牌） */
+  /** i 的幾何位置有沒有和上面的牌重疊；stackFree 以此結果決定能否操作 */
   function stackCovered(pos, grid, i) {
     var a = pos[i], b, j;
     for (j = 0; j < pos.length; j++) {
@@ -339,7 +339,7 @@
     return false;
   }
 
-  /** 上方沒有被壓住即可點選；空格限制由連線路徑判定。 */
+  /** 上方沒有被壓住即可點選；每層的空格限制由自己的路徑判定。 */
   function stackFree(pos, grid, i) {
     return !!grid[i] && !!pos[i] && !stackCovered(pos, grid, i);
   }
@@ -351,9 +351,8 @@
   }
 
   /**
-   * 把同一層的疊牌投影到半格再細分一次的路徑盤面。
-   * 配對所在層的每張仍在盤面牌都算障礙，避免路徑穿過同層隔壁牌；
-   * 其他層只有露出的牌算障礙，端點下方重疊的隱藏牌不會封住路徑。
+   * 把同一層投影到半格再細分一次的平面路徑盤面。
+   * 只填入配對所在層的牌，其他層完全不參與空格與路徑判定。
    */
   function stackLink(pos, grid, a, b) {
     a = Number(a); b = Number(b);
@@ -362,68 +361,49 @@
     if (!grid[a] || grid[a] !== grid[b] || pos[a].z !== pos[b].z) return null;
     if (!stackFree(pos, grid, a) || !stackFree(pos, grid, b)) return null;
 
+    var layer = pos[a].z;
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    var layerIds = [];
+    for (var n = 0; n < grid.length; n++) {
+      if (!grid[n] || pos[n].z !== layer) continue;
+      layerIds.push(n);
+      minX = Math.min(minX, pos[n].x);
+      minY = Math.min(minY, pos[n].y);
+      maxX = Math.max(maxX, pos[n].x);
+      maxY = Math.max(maxY, pos[n].y);
+    }
+
     var scale = 2;
-    var ext = stackExtent(pos);
-    var W = ext.W * scale + 3;
-    var H = ext.H * scale + 3;
+    var W = (maxX - minX + 2) * scale + 3;
+    var H = (maxY - minY + 2) * scale + 3;
     var routeGrid = new Array(W * H).fill(0);
 
-    function fillTile(i, value) {
+    function tileBounds(i) {
       var p = pos[i];
-      var left = 1 + p.x * scale;
-      var top = 1 + p.y * scale;
-      var right = 1 + (p.x + 2) * scale;
-      var bottom = 1 + (p.y + 2) * scale;
+      var left = 1 + (p.x - minX) * scale;
+      var top = 1 + (p.y - minY) * scale;
+      var right = 1 + (p.x - minX + 2) * scale;
+      var bottom = 1 + (p.y - minY + 2) * scale;
+      return { left: left, top: top, right: right, bottom: bottom };
+    }
+
+    function fillTile(i, value) {
+      var bounds = tileBounds(i);
+      var left = bounds.left, top = bounds.top;
+      var right = bounds.right, bottom = bounds.bottom;
       for (var y = top; y <= bottom; y++) {
         for (var x = left; x <= right; x++) routeGrid[idx(x, y, W)] = value;
       }
     }
 
-    function overlaps(a, b) {
-      return Math.abs(a.x - b.x) < 2 && Math.abs(a.y - b.y) < 2;
-    }
-
-    function fillTileOutside(i, excluded) {
-      var p = pos[i];
-      var left = 1 + p.x * scale;
-      var top = 1 + p.y * scale;
-      var right = 1 + (p.x + 2) * scale;
-      var bottom = 1 + (p.y + 2) * scale;
-      var ex = excluded.map(function (j) {
-        var q = pos[j];
-        return {
-          i: j,
-          left: 1 + q.x * scale, top: 1 + q.y * scale,
-          right: 1 + (q.x + 2) * scale, bottom: 1 + (q.y + 2) * scale
-        };
-      });
-      for (var y = top; y <= bottom; y++) {
-        for (var x = left; x <= right; x++) {
-          var underEndpoint = ex.some(function (r) {
-            return pos[i].z < pos[r.i].z && overlaps(pos[i], pos[r.i]) &&
-              x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-          });
-          if (!underEndpoint) routeGrid[idx(x, y, W)] = 1;
-        }
-      }
-    }
-
-    for (var i = 0; i < grid.length; i++) {
-      if (grid[i] && (pos[i].z === pos[a].z || stackFree(pos, grid, i))) fillTile(i, 1);
-    }
+    layerIds.forEach(function (i) { fillTile(i, 1); });
     /* 端點本身要清空，路徑才可以從牌的中心離開。 */
     fillTile(a, 0);
     fillTile(b, 0);
-    /* 端點清空可能抹掉共用邊界；把其他仍在盤面的牌障礙補回來。 */
-    for (var j = 0; j < grid.length; j++) {
-      if (grid[j] && j !== a && j !== b &&
-          (pos[j].z === pos[a].z || stackFree(pos, grid, j))) {
-        fillTileOutside(j, [a, b]);
-      }
-    }
 
     function center(i) {
-      return idx(1 + (pos[i].x + 1) * scale, 1 + (pos[i].y + 1) * scale, W);
+      return idx(1 + (pos[i].x - minX + 1) * scale,
+        1 + (pos[i].y - minY + 1) * scale, W);
     }
 
     var start = center(a), end = center(b);
@@ -435,8 +415,8 @@
     return route.map(function (point) {
       var x = xOf(point, W), y = yOf(point, W);
       return {
-        x: x === 0 ? 0.25 : x / scale,
-        y: y === 0 ? 0.25 : y / scale
+        x: x === 0 ? minX - 0.25 : minX + x / scale,
+        y: y === 0 ? minY - 0.25 : minY + y / scale
       };
     });
   }
@@ -461,10 +441,53 @@
   }
 
   /**
+   * 把種類數分配到各層，讓每層的重複對數盡量平均。
+   * 同一種牌只會被分配到一層，因此不會破壞同層配對規則。
+   */
+  function planStackKindCounts(pairCounts, kinds) {
+    var totalPairs = pairCounts.reduce(function (sum, count) { return sum + count; }, 0);
+    if (!totalPairs) return [];
+
+    var kindCount = Math.max(1, Math.min(kinds, totalPairs));
+    var lowerBound = Math.ceil(totalPairs / kindCount);
+    for (var maxPairs = lowerBound; maxPairs <= totalPairs; maxPairs++) {
+      var counts = [];
+      var minimum = 0;
+      for (var i = 0; i < pairCounts.length; i++) {
+        var minForLayer = Math.ceil(pairCounts[i] / maxPairs);
+        counts.push(minForLayer);
+        minimum += minForLayer;
+      }
+      if (minimum > kindCount) continue;
+
+      var extra = kindCount - minimum;
+      while (extra > 0) {
+        var best = -1;
+        var bestRatio = -1;
+        for (i = 0; i < pairCounts.length; i++) {
+          if (counts[i] >= pairCounts[i]) continue;
+          var ratio = pairCounts[i] / counts[i];
+          if (ratio > bestRatio) {
+            best = i;
+            bestRatio = ratio;
+          }
+        }
+        if (best < 0) break;
+        counts[best] += 1;
+        extra -= 1;
+      }
+      if (!extra) return counts;
+    }
+
+    /* 正常關卡都能在上面的限制內完成；保留安全退路給外部直接呼叫。 */
+    return pairCounts.map(function (count) { return count ? 1 : 0; });
+  }
+
+  /**
    * 發牌：由最上層往下，把同一層的位置隨機打散後兩兩配成一對。
    * 每一層都是偶數張，所以「由上往下一層一層拆」一定拆得完 ——
-  * 開局必定有同層合法路徑，死局時也會自動洗牌，不會卡住。
-  */
+   * 開局必定有同層合法路徑，死局時也會自動洗牌，不會卡住。
+   */
   function createStack(pos, kinds, rng) {
     var grid = [], byLayer = {}, i, z, ids, j, kind = 0;
     for (i = 0; i < pos.length; i++) {
@@ -474,28 +497,27 @@
     }
 
     /*
-     * 先把每種牌分配給固定的一層，再在該層內重複。
+     * 先把每種牌分配給固定的一層，再在該層內平均重複。
      * 如果同一牌面跨層，玩家會看到兩張都露出的九萬，卻因「同層」規則
      * 無法配對；牌值和畫面應該要一起遵守同一個層級條件。
-     * 目前各關卡的底層容量足以承接多出的牌對，因此所有重複都留在底層。
      */
     var layers = Object.keys(byLayer).map(Number).sort(function (a, b) { return b - a; });
-    var bottomZ = layers[layers.length - 1];
+    var pairCounts = layers.map(function (layer) { return byLayer[layer].length / 2; });
+    var layerKindCounts = planStackKindCounts(pairCounts, kinds);
     var nextKind = 1;
-    var bottomKinds = [];
     for (var layer = 0; layer < layers.length; layer++) {
       z = layers[layer];
       ids = (byLayer[z] || []).slice();
       shuffleArray(ids, rng);
       var layerKinds = [];
+      var uniquePairs = layerKindCounts[layer] || 0;
       for (j = 0; j + 1 < ids.length; j += 2) {
-        if (nextKind <= kinds) {
+        var pairIndex = j / 2;
+        if (pairIndex < uniquePairs) {
           kind = nextKind++;
           layerKinds.push(kind);
-          if (z === bottomZ) bottomKinds.push(kind);
         } else {
-          var repeatKinds = z === bottomZ ? bottomKinds : layerKinds;
-          kind = repeatKinds.length ? repeatKinds[(j / 2) % repeatKinds.length] : 1;
+          kind = layerKinds.length ? layerKinds[pairIndex % layerKinds.length] : 1;
         }
         grid[ids[j]] = kind;
         grid[ids[j + 1]] = kind;
