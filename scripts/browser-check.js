@@ -114,7 +114,7 @@ async function main() {
       const mahjongRule = await page.locator('#mahjong-rule + .note').innerText();
       check('玩法頁寫明麻將要同層、露出且不超過 2 折',
         mahjongRule.indexOf('同一層') >= 0 && mahjongRule.indexOf('沒有被') >= 0 &&
-        mahjongRule.indexOf('0／1／2 折') >= 0, mahjongRule);
+        mahjongRule.indexOf('轉彎不超過 2 次') >= 0 && mahjongRule.indexOf('只經過空格') >= 0, mahjongRule);
       const rows = await page.locator('#level-table tr').count();
       check('玩法頁的關卡表有四關（加上表頭共 5 列）', rows === 5, '實際 ' + rows + ' 列');
       const gallery = await page.locator('#theme-gallery .themerow').count();
@@ -591,7 +591,7 @@ async function main() {
         });
         return { n: n, bad: bad };
       });
-      check('最上層符合側邊空位規則的牌能點到', top.n > 0 && top.bad === 0, JSON.stringify(top));
+      check('最上層未被壓住的牌能點到', top.n > 0 && top.bad === 0, JSON.stringify(top));
 
       /* 連消幾組，本來被壓住的牌要跟著亮起來 */
       const play = await page.evaluate(async () => {

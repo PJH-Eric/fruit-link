@@ -125,14 +125,14 @@
   }
 
   /* ---------------------------------------------------------- 疊疊樂：壓住與解鎖
-     共用 Rules.stackFree 的上方遮擋與左右空位判斷，
+     共用 Rules.stackFree 的上方遮擋判斷，
      線上模式的盤面由伺服器算，前端只是要知道「哪幾張要壓暗、不能點」。 */
 
   function coveredNow(grid, i) {
     return !w.Rules.stackFree(stackPos, grid, i);
   }
 
-  /** 被壓住或左右都被擋住的牌：壓暗、不能點、也不進 Tab 順序 */
+  /** 被壓住的牌：壓暗、不能點、也不進 Tab 順序 */
   function syncLocks(grid) {
     for (var i = 0; i < stackPos.length; i++) {
       var btn = tiles[i];

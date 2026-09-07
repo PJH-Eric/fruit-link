@@ -339,18 +339,9 @@
     return false;
   }
 
-  /** 上方露出且同層左右至少一側沒有鄰牌，才可以點選。 */
+  /** 上方沒有被壓住即可點選；空格限制由連線路徑判定。 */
   function stackFree(pos, grid, i) {
-    if (!grid[i] || !pos[i] || stackCovered(pos, grid, i)) return false;
-    var a = pos[i], left = false, right = false;
-    for (var j = 0; j < pos.length; j++) {
-      if (j === i || !grid[j]) continue;
-      var b = pos[j];
-      if (b.z !== a.z || Math.abs(b.y - a.y) >= 2) continue;
-      if (b.x + 2 === a.x) left = true;
-      if (a.x + 2 === b.x) right = true;
-    }
-    return !left || !right;
+    return !!grid[i] && !!pos[i] && !stackCovered(pos, grid, i);
   }
 
   function stackFreeList(pos, grid) {

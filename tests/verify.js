@@ -954,14 +954,14 @@ test('發出來的牌一定拆得完：由上往下一層一層拆都是露出�
   });
 });
 
-test('麻將左右都被擋住不能選取或配對，任一側清空才解鎖', () => {
+test('麻將和其他模式一樣，相鄰同圖案可直連，不要求左右空位', () => {
   const pos = [0, 2, 4, 6].map((x) => ({ x, y: 0, z: 0 }));
   const grid = [2, 1, 1, 2];
-  assert.strictEqual(Rules.stackFree(pos, grid, 1), false);
-  assert.strictEqual(Rules.stackLink(pos, grid, 1, 2), null);
+  assert.strictEqual(Rules.stackFree(pos, grid, 1), true);
+  assert.strictEqual(Rules.stackLink(pos, grid, 1, 2).length, 2);
   grid[0] = 0;
   assert.strictEqual(Rules.stackFree(pos, grid, 1), true);
-  assert.strictEqual(Rules.stackFree(pos, grid, 2), false);
+  assert.strictEqual(Rules.stackFree(pos, grid, 2), true);
   grid[3] = 0;
   assert.ok(Rules.stackLink(pos, grid, 1, 2));
 });
