@@ -70,16 +70,18 @@
 
   /** 八條是實體牌常見的交叉竹節，不畫成普通的兩列直條。 */
   function bamboo8() {
-    function line(path, color) {
-      return '<path d="' + path + '" fill="none" stroke="' + INK + '" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>' +
-        '<path d="' + path + '" fill="none" stroke="' + color + '" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>';
+    function line(path, color, width) {
+      return '<path d="' + path + '" fill="none" stroke="' + INK + '" stroke-width="' + width + '" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="' + path + '" fill="none" stroke="' + color + '" stroke-width="' + (width * 0.54).toFixed(1) + '" stroke-linecap="round" stroke-linejoin="round"/>';
     }
     return '<g>' +
-      line('M34 24 V46 M34 54 V76', GREEN) +
-      line('M66 24 V46 M66 54 V76', GREEN) +
-      line('M38 35 L50 48 L62 35', DARK) +
-      line('M38 65 L50 52 L62 65', GREEN) +
-      '<path d="M30 46 h8 M62 46 h8 M30 54 h8 M62 54 h8" stroke="' + INK + '" stroke-width="1.4"/>' +
+      line('M27 20 V80', GREEN, 8) +
+      line('M73 20 V80', GREEN, 8) +
+      line('M29 42 L50 21 L71 42', GREEN, 7) +
+      line('M29 21 L50 42 L71 21', DARK, 7) +
+      line('M29 58 L50 79 L71 58', GREEN, 7) +
+      line('M29 79 L50 58 L71 79', GREEN, 7) +
+      '<path d="M22 35 h10 M22 50 h10 M22 65 h10 M68 35 h10 M68 50 h10 M68 65 h10" stroke="' + INK + '" stroke-width="2" stroke-linecap="round"/>' +
       '</g>';
   }
 

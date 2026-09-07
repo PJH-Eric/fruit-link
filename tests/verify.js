@@ -852,9 +852,12 @@ test('九條使用中央一列紅色竹節的牌面', () => {
 
 test('八條使用左右竹節與交叉連接的實體牌圖案', () => {
   const art = Themes.of('mahjong').list.find((item) => item.id === 'bam-8');
-  assert.ok(art.svg.includes('M34 24 V46 M34 54 V76'), '八條應該有左右兩側的竹節');
-  assert.ok(art.svg.includes('M38 35 L50 48 L62 35'), '八條上半部應該有交叉竹節');
-  assert.ok(art.svg.includes('M38 65 L50 52 L62 65'), '八條下半部應該有交叉竹節');
+  assert.ok(art.svg.includes('M27 20 V80'), '八條應該有左側完整竹節');
+  assert.ok(art.svg.includes('M73 20 V80'), '八條應該有右側完整竹節');
+  assert.ok(art.svg.includes('M29 42 L50 21 L71 42'), '八條上半部應該有第一組交叉竹節');
+  assert.ok(art.svg.includes('M29 21 L50 42 L71 21'), '八條上半部應該有第二組交叉竹節');
+  assert.ok(art.svg.includes('M29 58 L50 79 L71 58'), '八條下半部應該有第一組交叉竹節');
+  assert.ok(art.svg.includes('M29 79 L50 58 L71 79'), '八條下半部應該有第二組交叉竹節');
 });
 
 test('筒子是實心圓點、字牌方向與白板使用黑色牌面圖案', () => {
