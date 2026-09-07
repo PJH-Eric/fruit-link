@@ -519,7 +519,7 @@
     if (!grid[i]) return;
     if (R.isLocked(i)) {
       R.shake(i);
-      toast('這張被壓住了，要先把疊在上面的牌消掉');
+      toast('這張牌被上層壓住或左右都被擋住；上方要露出，左右至少一側要有空位');
       return;
     }
 
@@ -615,7 +615,7 @@
         Sound.play('miss');
         Sound.vibrate([8, 40, 8]);
         toast(isStackBoard()
-          ? '這兩張配不起來（要同圖案、同層、都露出，路徑也要在 2 折以內）'
+          ? '這兩張配不起來（要同圖案、同層、上方露出、左右至少一側有空位，路徑在 2 折以內）'
           : '這兩顆連不起來（路徑要轉彎 2 次以內、而且只能經過空格）');
         if (isOnline() && G.snap) {
           (G.snap.players || []).forEach(function (p) { if (p.id === ev.by) { p.combo = 0; p.misses = ev.misses; } });

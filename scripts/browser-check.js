@@ -495,7 +495,7 @@ async function main() {
       const hitMismatches = await page.evaluate(() => {
         const G = window.__fruitLink, R = window.Rules, bad = [];
         G.snap.stack.forEach((p, i) => {
-          if (!G.snap.grid[i] || R.stackCovered(G.snap.stack, G.snap.grid, i)) return;
+          if (!R.stackFree(G.snap.stack, G.snap.grid, i)) return;
           const tile = document.querySelector('#board .tile[data-i="' + i + '"]');
           const rect = tile.querySelector('.tile-svg-mahjong .tile-art > rect:nth-of-type(3)').getBoundingClientRect();
           [[.2, .2], [.5, .2], [.8, .2], [.2, .5], [.5, .5], [.8, .5], [.2, .8], [.5, .8], [.8, .8]].forEach((point) => {
@@ -546,7 +546,7 @@ async function main() {
       const unlockedHitMismatches = await page.evaluate(() => {
         const G = window.__fruitLink, R = window.Rules, bad = [];
         G.snap.stack.forEach((p, i) => {
-          if (!G.snap.grid[i] || R.stackCovered(G.snap.stack, G.snap.grid, i)) return;
+          if (!R.stackFree(G.snap.stack, G.snap.grid, i)) return;
           const tile = document.querySelector('#board .tile[data-i="' + i + '"]');
           const rect = tile.querySelector('.tile-svg-mahjong .tile-art > rect:nth-of-type(3)').getBoundingClientRect();
           const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
@@ -585,13 +585,13 @@ async function main() {
         const maxZ = G.snap.stack.reduce((m, p) => Math.max(m, p.z), 0);
         let n = 0, bad = 0;
         G.snap.stack.forEach((p, i) => {
-          if (p.z !== maxZ) return;
+          if (p.z !== maxZ || !window.Rules.stackFree(G.snap.stack, G.snap.grid, i)) return;
           n++;
           if (document.querySelector('#board .tile[data-i="' + i + '"]').classList.contains('locked')) bad++;
         });
         return { n: n, bad: bad };
       });
-      check('最上層的牌一定點得到', top.n > 0 && top.bad === 0, JSON.stringify(top));
+      check('最上層符合側邊空位規則的牌能點到', top.n > 0 && top.bad === 0, JSON.stringify(top));
 
       /* 連消幾組，本來被壓住的牌要跟著亮起來 */
       const play = await page.evaluate(async () => {
@@ -621,7 +621,7 @@ async function main() {
         G.snap.stack.forEach((p, i) => {
           if (!G.snap.grid[i]) return;
           const el = document.querySelector('#board .tile[data-i="' + i + '"]');
-          if (el.classList.contains('locked') !== R.stackCovered(G.snap.stack, G.snap.grid, i)) bad++;
+          if (el.classList.contains('locked') !== !R.stackFree(G.snap.stack, G.snap.grid, i)) bad++;
         });
         return bad;
       });

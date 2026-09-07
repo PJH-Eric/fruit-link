@@ -339,9 +339,18 @@
     return false;
   }
 
-  /** 露出來、可以點的牌 */
+  /** 上方露出且同層左右至少一側沒有鄰牌，才可以點選。 */
   function stackFree(pos, grid, i) {
-    return !!grid[i] && !stackCovered(pos, grid, i);
+    if (!grid[i] || !pos[i] || stackCovered(pos, grid, i)) return false;
+    var a = pos[i], left = false, right = false;
+    for (var j = 0; j < pos.length; j++) {
+      if (j === i || !grid[j]) continue;
+      var b = pos[j];
+      if (b.z !== a.z || Math.abs(b.y - a.y) >= 2) continue;
+      if (b.x + 2 === a.x) left = true;
+      if (a.x + 2 === b.x) right = true;
+    }
+    return !left || !right;
   }
 
   function stackFreeList(pos, grid) {
@@ -446,6 +455,7 @@
         grid[ids[j + 1]] = kind;
       }
     }
+    if (!stackFindPair(pos, grid)) shuffleStack(pos, grid, rng);
     var ext = stackExtent(pos);
     return { grid: grid, pos: pos, W: ext.W, H: ext.H };
   }

@@ -917,7 +917,7 @@ test('被壓住的牌不算露出來；把上面的拿掉就解鎖', () => {
   const topIds = [];
   st.stack.forEach((p, i) => { if (p.z === maxZ) topIds.push(i); });
   /* 最上層一定沒有東西壓著 */
-  topIds.forEach((i) => assert.strictEqual(Rules.stackFree(st.stack, st.grid, i), true, '最上層應該露出來'));
+  topIds.forEach((i) => assert.strictEqual(Rules.stackCovered(st.stack, st.grid, i), false, '最上層應該露出來'));
   /* 被最上層蓋到的那一層，蓋到的每一張現在都不能點 */
   const under = [];
   st.stack.forEach((p, i) => {
@@ -931,7 +931,7 @@ test('被壓住的牌不算露出來；把上面的拿掉就解鎖', () => {
   });
   topIds.forEach((i) => { st.grid[i] = 0; });   /* 把整層上面的拿走 */
   under.forEach((i) => {
-    assert.strictEqual(Rules.stackFree(st.stack, st.grid, i), true, '拿掉上面那層就該解鎖');
+    assert.strictEqual(Rules.stackCovered(st.stack, st.grid, i), false, '拿掉上面那層就不再被壓住');
   });
 });
 
@@ -952,6 +952,18 @@ test('發出來的牌一定拆得完：由上往下一層一層拆都是露出�
       assert.strictEqual(liveCount(grid), 0);
     }
   });
+});
+
+test('麻將左右都被擋住不能選取或配對，任一側清空才解鎖', () => {
+  const pos = [0, 2, 4, 6].map((x) => ({ x, y: 0, z: 0 }));
+  const grid = [2, 1, 1, 2];
+  assert.strictEqual(Rules.stackFree(pos, grid, 1), false);
+  assert.strictEqual(Rules.stackLink(pos, grid, 1, 2), null);
+  grid[0] = 0;
+  assert.strictEqual(Rules.stackFree(pos, grid, 1), true);
+  assert.strictEqual(Rules.stackFree(pos, grid, 2), false);
+  grid[3] = 0;
+  assert.ok(Rules.stackLink(pos, grid, 1, 2));
 });
 
 test('麻將配對要同圖案、同層、都露出，且路徑不超過 2 折', () => {
