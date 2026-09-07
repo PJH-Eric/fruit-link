@@ -843,11 +843,41 @@ group('麻將疊疊樂');
 test('九條使用中央一列紅色竹節的牌面', () => {
   const art = Themes.of('mahjong').list.find((item) => item.id === 'bam-9');
   const redXs = Array.from(art.svg.matchAll(
-    /<rect x="([^"]+)" y="[^"]+" width="[^"]+" height="[^"]+" rx="[^"]+" fill="#C4302B"/g
+    /<rect x="([^"]+)" y="[^"]+" width="[^"]+" height="[^"]+" rx="[^"]+" fill="none" stroke="#C4302B"/g
   )).map((match) => Number(match[1]));
   assert.strictEqual(redXs.length, 3, '九條應該有 3 根紅色竹節');
-  redXs.forEach((x) => assert.ok(Math.abs(x - 46.58) < 0.01,
+  redXs.forEach((x) => assert.ok(Math.abs(x - redXs[0]) < 0.01,
     '九條的紅色竹節應該位於中央列，實際 x=' + x));
+});
+
+test('八條使用左右竹節與交叉連接的實體牌圖案', () => {
+  const art = Themes.of('mahjong').list.find((item) => item.id === 'bam-8');
+  assert.ok(art.svg.includes('M34 24 V46 M34 54 V76'), '八條應該有左右兩側的竹節');
+  assert.ok(art.svg.includes('M38 35 L50 48 L62 35'), '八條上半部應該有交叉竹節');
+  assert.ok(art.svg.includes('M38 65 L50 52 L62 65'), '八條下半部應該有交叉竹節');
+});
+
+test('筒子是實心圓點、字牌方向與白板使用黑色牌面圖案', () => {
+  const mahjong = Themes.of('mahjong').list;
+  const dot = mahjong.find((item) => item.id === 'dot-9');
+  const east = mahjong.find((item) => item.id === 'honor-east');
+  const white = mahjong.find((item) => item.id === 'honor-white');
+  assert.ok(dot.svg.includes('<ellipse'), '筒子應該使用圓點');
+  assert.ok(!dot.svg.includes('fill="none" stroke="#1E5A34"'), '筒子不應該使用中空圓環');
+  assert.ok(east.svg.includes('fill="#2B2B2B"'), '東風應該使用黑色字');
+  assert.ok(white.svg.includes('stroke="#2B2B2B"'), '白板應該使用黑色框');
+});
+
+test('麻將主題包含梅蘭竹菊與春夏秋冬八張花牌', () => {
+  const flowers = Themes.of('mahjong').list.filter((item) => item.id.indexOf('flower-') === 0 || item.id.indexOf('season-') === 0);
+  assert.deepStrictEqual(flowers.map((item) => item.id), [
+    'flower-plum', 'flower-orchid', 'flower-chrysanthemum', 'flower-bamboo',
+    'season-spring', 'season-summer', 'season-autumn', 'season-winter'
+  ]);
+  assert.deepStrictEqual(flowers.map((item) => item.label), ['梅', '蘭', '菊', '竹', '春', '夏', '秋', '冬']);
+  flowers.forEach((item) => assert.ok(item.svg.indexOf('<rect') === 0 && item.svg.includes('stroke='),
+    item.id + ' 應該有花牌圖案'));
+  assert.strictEqual(Themes.count('mahjong'), 42, '麻將主題應該有 42 種牌面');
 });
 
 /* 開一局麻將（疊疊樂）的對局狀態 */
