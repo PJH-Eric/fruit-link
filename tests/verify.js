@@ -860,6 +860,18 @@ test('八條使用左右竹節與交叉連接的實體牌圖案', () => {
   assert.ok(art.svg.includes('M29 79 L50 58 L71 79'), '八條下半部應該有第二組交叉竹節');
 });
 
+test('六條使用上三根黑竹節、下三根綠竹節的牌面', () => {
+  const art = Themes.of('mahjong').list.find((item) => item.id === 'bam-6');
+  const sticks = Array.from(art.svg.matchAll(
+    /<rect x="([^\"]+)" y="([^\"]+)" width="[^\"]+" height="21" rx="[^\"]+" fill="#F3EAD2"/g
+  )).map((match) => ({ x: Number(match[1]), y: Number(match[2]) }));
+  assert.strictEqual(sticks.length, 6, '六條應該有 6 根竹節');
+  assert.deepStrictEqual([...new Set(sticks.map((stick) => stick.x))].length, 3, '六條應該分成三欄');
+  assert.deepStrictEqual([...new Set(sticks.map((stick) => stick.y))].length, 2, '六條應該分成上下兩排');
+  assert.strictEqual(sticks.filter((stick) => stick.y === Math.min(...sticks.map((item) => item.y))).length, 3,
+    '六條上排應該有三根竹節');
+});
+
 test('筒子是實心圓點、字牌方向與白板使用黑色牌面圖案', () => {
   const mahjong = Themes.of('mahjong').list;
   const dot = mahjong.find((item) => item.id === 'dot-9');
