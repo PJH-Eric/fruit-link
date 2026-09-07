@@ -396,10 +396,12 @@
       }
     }
 
-    layerIds.forEach(function (i) { fillTile(i, 1); });
-    /* 端點本身要清空，路徑才可以從牌的中心離開。 */
-    fillTile(a, 0);
-    fillTile(b, 0);
+    /* 端點不填入障礙，路徑才可以從牌的中心離開；
+       不能先填滿再清空端點，否則會把相鄰牌共用的邊界一起清掉，
+       讓路徑看起來穿進隔壁的牌面。 */
+    layerIds.forEach(function (i) {
+      if (i !== a && i !== b) fillTile(i, 1);
+    });
 
     function center(i) {
       return idx(1 + (pos[i].x - minX + 1) * scale,

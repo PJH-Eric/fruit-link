@@ -977,6 +977,30 @@ test('麻將和其他模式一樣，相鄰同圖案可直連，不要求左右�
   assert.ok(Rules.stackLink(pos, grid, 1, 2));
 });
 
+test('麻將路徑不能沿著共用邊界穿進隔壁牌面', () => {
+  const pos = [
+    { x: 2, y: 0, z: 0 },
+    { x: 2, y: 2, z: 0 },
+    { x: 0, y: 2, z: 0 }
+  ];
+  const grid = [3, 1, 3];
+  const path = Rules.stackLink(pos, grid, 0, 2);
+  assert.ok(path && path.length >= 2 && path.length <= 4);
+  const blocker = { left: 2.5, right: 4.5, top: 2.5, bottom: 4.5 };
+  const crossed = path.slice(1).some((point, n) => {
+    const start = path[n];
+    if (start.x === point.x) {
+      return start.x >= blocker.left && start.x <= blocker.right &&
+        Math.max(Math.min(start.y, point.y), blocker.top) <=
+        Math.min(Math.max(start.y, point.y), blocker.bottom);
+    }
+    return start.y >= blocker.top && start.y <= blocker.bottom &&
+      Math.max(Math.min(start.x, point.x), blocker.left) <=
+      Math.min(Math.max(start.x, point.x), blocker.right);
+  });
+  assert.strictEqual(crossed, false, '路徑不能穿過隔壁牌面的共用邊界：' + JSON.stringify(path));
+});
+
 test('麻將連線忽略其他層，只遵守所在平面的空格規則', () => {
   const pos = [
     { x: 0, y: 0, z: 1 },
@@ -1083,7 +1107,7 @@ test('麻將各牌面重複不應集中在少數牌面', () => {
   });
 });
 
-test('麻將每層都是獨立平面，不受其他層阻擋但仍遵守覆蓋鎖定', () => {
+test('麻將各層都是獨立平面，仍遵守覆蓋鎖定', () => {
   const pos = [
     { x: 0, y: 0, z: 0 },
     { x: 2, y: 0, z: 1 },
