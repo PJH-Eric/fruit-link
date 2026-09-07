@@ -352,8 +352,8 @@
 
   /**
    * 把同一層的疊牌投影到半格再細分一次的路徑盤面。
-   * 該層每張牌的完整 2×2 範圍都算障礙，避免視覺上緊貼的牌之間出現假縫隙；
-   * 其他層不參與路徑，符合「同層才能配對」的規則。
+   * 每張露出的牌的完整 2×2 範圍都算障礙，避免路徑穿過中間的牌；
+   * 只有配對端點必須同層，路徑上的其他層露出牌也不能被穿過。
    */
   function stackLink(pos, grid, a, b) {
     a = Number(a); b = Number(b);
@@ -380,7 +380,7 @@
     }
 
     for (var i = 0; i < grid.length; i++) {
-      if (grid[i] && pos[i].z === pos[a].z) fillTile(i, 1);
+      if (grid[i] && stackFree(pos, grid, i)) fillTile(i, 1);
     }
     /* 端點本身要清空，路徑才可以從牌的中心離開。 */
     fillTile(a, 0);
@@ -451,6 +451,47 @@
     return { grid: grid, pos: pos, W: ext.W, H: ext.H };
   }
 
+  /* 隨機洗牌找不到解時，把某層的一對牌放到實際可走的兩個位置。 */
+  function forceStackPair(pos, grid, idsByLayer, valsByLayer) {
+    var z, ids, vals, free, i, j, a, b, trial, counts, value, pairValue, rest, k, r;
+    for (z in idsByLayer) {
+      ids = idsByLayer[z];
+      vals = valsByLayer[z];
+      free = [];
+      for (i = 0; i < ids.length; i++) if (stackFree(pos, grid, ids[i])) free.push(ids[i]);
+      if (free.length < 2) continue;
+
+      counts = {};
+      for (i = 0; i < vals.length; i++) counts[vals[i]] = (counts[vals[i]] || 0) + 1;
+      pairValue = null;
+      for (value in counts) if (counts[value] >= 2) { pairValue = Number(value); break; }
+      if (pairValue === null) continue;
+
+      for (i = 0; i < free.length; i++) {
+        for (j = i + 1; j < free.length; j++) {
+          a = free[i]; b = free[j];
+          trial = grid.slice();
+          trial[a] = pairValue;
+          trial[b] = pairValue;
+          if (!stackLink(pos, trial, a, b)) continue;
+
+          rest = vals.slice();
+          r = rest.indexOf(pairValue); rest.splice(r, 1);
+          r = rest.indexOf(pairValue); rest.splice(r, 1);
+          grid[a] = pairValue;
+          grid[b] = pairValue;
+          k = 0;
+          for (var n = 0; n < ids.length; n++) {
+            if (ids[n] === a || ids[n] === b) continue;
+            grid[ids[n]] = rest[k++];
+          }
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   /** 洗牌：位置不動，只把剩下的牌重新分配，洗到「有得消」為止 */
   function shuffleStack(pos, grid, rng) {
     var idsByLayer = {}, valsByLayer = {}, i, z, ids, vals, t;
@@ -469,7 +510,8 @@
       }
       if (stackFindPair(pos, grid)) return true;
     }
-    return false;
+    if (forceStackPair(pos, grid, idsByLayer, valsByLayer)) return true;
+    return !!stackFindPair(pos, grid);
   }
 
   /** 這個主題要不要疊起來玩 */

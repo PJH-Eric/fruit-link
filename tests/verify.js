@@ -966,6 +966,18 @@ test('麻將和其他模式一樣，相鄰同圖案可直連，不要求左右�
   assert.ok(Rules.stackLink(pos, grid, 1, 2));
 });
 
+test('麻將連線不能穿過中間其他層的牌', () => {
+  const pos = [
+    { x: 0, y: 0, z: 1 },
+    { x: 2, y: 0, z: 0 },
+    { x: 4, y: 0, z: 1 }
+  ];
+  const grid = [1, 2, 1];
+  const path = Rules.stackLink(pos, grid, 0, 2);
+  assert.ok(path, '中間有牌時仍可繞路，但不能穿過牌面');
+  assert.ok(path.length > 2, '中間的牌應該阻擋 0 折直線');
+});
+
 test('麻將配對要同圖案、同層、都露出，且路徑不超過 2 折', () => {
   const st = mahjong('normal', 'f');
   const hit = Rules.stackFindPair(st.stack, st.grid);
