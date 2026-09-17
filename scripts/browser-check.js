@@ -117,7 +117,7 @@ async function main() {
         mahjongRule.indexOf('上層') >= 0 && mahjongRule.indexOf('轉彎不超過 2 次') >= 0 &&
         mahjongRule.indexOf('空格') >= 0, mahjongRule);
       const rows = await page.locator('#level-table tr').count();
-      check('玩法頁的關卡表有四關（加上表頭共 5 列）', rows === 5, '實際 ' + rows + ' 列');
+      check('玩法頁的關卡表有五關（加上表頭共 6 列）', rows === 6, '實際 ' + rows + ' 列');
       const gallery = await page.locator('#theme-gallery .themerow').count();
       check('玩法頁列出六個圖案主題', gallery === 6, '實際 ' + gallery);
       check('主題展示真的畫出造型縮圖', await page.locator('#theme-gallery .tp svg').count() >= 48);
@@ -127,7 +127,7 @@ async function main() {
       await page.waitForTimeout(150);
       await page.click('#b-stats');
       await page.waitForTimeout(150);
-      check('我的紀錄頁列出四個關卡', await page.locator('#best-list .bestrow').count() === 4);
+      check('我的紀錄頁列出五個關卡', await page.locator('#best-list .bestrow').count() === 5);
       await page.click('#s-stats [data-back="s-home"]');
       await page.waitForTimeout(150);
 
@@ -216,7 +216,7 @@ async function main() {
       await page.click('#b-solo');
       await page.waitForTimeout(200);
       await page.locator('#opt-theme .themecard[data-v="animals"]').click();
-      await page.locator('#opt-level .pickcard').nth(2).click();
+      await page.locator('#opt-level .pickcard[data-v="normal"]').click();
       await page.click('#b-solo-start');
       await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
       const secondPalette = await page.evaluate(() => window.__fruitLink.snap.palette.join(','));
@@ -246,7 +246,7 @@ async function main() {
       await page.click('#b-solo');
       await page.waitForTimeout(250);
       await page.locator('#opt-theme .themecard[data-v="fruits"]').click();
-      await page.locator('#opt-level .pickcard').nth(2).click();
+      await page.locator('#opt-level .pickcard[data-v="normal"]').click();
       await page.click('#b-solo-start');
       await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
 
@@ -317,12 +317,49 @@ async function main() {
       await page.click('#b-settings-done');
       await quitGame(page);
 
+      /* 幼幼進階：格數比幼幼班大一點，但每種水果只有一對，所以「找到同一種」
+         就一定是那一對，不用再分辨哪兩顆才是同一組。 */
+      group('幼幼進階（每種水果只有一對）');
+      await page.click('#b-solo');
+      await page.waitForTimeout(250);
+      await page.locator('#opt-theme .themecard[data-v="fruits"]').click();
+      const kids2Text = await page.locator('#opt-level .pickcard[data-v="kids2"]').innerText();
+      check('關卡選單有幼幼進階，寫明 5 × 4 與 10 種水果',
+        kids2Text.indexOf('幼幼進階') >= 0 && kids2Text.indexOf('5 × 4') >= 0 &&
+        kids2Text.indexOf('10 種水果') >= 0 && kids2Text.indexOf('∞') >= 0, kids2Text);
+      await page.locator('#opt-level .pickcard[data-v="kids2"]').click();
+      await page.click('#b-solo-start');
+      await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
+      await waitPlaying(page);
+      const kids2 = await page.evaluate(() => {
+        const G = window.__fruitLink;
+        const counts = {};
+        G.snap.grid.forEach((k) => { if (k) counts[k] = (counts[k] || 0) + 1; });
+        return {
+          tiles: document.querySelectorAll('#board .tile:not([hidden])').length,
+          cols: G.snap.cols, rows: G.snap.rows, kinds: G.snap.kinds,
+          shapes: Object.keys(counts).length,
+          most: Math.max.apply(null, Object.keys(counts).map((k) => counts[k])),
+          labels: document.body.classList.contains('kids-board')
+        };
+      });
+      check('幼幼進階盤面是 5 × 4 二十格',
+        kids2.cols === 5 && kids2.rows === 4 && kids2.tiles === 20, JSON.stringify(kids2));
+      check('幼幼進階每種水果只有一對（10 種、完全不重複）',
+        kids2.kinds === 10 && kids2.shapes === 10 && kids2.most === 2, JSON.stringify(kids2));
+      check('幼幼進階一樣會自動顯示水果名稱', kids2.labels);
+      const kids2Box = await boardBox(page);
+      check('幼幼進階的格子夠大（一格 > 100px）',
+        kids2Box.w / kids2Box.bw > 100, '一格約 ' + Math.round(kids2Box.w / kids2Box.bw) + 'px');
+      await page.screenshot({ path: path.join(SHOTS, 'kids2-desktop.png') });
+      await quitGame(page);
+
       group('幼幼班（3～5 歲）');
       await page.click('#b-solo');
       await page.waitForTimeout(250);
       await page.locator('#opt-theme .themecard[data-v="fruits"]').click();
       const cards = await page.locator('#opt-level .pickcard').count();
-      check('關卡選單有四關', cards === 4, '實際 ' + cards);
+      check('關卡選單有五關', cards === 5, '實際 ' + cards);
       const kidsText = await page.locator('#opt-level .pickcard').first().innerText();
       check('第一張是幼幼班，而且寫明適合 3～5 歲',
         kidsText.indexOf('幼幼') >= 0 && kidsText.indexOf('3～5 歲') >= 0, kidsText);
@@ -430,7 +467,7 @@ async function main() {
       await page.waitForTimeout(200);
       check('單機設定裡有麻將主題', await page.locator('#opt-theme .themecard[data-v="mahjong"]').count() === 1);
       await page.locator('#opt-theme .themecard[data-v="mahjong"]').click();
-      await page.locator('#opt-level .pickcard').nth(2).click();
+      await page.locator('#opt-level .pickcard[data-v="normal"]').click();
       await page.click('#b-solo-start');
       await page.waitForTimeout(400);
       const mahjongCountdown = await page.evaluate(() => {
@@ -656,12 +693,55 @@ async function main() {
       check('洗牌只換牌面、不搬位置，而且洗完還有得消',
         shuffled.posKept && shuffled.liveKept && shuffled.hasPair, JSON.stringify(shuffled));
 
+      /* 幼幼班會自動打開「顯示名稱」，早期那條 CSS 沒有把麻將排除掉，
+         牌面被縮到 76% 之後整疊牌就散開對不齊了。這裡逐關量牌面有沒有貼齊。 */
+      group('麻將各關的牌面對齊');
+      for (const lv of ['kids', 'kids2', 'easy', 'normal', 'hard']) {
+        await quitGame(page);
+        await page.click('#b-solo');
+        await page.waitForTimeout(200);
+        await page.locator('#opt-theme .themecard[data-v="mahjong"]').click();
+        await page.locator('#opt-level .pickcard[data-v="' + lv + '"]').click();
+        await page.click('#b-solo-start');
+        await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
+        await waitPlaying(page);
+        const align = await page.evaluate(() => {
+          const G = window.__fruitLink;
+          const cell = document.querySelector('#board .cell.lay');
+          const art = cell.querySelector('.tile-art');
+          /* 底層第一列的牌，兩兩之間的縫；牌面本來就該互相緊貼 */
+          const row = G.snap.stack.map((p, i) => ({ p: p, i: i }))
+            .filter((t) => t.p.z === 0 && t.p.y === 0 && G.snap.grid[t.i])
+            .sort((a, b) => a.p.x - b.p.x);
+          const face = (t) => document.querySelector('#board .tile[data-i="' + t.i + '"] .tile-svg-mahjong')
+            .querySelectorAll('rect')[1].getBoundingClientRect();
+          const rects = row.map(face);
+          const gaps = rects.slice(1)
+            .map((r, i) => r.left - rects[i].right)
+            .filter((gap, i) => row[i + 1].p.x - row[i].p.x === 2);
+          return {
+            scale: new DOMMatrix(getComputedStyle(art).transform).a,
+            gap: gaps.length ? Math.max.apply(null, gaps) : 0,
+            faceW: rects.length ? rects[0].width : 0,
+            cellW: cell.getBoundingClientRect().width
+          };
+        });
+        check(lv + ' 的麻將牌面沒有被名稱規則縮小', Math.abs(align.scale - 1.18) < 0.01,
+          '實際 scale ' + align.scale.toFixed(3));
+        check(lv + ' 的麻將牌面彼此緊貼', align.gap <= 1.5, '最大間距 ' + align.gap.toFixed(1) + 'px');
+        check(lv + ' 的麻將牌面撐滿整格', align.faceW >= align.cellW * 0.95,
+          '牌面 ' + align.faceW.toFixed(1) + 'px／格子 ' + align.cellW.toFixed(1) + 'px');
+        if (lv === 'kids' || lv === 'kids2') {
+          await page.screenshot({ path: path.join(SHOTS, 'mahjong-' + lv + '.png') });
+        }
+      }
+
       /* 換回蔬果就要變回平面連連看 */
       await quitGame(page);
       await page.click('#b-solo');
       await page.waitForTimeout(200);
       await page.locator('#opt-theme .themecard[data-v="fruits"]').click();
-      await page.locator('#opt-level .pickcard').nth(1).click();
+      await page.locator('#opt-level .pickcard[data-v="easy"]').click();
       await page.click('#b-solo-start');
       await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
       await waitPlaying(page);

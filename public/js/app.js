@@ -243,7 +243,7 @@
         '<b>' + l.emoji + ' ' + l.label + '</b>' +
         '<span>' + l.cols + ' × ' + l.rows + '　' + l.kinds + ' 種水果　' + l.sec + ' 秒</span>' +
         '<span>提示 ' + timesText(l.hints) + ' 次　洗牌 ' + timesText(l.shuffles) + ' 次</span>' +
-        (l.key === 'kids' ? '<span>👶 給 3～5 歲的小朋友，會自動顯示水果名稱</span>' : '') + '</button>';
+        (l.showNames ? '<span>👶 給 3～5 歲的小朋友，會自動顯示水果名稱</span>' : '') + '</button>';
     }).join('');
     G.pendingLevel = cur;
     $$('.pickcard', host).forEach(function (b) {
@@ -310,7 +310,7 @@
     startSoloStage(level);
   }
 
-  /** 開一關。三關的分數會累加在 G.run.total，中途重玩不會重複累加。 */
+  /** 開一關。一路闖下去的分數會累加在 G.run.total，中途重玩不會重複累加。 */
   function startSoloStage(level) {
     G.mode = 'solo';
     G.view = null;
