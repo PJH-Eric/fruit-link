@@ -117,7 +117,7 @@ async function main() {
         mahjongRule.indexOf('上層') >= 0 && mahjongRule.indexOf('轉彎不超過 2 次') >= 0 &&
         mahjongRule.indexOf('空格') >= 0, mahjongRule);
       const rows = await page.locator('#level-table tr').count();
-      check('玩法頁的關卡表有五關（加上表頭共 6 列）', rows === 6, '實際 ' + rows + ' 列');
+      check('玩法頁的關卡表有六關（加上表頭共 7 列）', rows === 7, '實際 ' + rows + ' 列');
       const gallery = await page.locator('#theme-gallery .themerow').count();
       check('玩法頁列出六個圖案主題', gallery === 6, '實際 ' + gallery);
       check('主題展示真的畫出造型縮圖', await page.locator('#theme-gallery .tp svg').count() >= 48);
@@ -127,7 +127,7 @@ async function main() {
       await page.waitForTimeout(150);
       await page.click('#b-stats');
       await page.waitForTimeout(150);
-      check('我的紀錄頁列出五個關卡', await page.locator('#best-list .bestrow').count() === 5);
+      check('我的紀錄頁列出六個關卡', await page.locator('#best-list .bestrow').count() === 6);
       await page.click('#s-stats [data-back="s-home"]');
       await page.waitForTimeout(150);
 
@@ -354,12 +354,49 @@ async function main() {
       await page.screenshot({ path: path.join(SHOTS, 'kids2-desktop.png') });
       await quitGame(page);
 
+      /* 幼幼困難：規則和幼幼進階一模一樣（每種水果只有一對），只是盤面再大一圈，
+         難度來自「要多找一下」，不是「會不會認錯哪兩顆是同一組」。 */
+      group('幼幼困難（盤面再大一圈，每種水果一樣只有一對）');
+      await page.click('#b-solo');
+      await page.waitForTimeout(250);
+      await page.locator('#opt-theme .themecard[data-v="fruits"]').click();
+      const kids3Text = await page.locator('#opt-level .pickcard[data-v="kids3"]').innerText();
+      check('關卡選單有幼幼困難，寫明 6 × 5 與 15 種水果',
+        kids3Text.indexOf('幼幼困難') >= 0 && kids3Text.indexOf('6 × 5') >= 0 &&
+        kids3Text.indexOf('15 種水果') >= 0 && kids3Text.indexOf('∞') >= 0, kids3Text);
+      await page.locator('#opt-level .pickcard[data-v="kids3"]').click();
+      await page.click('#b-solo-start');
+      await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
+      await waitPlaying(page);
+      const kids3 = await page.evaluate(() => {
+        const G = window.__fruitLink;
+        const counts = {};
+        G.snap.grid.forEach((k) => { if (k) counts[k] = (counts[k] || 0) + 1; });
+        return {
+          tiles: document.querySelectorAll('#board .tile:not([hidden])').length,
+          cols: G.snap.cols, rows: G.snap.rows, kinds: G.snap.kinds,
+          shapes: Object.keys(counts).length,
+          most: Math.max.apply(null, Object.keys(counts).map((k) => counts[k])),
+          labels: document.body.classList.contains('kids-board')
+        };
+      });
+      check('幼幼困難盤面是 6 × 5 三十格',
+        kids3.cols === 6 && kids3.rows === 5 && kids3.tiles === 30, JSON.stringify(kids3));
+      check('幼幼困難每種水果只有一對（15 種、完全不重複）',
+        kids3.kinds === 15 && kids3.shapes === 15 && kids3.most === 2, JSON.stringify(kids3));
+      check('幼幼困難一樣會自動顯示水果名稱', kids3.labels);
+      const kids3Box = await boardBox(page);
+      check('幼幼困難的格子夠大（一格 > 90px）',
+        kids3Box.w / kids3Box.bw > 90, '一格約 ' + Math.round(kids3Box.w / kids3Box.bw) + 'px');
+      await page.screenshot({ path: path.join(SHOTS, 'kids3-desktop.png') });
+      await quitGame(page);
+
       group('幼幼班（3～5 歲）');
       await page.click('#b-solo');
       await page.waitForTimeout(250);
       await page.locator('#opt-theme .themecard[data-v="fruits"]').click();
       const cards = await page.locator('#opt-level .pickcard').count();
-      check('關卡選單有五關', cards === 5, '實際 ' + cards);
+      check('關卡選單有六關', cards === 6, '實際 ' + cards);
       const kidsGroup = await page.locator('#opt-level .lvgroup').first().innerText();
       check('幼幼班自成一區，而且寫明適合 3～5 歲',
         kidsGroup.indexOf('幼幼班') >= 0 && kidsGroup.indexOf('3～5 歲') >= 0, kidsGroup);
@@ -368,7 +405,7 @@ async function main() {
         kidsText.indexOf('幼幼班') >= 0 && kidsText.indexOf('4 × 3') >= 0, kidsText);
       check('幼幼班的提示與洗牌顯示成 ∞', kidsText.indexOf('∞') >= 0, kidsText);
 
-      /* 五關混在同一個 auto-fit 格線時最後一列會缺一格；分區之後每一區都要填滿整列 */
+      /* 六關混在同一個 auto-fit 格線時最後一列會缺一格；分區之後每一區都要填滿整列 */
       const lvLayout = await page.evaluate(() => {
         const groups = [...document.querySelectorAll('#opt-level .lvgroup')].map((g) => {
           const rows = {};
@@ -388,8 +425,8 @@ async function main() {
       });
       check('關卡分成幼幼班與闖關兩區', lvLayout.groups.length === 2,
         JSON.stringify(lvLayout.groups.map((g) => g.title)));
-      check('每一區都各自排成一整列（2 張＋3 張，沒有留空洞）',
-        lvLayout.groups[0].rows.length === 1 && lvLayout.groups[0].rows[0].length === 2 &&
+      check('每一區都各自排成一整列（3 張＋3 張，沒有留空洞）',
+        lvLayout.groups[0].rows.length === 1 && lvLayout.groups[0].rows[0].length === 3 &&
         lvLayout.groups[1].rows.length === 1 && lvLayout.groups[1].rows[0].length === 3,
         JSON.stringify(lvLayout.groups.map((g) => g.rows)));
       check('同一列的卡片等寬、等高',
@@ -823,7 +860,7 @@ async function main() {
       /* 幼幼班會自動打開「顯示名稱」，早期那條 CSS 沒有把麻將排除掉，
          牌面被縮到 76% 之後整疊牌就散開對不齊了。這裡逐關量牌面有沒有貼齊。 */
       group('麻將各關的牌面對齊');
-      for (const lv of ['kids', 'kids2', 'easy', 'normal', 'hard']) {
+      for (const lv of ['kids', 'kids2', 'kids3', 'easy', 'normal', 'hard']) {
         await quitGame(page);
         await page.click('#b-solo');
         await page.waitForTimeout(200);
@@ -858,7 +895,7 @@ async function main() {
         check(lv + ' 的麻將牌面彼此緊貼', align.gap <= 1.5, '最大間距 ' + align.gap.toFixed(1) + 'px');
         check(lv + ' 的麻將牌面撐滿整格', align.faceW >= align.cellW * 0.95,
           '牌面 ' + align.faceW.toFixed(1) + 'px／格子 ' + align.cellW.toFixed(1) + 'px');
-        if (lv === 'kids' || lv === 'kids2') {
+        if (lv === 'kids' || lv === 'kids2' || lv === 'kids3') {
           await page.screenshot({ path: path.join(SHOTS, 'mahjong-' + lv + '.png') });
         }
       }
