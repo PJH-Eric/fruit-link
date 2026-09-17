@@ -494,6 +494,10 @@ async function main() {
         const r = again.getBoundingClientRect();
         return {
           hidden: again.hidden, text: again.textContent.trim(),
+          icon: again.querySelectorAll('svg path').length,
+          /* 圖示用墨色向量畫，和旁邊的 ◀ 同一個顏色，不要變成畫面上唯一的彩色 emoji */
+          inkColor: getComputedStyle(again).color === getComputedStyle(document.getElementById('b-quit')).color,
+          bg: getComputedStyle(again).backgroundColor === getComputedStyle(document.getElementById('b-quit')).backgroundColor,
           label: again.getAttribute('aria-label') || '',
           rightOfQuit: r.left >= quit.right - 1,
           sameRow: Math.abs(r.top - quit.top) <= 1,
@@ -502,7 +506,10 @@ async function main() {
       });
       check('重開鍵就在離開鍵右邊、同一排',
         !restartBtn.hidden && restartBtn.rightOfQuit && restartBtn.sameRow, JSON.stringify(restartBtn));
-      check('重開鍵只有圖示、沒有文字說明', /^[^\w一-鿿]+$/.test(restartBtn.text), restartBtn.text);
+      check('重開鍵只有圖示、沒有文字說明',
+        restartBtn.text === '' && restartBtn.icon >= 2, JSON.stringify(restartBtn));
+      check('重開鍵和旁邊的離開鍵是同一種樣式（墨色圖形、同底色）',
+        restartBtn.inkColor && restartBtn.bg, JSON.stringify(restartBtn));
       check('重開鍵夠大（≥ 44px）且有無障礙名稱',
         restartBtn.w >= 44 && restartBtn.h >= 44 && restartBtn.label.indexOf('重新開始') >= 0,
         JSON.stringify(restartBtn));
@@ -979,6 +986,60 @@ async function main() {
         };
       });
       check('鍵盤收起來版面就還原', Math.abs(off.app - off.vh) <= 1 && off.input === before, JSON.stringify(off));
+      await ctx.close();
+    }
+
+    /* 名稱標籤的關鍵不是裝置，而是「一格有多大」：
+       字級有下限，格子小到一定程度就一定會壓到圖案。
+       平板那種一格 60～110px 的盤面要看得到字，而且圖案不能被蓋到。 */
+    group('平板也看得到水果名稱');
+    for (const v of [
+      { key: 'tablet-portrait', w: 834, h: 1112, label: '平板直向' },
+      { key: 'tablet-landscape', w: 1112, h: 834, label: '平板橫向' },
+      { key: 'tablet-lg-portrait', w: 1024, h: 1366, label: '大平板直向' }
+    ]) {
+      const ctx = await browser.newContext({ viewport: { width: v.w, height: v.h } });
+      const page = await ctx.newPage();
+      await page.goto(URL, { waitUntil: 'networkidle' });
+      await page.click('#b-settings');
+      await page.waitForTimeout(200);
+      await page.check('#set-label');
+      await page.click('#b-settings-done');
+      await page.waitForTimeout(150);
+
+      for (const lv of ['easy', 'normal', 'hard']) {
+        await page.click('#b-solo');
+        await page.waitForTimeout(200);
+        await page.locator('#opt-level .pickcard[data-v="' + lv + '"]').click();
+        await page.click('#b-solo-start');
+        await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
+        await waitPlaying(page);
+        const lab = await page.evaluate(() => {
+          const tile = document.querySelector('#board .tile:not([hidden])');
+          const name = tile.querySelector('.tile-name');
+          const art = tile.querySelector('.tile-art');
+          const cs = getComputedStyle(name);
+          const nr = name.getBoundingClientRect(), ar = art.getBoundingClientRect();
+          const tr = tile.getBoundingClientRect();
+          return {
+            cell: Math.round(tile.closest('.cell').getBoundingClientRect().width),
+            shown: cs.display !== 'none' && nr.height > 0,
+            font: +parseFloat(cs.fontSize).toFixed(1),
+            gap: +(((nr.top - ar.bottom) / tr.height) * 100).toFixed(1),
+            /* 名稱要落在磚塊正面（SVG 的 y 2～90）裡，不能跨到下面那條側面厚度 */
+            bottomPct: +(((nr.bottom - tr.top) / tr.height) * 100).toFixed(1),
+            clipped: name.scrollWidth > name.clientWidth + 1
+          };
+        });
+        check(v.label + ' ' + lv + ' 看得到水果名稱，字也夠大（≥ 8px）',
+          lab.shown && lab.font >= 8, JSON.stringify(lab));
+        check(v.label + ' ' + lv + ' 名稱沒有蓋到圖案',
+          lab.gap > 0, JSON.stringify(lab));
+        check(v.label + ' ' + lv + ' 名稱待在磚塊正面裡、字沒有被截掉',
+          lab.bottomPct <= 90 && !lab.clipped, JSON.stringify(lab));
+        if (lv === 'hard') await page.screenshot({ path: path.join(SHOTS, 'label-' + v.key + '.png') });
+        await quitGame(page);
+      }
       await ctx.close();
     }
 
