@@ -295,9 +295,10 @@ body{
 .hud-time.low{background:var(--danger-bg);border-color:var(--danger);animation:pulse .9s infinite}
 @keyframes pulse{50%{transform:scale(1.05)}}
 .hud-stage{border:3px solid var(--ink);border-radius:999px;background:var(--mint);padding:5px 14px;font-weight:800;font-size:.88rem}
-.hud-stage.lv2{background:var(--lemon)}
-.hud-stage.lv3{background:var(--peach)}
-.hud-stage.lv4{background:var(--rose)}
+.hud-stage.lv2{background:var(--sky)}
+.hud-stage.lv3{background:var(--lemon)}
+.hud-stage.lv4{background:var(--peach)}
+.hud-stage.lv5{background:var(--rose)}
 .hud-combo{border:3px solid var(--ink);border-radius:999px;background:var(--rose);padding:5px 12px;font-weight:800;font-size:.85rem}
 .hud-combo b{font-size:1.05rem}
 .timebar{height:9px;border:2.5px solid var(--ink);border-radius:999px;background:var(--paper);overflow:hidden;margin:2px 0 6px}
@@ -382,9 +383,11 @@ body{
 body.show-label .tile:not(.mahjong) .tile-name{display:block}
 /* 開名稱時圖案往上縮，把磚塊下緣整條讓給文字，兩者完全不重疊 */
 body.show-label .tile:not(.mahjong) .tile-art{transform:translateY(-14%) scale(.76)}
-/* 幼幼班的盤面只有 12 格，格子大得多，名稱也跟著放大讓小朋友看得清楚 */
-body.kids-board .tile .tile-name{display:block;font-size:clamp(11px,10.5cqw,20px);bottom:7%}
-body.kids-board .tile .tile-art{transform:translateY(-14%) scale(.76)}
+/* 幼幼班的盤面格數少、格子大得多，名稱也跟著放大讓小朋友看得清楚。
+   麻將要排除在外：麻將牌自己就是整張牌面，縮小讓位給名稱會讓整疊牌散開對不齊
+   （牌面本來要彼此緊貼），而且麻將牌本來就不顯示名稱。 */
+body.kids-board .tile:not(.mahjong) .tile-name{display:block;font-size:clamp(11px,10.5cqw,20px);bottom:7%}
+body.kids-board .tile:not(.mahjong) .tile-art{transform:translateY(-14%) scale(.76)}
 
 /* 連線動畫：畫在和盤面同一個座標系的 SVG 上（1 單位 = 1 格） */
 .linkline{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6;overflow:visible}
