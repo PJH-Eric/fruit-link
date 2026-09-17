@@ -75,6 +75,31 @@
     sync(snap.grid);
   }
 
+  /**
+   * 離開一局時把盤面整個拆掉。
+   *
+   * 少了這一步，上一局的磚塊會一直留在 DOM 裡 —— 麻將尤其明顯，
+   * 128 個帶 filter／transform 的節點各自是一層合成層，畫面切走之後
+   * 有些瀏覽器會留下殘影，而且下一局掛載前也可能先閃到舊盤面。
+   * 連線與特效兩層是 mount() 認得的固定節點，清空之後要放回去。
+   */
+  function clear() {
+    if (lineEl) { lineEl.innerHTML = ''; lineEl.removeAttribute('viewBox'); }
+    if (fxEl) fxEl.innerHTML = '';
+    if (boardEl) {
+      boardEl.innerHTML = '';
+      boardEl.classList.remove('stacked');
+      boardEl.style.removeProperty('--cols');
+      boardEl.style.removeProperty('--rows');
+      if (lineEl) boardEl.appendChild(lineEl);
+      if (fxEl) boardEl.appendChild(fxEl);
+    }
+    tiles = {};
+    lastGrid = null;
+    stackPos = null;
+    W = H = cols = rows = 0;
+  }
+
   /** 麻將視覺：每一張牌自己佔 2×2 個半格，層數只決定畫面前後 */
   function buildStack(frag, onPick) {
     for (var i = 0; i < stackPos.length; i++) {
@@ -422,7 +447,7 @@
   }
 
   w.Render = {
-    mount: mount, sync: sync, dims: dims, tileAt: tileAt, focusTile: focusTile,
+    mount: mount, clear: clear, sync: sync, dims: dims, tileAt: tileAt, focusTile: focusTile,
     isLocked: isLocked, stackStep: stackStep,
     setSelected: setSelected, clearSelected: clearSelected,
     markHint: markHint, clearHints: clearHints, shake: shake,

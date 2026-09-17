@@ -46,10 +46,13 @@
   function nowSrv() { return Date.now() + G.timeOffset; }
   function isOnline() { return G.mode === 'online'; }
 
+  /* 提示、洗牌與「重新開始」都是單機專屬：線上是大家共用同一張盤面，
+     一個人重開或洗牌會影響到別人，所以這幾顆在線上一律收起來。 */
   function setAssistActionsVisible() {
     var visible = !isOnline();
     $('side-actions').hidden = !visible;
     $('stage-actions').hidden = !visible;
+    $('b-restart').hidden = !visible;
     return visible;
   }
 
@@ -235,15 +238,43 @@
     });
   }
 
+  /* 關卡選單分成兩區。
+     五關混在同一個 auto-fit 格線裡時，最後一列會空一格、卡片高度也參差不齊；
+     分區之後每一區自己填滿一整列，而且「這一區是給誰玩的」講一次就好，
+     卡片上不必每張都重複一段說明。 */
+  var LEVEL_GROUPS = [
+    {
+      title: '👶 幼幼班',
+      sub: '給 3～5 歲的小朋友：格子很大、時間很長，提示和洗牌不限次數，每一顆水果都會自動寫上名字。',
+      match: function (l) { return !!l.showNames; }
+    },
+    {
+      title: '🍓 闖關模式',
+      sub: '每種水果最多 2 對。越後面的關卡格子越多、種類越雜，提示和洗牌也越少。',
+      match: function (l) { return !l.showNames; }
+    }
+  ];
+
+  function levelCard(l, cur) {
+    return '<button class="pickcard lvcard" role="radio" type="button" data-v="' + l.key + '"' +
+      ' aria-checked="' + (l.key === cur) + '">' +
+      '<span class="lvhead"><b>' + l.emoji + ' ' + l.label + '</b></span>' +
+      '<span class="lvmeta"><i>' + l.cols + ' × ' + l.rows + '</i>' +
+      '<i>' + l.kinds + ' 種水果</i><i>' + l.sec + ' 秒</i></span>' +
+      '<span class="lvaid"><em>💡 提示 ' + timesText(l.hints) + '</em>' +
+      '<em>🔀 洗牌 ' + timesText(l.shuffles) + '</em></span></button>';
+  }
+
   function buildLevelPicker() {
     var host = $('opt-level');
     var cur = Store.level();
-    host.innerHTML = Rules.LEVELS.map(function (l) {
-      return '<button class="pickcard" role="radio" type="button" data-v="' + l.key + '" aria-checked="' + (l.key === cur) + '">' +
-        '<b>' + l.emoji + ' ' + l.label + '</b>' +
-        '<span>' + l.cols + ' × ' + l.rows + '　' + l.kinds + ' 種水果　' + l.sec + ' 秒</span>' +
-        '<span>提示 ' + timesText(l.hints) + ' 次　洗牌 ' + timesText(l.shuffles) + ' 次</span>' +
-        (l.showNames ? '<span>👶 給 3～5 歲的小朋友，會自動顯示水果名稱</span>' : '') + '</button>';
+    host.innerHTML = LEVEL_GROUPS.map(function (g) {
+      var list = Rules.LEVELS.filter(g.match);
+      if (!list.length) return '';
+      return '<div class="lvgroup">' +
+        '<div class="lvgtitle">' + g.title + '<small>' + g.sub + '</small></div>' +
+        '<div class="lvrow">' + list.map(function (l) { return levelCard(l, cur); }).join('') + '</div>' +
+        '</div>';
     }).join('');
     G.pendingLevel = cur;
     $$('.pickcard', host).forEach(function (b) {
@@ -717,12 +748,20 @@
     paintSide();
   }
 
+  /* 離開這一局。盤面、浮層與抽屜都要收乾淨 ——
+     這些都是 #s-game 底下的東西，畫面切走之後留著不只是佔記憶體，
+     上一局的磚塊也可能在切換的瞬間殘留在畫面上。 */
   function backHome() {
     stopTicker();
     if (isOnline()) leaveRoom(true);
     G.state = null; G.snap = null; G.mountKey = ''; G.view = null; G.mode = 'solo';
+    G.sel = null;
     $('ov-result').hidden = true;
     $('ov-wait').hidden = true;
+    $('countdown').hidden = true;
+    $('side').classList.remove('open');
+    R.clear();
+    applyBodyFlags();
     show('s-home');
   }
 
@@ -730,6 +769,16 @@
     if (G.snap && !G.snap.over) {
       askConfirm(isOnline() ? '要離開這個房間嗎？離開之後座位會讓給別人。' : '要離開這一關嗎？目前的進度不會保留。', backHome, '離開');
     } else backHome();
+  });
+
+  /* 單機重開這一關：盤面會重抽，所以打到一半按下去要先問一聲 */
+  $('b-restart').addEventListener('click', function () {
+    if (isOnline()) return;
+    var level = (G.snap && G.snap.level) || (G.run && G.run.level) || Store.level();
+    var again = function () { Sound.play('click'); startSoloStage(level); };
+    if (G.snap && !G.snap.over) {
+      askConfirm('要重新開始新的一局嗎？這一關目前的進度不會保留。', again, '重新開始');
+    } else again();
   });
 
   /* ------------------------------------------------------------ 側欄分頁與聊天 */

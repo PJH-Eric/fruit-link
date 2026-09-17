@@ -360,10 +360,46 @@ async function main() {
       await page.locator('#opt-theme .themecard[data-v="fruits"]').click();
       const cards = await page.locator('#opt-level .pickcard').count();
       check('關卡選單有五關', cards === 5, '實際 ' + cards);
+      const kidsGroup = await page.locator('#opt-level .lvgroup').first().innerText();
+      check('幼幼班自成一區，而且寫明適合 3～5 歲',
+        kidsGroup.indexOf('幼幼班') >= 0 && kidsGroup.indexOf('3～5 歲') >= 0, kidsGroup);
       const kidsText = await page.locator('#opt-level .pickcard').first().innerText();
-      check('第一張是幼幼班，而且寫明適合 3～5 歲',
-        kidsText.indexOf('幼幼') >= 0 && kidsText.indexOf('3～5 歲') >= 0, kidsText);
+      check('第一張是幼幼班的 4 × 3',
+        kidsText.indexOf('幼幼班') >= 0 && kidsText.indexOf('4 × 3') >= 0, kidsText);
       check('幼幼班的提示與洗牌顯示成 ∞', kidsText.indexOf('∞') >= 0, kidsText);
+
+      /* 五關混在同一個 auto-fit 格線時最後一列會缺一格；分區之後每一區都要填滿整列 */
+      const lvLayout = await page.evaluate(() => {
+        const groups = [...document.querySelectorAll('#opt-level .lvgroup')].map((g) => {
+          const rows = {};
+          g.querySelectorAll('.pickcard').forEach((c) => {
+            const r = c.getBoundingClientRect();
+            const key = Math.round(r.top);
+            (rows[key] = rows[key] || []).push(Math.round(r.width));
+          });
+          return {
+            title: g.querySelector('.lvgtitle').textContent.slice(0, 5),
+            rows: Object.keys(rows).map((k) => rows[k]),
+            heights: [...g.querySelectorAll('.pickcard')].map((c) => Math.round(c.getBoundingClientRect().height))
+          };
+        });
+        const row = document.querySelector('#opt-level .lvrow').getBoundingClientRect();
+        return { groups, rowW: Math.round(row.width) };
+      });
+      check('關卡分成幼幼班與闖關兩區', lvLayout.groups.length === 2,
+        JSON.stringify(lvLayout.groups.map((g) => g.title)));
+      check('每一區都各自排成一整列（2 張＋3 張，沒有留空洞）',
+        lvLayout.groups[0].rows.length === 1 && lvLayout.groups[0].rows[0].length === 2 &&
+        lvLayout.groups[1].rows.length === 1 && lvLayout.groups[1].rows[0].length === 3,
+        JSON.stringify(lvLayout.groups.map((g) => g.rows)));
+      check('同一列的卡片等寬、等高',
+        lvLayout.groups.every((g) => new Set(g.rows[0]).size === 1 && new Set(g.heights).size === 1),
+        JSON.stringify(lvLayout.groups));
+      check('每一列的卡片加起來填滿整排',
+        lvLayout.groups.every((g) => {
+          const n = g.rows[0].length;
+          return g.rows[0][0] * n + 10 * (n - 1) >= lvLayout.rowW - 2;
+        }), JSON.stringify(lvLayout));
 
       await page.locator('#opt-level .pickcard').first().click();
       await page.click('#b-solo-start');
@@ -449,6 +485,90 @@ async function main() {
       check('結算標題說過關了', title.indexOf('過關') >= 0 || title.indexOf('通過') >= 0, title);
       check('結算有「下一關」按鈕', (await page.locator('#ov-result-btns').innerText()).indexOf('下一關') >= 0);
       await page.screenshot({ path: path.join(SHOTS, 'kids-result.png') });
+
+      /* 離開鍵旁邊的重開鍵：單機才有，按下去直接重抽同一關的盤面 */
+      group('重新開始這一局');
+      const restartBtn = await page.evaluate(() => {
+        const quit = document.getElementById('b-quit').getBoundingClientRect();
+        const again = document.getElementById('b-restart');
+        const r = again.getBoundingClientRect();
+        return {
+          hidden: again.hidden, text: again.textContent.trim(),
+          label: again.getAttribute('aria-label') || '',
+          rightOfQuit: r.left >= quit.right - 1,
+          sameRow: Math.abs(r.top - quit.top) <= 1,
+          w: Math.round(r.width), h: Math.round(r.height)
+        };
+      });
+      check('重開鍵就在離開鍵右邊、同一排',
+        !restartBtn.hidden && restartBtn.rightOfQuit && restartBtn.sameRow, JSON.stringify(restartBtn));
+      check('重開鍵只有圖示、沒有文字說明', /^[^\w一-鿿]+$/.test(restartBtn.text), restartBtn.text);
+      check('重開鍵夠大（≥ 44px）且有無障礙名稱',
+        restartBtn.w >= 44 && restartBtn.h >= 44 && restartBtn.label.indexOf('重新開始') >= 0,
+        JSON.stringify(restartBtn));
+
+      const beforeSeed = await page.evaluate(() => window.__fruitLink.snap.seed);
+      await page.click('#b-restart');
+      await page.waitForTimeout(250);
+      check('這一局已經結束，重開不必再確認一次',
+        !(await page.locator('#confirm-modal').isVisible()));
+      await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
+      await waitPlaying(page);
+      const restarted = await page.evaluate(() => {
+        const G = window.__fruitLink;
+        return { seed: G.snap.seed, level: G.snap.level, left: G.snap.left, total: G.snap.total,
+          result: document.getElementById('ov-result').hidden };
+      });
+      check('重開會換一張同一關的新盤面',
+        restarted.seed !== beforeSeed && restarted.level === 'kids' &&
+        restarted.left === restarted.total && restarted.result, JSON.stringify(restarted));
+
+      /* 打到一半按重開要先問一聲，按取消就繼續原本那一局 */
+      await page.evaluate(() => {
+        const G = window.__fruitLink, R = window.Rules;
+        const hit = R.findPair(G.snap.grid, G.snap.W, G.snap.H);
+        document.querySelector('#board .tile[data-i="' + hit.a + '"]').click();
+        document.querySelector('#board .tile[data-i="' + hit.b + '"]').click();
+      });
+      await page.waitForTimeout(400);
+      const midSeed = await page.evaluate(() => window.__fruitLink.snap.seed);
+      await page.click('#b-restart');
+      await page.waitForTimeout(250);
+      check('打到一半按重開會先確認', await page.locator('#confirm-modal').isVisible());
+      await page.click('#b-confirm-no');
+      await page.waitForTimeout(250);
+      check('取消之後還是原本那一局',
+        await page.evaluate(() => window.__fruitLink.snap.seed) === midSeed);
+
+      /* 離開之後盤面要整個拆掉，不然上一局的磚塊會一直留在 DOM 裡 */
+      group('離開遊戲不留殘影');
+      await quitGame(page);
+      const left = await page.evaluate(() => {
+        const board = document.getElementById('board');
+        return {
+          screen: window.__fruitLink.screen,
+          tiles: board.querySelectorAll('.tile').length,
+          cells: board.querySelectorAll('.cell').length,
+          stacked: board.classList.contains('stacked'),
+          cols: board.style.getPropertyValue('--cols'),
+          lines: document.querySelectorAll('#linkline polyline').length,
+          fx: document.getElementById('fx').children.length,
+          linkInBoard: document.getElementById('linkline').parentNode.id === 'board',
+          countdown: document.getElementById('countdown').hidden,
+          result: document.getElementById('ov-result').hidden,
+          side: document.getElementById('side').classList.contains('open'),
+          body: document.body.className
+        };
+      });
+      check('離開之後盤面上的磚塊整個清掉',
+        left.tiles === 0 && left.cells === 0 && !left.stacked && left.cols === '', JSON.stringify(left));
+      check('連線與特效層也清乾淨，但節點還留在盤面裡給下一局用',
+        left.lines === 0 && left.fx === 0 && left.linkInBoard, JSON.stringify(left));
+      check('倒數、結算浮層與側欄抽屜都收起來',
+        left.countdown && left.result && !left.side, JSON.stringify(left));
+      check('幼幼班的 body 樣式沒有殘留到其他畫面',
+        left.body.indexOf('kids-board') < 0, left.body);
+      check('回到首頁', left.screen === 's-home');
       await ctx.close();
     }
 
@@ -764,11 +884,14 @@ async function main() {
       const onlineAssist = await page.evaluate(() => ({
         mode: window.__fruitLink.mode,
         sideHidden: document.getElementById('side-actions').hidden,
-        stageHidden: document.getElementById('stage-actions').hidden
+        stageHidden: document.getElementById('stage-actions').hidden,
+        restartHidden: document.getElementById('b-restart').hidden
       }));
       check('線上對戰畫面隱藏提示與洗牌',
         onlineAssist.mode === 'online' && onlineAssist.sideHidden && onlineAssist.stageHidden,
         JSON.stringify(onlineAssist));
+      check('線上對戰也不給「重新開始」（盤面是大家共用的）',
+        onlineAssist.restartHidden, JSON.stringify(onlineAssist));
       await quitGame(page);
       await ctx.close();
     }

@@ -124,7 +124,6 @@ body{
 .check input{width:30px;height:30px;accent-color:var(--grape-d);flex:0 0 auto}
 .pill{display:inline-block;background:var(--grape);border:2.5px solid var(--ink);border-radius:999px;padding:1px 10px;font-size:.8rem;font-weight:800}
 
-.cardpick{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
 .pickcard{
   border:3px solid var(--ink);border-radius:18px;background:var(--paper);
   padding:12px 14px;font:inherit;text-align:left;cursor:pointer;color:var(--ink);
@@ -137,6 +136,28 @@ body{
 .pickcard.mini{padding:9px 11px;min-height:52px;border-radius:14px}
 .pickcard.mini b{font-size:.92rem}
 .pickcard.mini span{font-size:.74rem}
+
+/* 關卡選單：幼幼班與闖關各自成一區，每一區的卡片填滿一整列。
+   auto-fit 會把空的欄收起來，所以兩張卡的那一區也會平分整列，不留空洞。 */
+.cardpick{display:grid;grid-template-columns:1fr;gap:16px}
+.lvgroup{display:grid;gap:8px}
+.lvgtitle{font-weight:800;font-size:.95rem;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.lvgtitle small{flex:1 1 260px;font-weight:600;font-size:.78rem;color:var(--ink-soft);line-height:1.55}
+.lvrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.lvcard{gap:7px;justify-content:flex-start}
+.lvcard .lvhead{display:block;font-size:1rem;line-height:1.35}
+.lvcard .lvhead b{font-size:1rem;color:var(--ink)}
+.lvcard .lvmeta{display:flex;flex-wrap:wrap;gap:5px}
+.lvcard .lvmeta i{
+  font-style:normal;border:2px solid var(--line);border-radius:999px;background:#FFF;
+  padding:0 9px;font-size:.78rem;font-weight:700;color:var(--ink);line-height:1.7;
+}
+.lvcard .lvaid{display:flex;flex-wrap:wrap;gap:2px 14px;font-size:.78rem;color:var(--ink-soft)}
+.lvcard .lvaid em{font-style:normal}
+
+.pickcard[aria-checked="true"] .lvmeta i{border-color:var(--lemon-d)}
+/* 太窄的時候一列一張就好，免得三張擠成兩張＋一張的破格 */
+@media (max-width:680px){.lvrow{grid-template-columns:1fr}}
 
 /* 造型主題選單：一張卡＝一個主題，卡上直接放四個造型縮圖 */
 .themepick{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
@@ -286,6 +307,9 @@ body{
 .stage{position:relative;z-index:1;flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;
   padding:0 calc(6px + var(--safe-r)) calc(5px + var(--safe-b)) 6px}
 .hud{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:calc(8px + var(--safe-t)) 62px 6px 0}
+/* 離開與重新開始是一組，永遠黏在一起、一起換行，不會被分到兩排去 */
+.hud-nav{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.hud-restart{background:var(--mint);font-size:1rem}
 .hud-lbl{font-size:.68rem;color:var(--ink-soft);display:block;line-height:1}
 .hud-time,.hud-score,.hud-left{
   border:3px solid var(--ink);border-radius:15px;background:var(--paper);
@@ -559,10 +583,16 @@ body.kids-board .tile:not(.mahjong) .tile-art{transform:translateY(-14%) scale(.
   .settings-fab{--d:4px;min-width:42px;min-height:42px;padding:6px 8px calc(6px + var(--d))}
 }
 
-/* 窄螢幕的 HUD 只有一排的空間：剩餘水果併進時間旁邊，盤面才不會上下跳 */
+/* 窄螢幕的 HUD 只有一排的空間：剩餘水果收起來，剩下的全部擠在同一排。
+   改成 nowrap ＋ 允許壓縮，關卡名稱不夠放就截斷 ——
+   讓 HUD 換行的話會直接吃掉一整排盤面高度，小手機上很傷。 */
 @media (max-width:560px){
-  .hud{gap:7px}
+  .hud{gap:6px;flex-wrap:nowrap}
   .hud-left{display:none}
+  .hud-nav{gap:5px}
+  .hud-nav .iconbtn{min-width:40px;min-height:40px;border-radius:12px;font-size:1rem}
+  .hud-time,.hud-score{min-width:0;padding:2px 8px}
+  .hud-stage{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .lobby-home-link{top:calc(8px + var(--safe-t));left:calc(8px + var(--safe-l));padding:8px 10px;font-size:.74rem}
 }
 
@@ -571,9 +601,14 @@ body.kids-board .tile:not(.mahjong) .tile-art{transform:translateY(-14%) scale(.
   .home-btns .btn3d.big{font-size:1.05rem;min-height:62px}
   .panel{padding:14px 12px 28px}
   .modal-card{border-radius:20px}
-  .hud-time,.hud-score{min-width:60px;padding:3px 8px}
+  .hud-time,.hud-score{min-width:0;padding:3px 8px}
   .hud-time b,.hud-score b{font-size:1.2rem}
   .hud-stage,.hud-combo{padding:3px 8px;font-size:.76rem}
+}
+
+/* 再窄就放不下關卡名稱了，擠成一條色塊反而更難看；側欄的戰況裡還是看得到 */
+@media (max-width:360px){
+  .hud-stage{display:none}
 }
 
 /* 超寬桌機：側欄不要跟著變胖，盤面也不要無限放大 */

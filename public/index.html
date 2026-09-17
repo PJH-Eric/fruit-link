@@ -45,7 +45,7 @@
         <span class="spacer"></span>
       </div>
 
-      <p class="note">從幼幼班一路打到第三關，分數會累加。也可以直接挑你想玩的那一關。<br><b>👶 幼幼班</b>是給 3～5 歲小朋友的：只有 4 × 3 十二格、三種水果，格子很大，時間長到幾乎沒有壓力，提示和洗牌不限次數，而且每一顆水果都會寫上名字。<br><b>🍌 幼幼進階</b>大一點：5 × 4 二十格、10 種水果<b>每種只有一對</b>，完全不重複，找到同一種就一定連得起來。</p>
+      <p class="note">從幼幼班一路打到第三關，分數會累加；也可以直接挑你想玩的那一關。</p>
 
       <h3 class="lbl">圖案主題</h3>
       <div class="themepick" id="opt-theme" role="radiogroup" aria-label="選擇圖案主題"></div>
@@ -146,7 +146,10 @@
       <!-- 主舞台 -->
       <div class="stage" id="stage">
         <div class="hud" id="hud">
-          <button class="iconbtn hud-back" id="b-quit" type="button" title="離開這一局" aria-label="離開這一局">◀</button>
+          <div class="hud-nav">
+            <button class="iconbtn hud-back" id="b-quit" type="button" title="離開這一局" aria-label="離開這一局">◀</button>
+            <button class="iconbtn hud-restart" id="b-restart" type="button" title="重新開始新的一局" aria-label="重新開始新的一局">🔁</button>
+          </div>
           <div class="hud-time" id="hud-time">
             <span class="hud-lbl">剩餘</span>
             <b id="hud-clock">0:00</b>
