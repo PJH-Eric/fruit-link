@@ -71,13 +71,21 @@ async function waitPlaying(page) {
   await page.waitForTimeout(120);
 }
 
-/** 對局進行中按離開會跳確認彈窗，測試也要照著點 */
-async function quitGame(page) {
+/** 對局進行中按離開會跳確認彈窗，測試也要照著點。
+    ◀ 離開會退回關卡選單（線上是大廳）；後面的檢查大多從首頁開始，
+    所以預設再按一次返回回到首頁，stay 為 true 時就停在退回的那一層。 */
+async function quitGame(page, stay) {
   await page.click('#b-quit');
   await page.waitForTimeout(200);
   if (await page.locator('#confirm-modal').isVisible()) {
     await page.click('#b-confirm-yes');
     await page.waitForTimeout(300);
+  }
+  if (stay) return;
+  const screen = await page.evaluate(() => window.__fruitLink.screen);
+  if (screen === 's-solo' || screen === 's-lobby') {
+    await page.click('#' + screen + ' [data-back="s-home"]');
+    await page.waitForTimeout(200);
   }
 }
 
@@ -140,12 +148,14 @@ async function main() {
         await page.locator('#set-music-vol').count() === 1 && await page.locator('#set-sfx-vol').count() === 1);
       await page.screenshot({ path: path.join(SHOTS, 'settings.png') });
 
+      check('顯示水果名稱預設就是開的', await page.locator('#set-label').isChecked() &&
+        await page.evaluate(() => document.body.classList.contains('show-label')));
       await page.uncheck('#set-music');
-      await page.check('#set-label');
+      await page.uncheck('#set-label');
       await page.keyboard.press('Escape');
       await page.waitForTimeout(200);
       check('按 Escape 可以關掉設定彈窗', !(await page.locator('#settings-modal').isVisible()));
-      check('顯示水果名稱會套用到 body', await page.evaluate(() => document.body.classList.contains('show-label')));
+      check('關掉水果名稱會套用到 body', await page.evaluate(() => !document.body.classList.contains('show-label')));
 
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
@@ -154,10 +164,11 @@ async function main() {
       const musicKept = await page.locator('#set-music').isChecked();
       const labelKept = await page.locator('#set-label').isChecked();
       check('設定重新整理之後還在（背景音樂維持關閉）', musicKept === false);
-      check('設定重新整理之後還在（顯示名稱維持開啟）', labelKept === true);
+      check('設定重新整理之後還在（顯示名稱維持關閉）', labelKept === false);
       await page.click('#b-settings-reset');
       await page.waitForTimeout(150);
-      check('恢復預設會把設定調回來', await page.locator('#set-music').isChecked() === true);
+      check('恢復預設會把設定調回來', await page.locator('#set-music').isChecked() === true &&
+        await page.locator('#set-label').isChecked() === true);
       await page.click('#b-settings-done');
 
       group('圖案主題');
@@ -268,11 +279,17 @@ async function main() {
       check('磚塊有落地陰影', solid.shadow);
       check('圖案獨立成一層，名稱才能讓位', solid.art);
 
-      /* 關掉名稱時圖案最大；打開名稱時圖案縮小讓出下緣 */
+      /* 關掉名稱時圖案最大；打開名稱時圖案縮小讓出下緣（名稱預設是開的，先關掉量一次） */
+      await page.click('#b-settings');
+      await page.waitForTimeout(150);
+      await page.uncheck('#set-label');
+      await page.waitForTimeout(150);
+      await page.click('#b-settings-done');
+      await page.waitForTimeout(400);
       const artBig = await page.evaluate(() => document.querySelector('#board .tile .tile-art').getBoundingClientRect().height);
       await page.click('#b-settings');
       await page.waitForTimeout(150);
-      await page.click('#set-label');
+      await page.check('#set-label');
       await page.waitForTimeout(150);
       await page.click('#b-settings-done');
       await page.waitForTimeout(400);
@@ -309,10 +326,10 @@ async function main() {
       check('最難的一關（格子最小）名稱一樣不蓋圖', hard.nameTop >= hard.artBottom - 1,
         '格子寬 ' + hard.tileW.toFixed(1) + 'px，圖案底 ' + hard.artBottom.toFixed(1) + ' / 標籤頂 ' + hard.nameTop.toFixed(1));
       await page.screenshot({ path: path.join(SHOTS, 'tile-label-hard.png') });
-      /* 把設定調回去，不影響後面的檢查 */
+      /* 名稱維持預設的開啟，不影響後面的檢查 */
       await page.click('#b-settings');
       await page.waitForTimeout(150);
-      await page.click('#set-label');
+      await page.check('#set-label');
       await page.waitForTimeout(150);
       await page.click('#b-settings-done');
       await quitGame(page);
@@ -586,7 +603,7 @@ async function main() {
 
       /* 離開之後盤面要整個拆掉，不然上一局的磚塊會一直留在 DOM 裡 */
       group('離開遊戲不留殘影');
-      await quitGame(page);
+      await quitGame(page, true);
       const left = await page.evaluate(() => {
         const board = document.getElementById('board');
         return {
@@ -612,7 +629,7 @@ async function main() {
         left.countdown && left.result && !left.side, JSON.stringify(left));
       check('幼幼班的 body 樣式沒有殘留到其他畫面',
         left.body.indexOf('kids-board') < 0, left.body);
-      check('回到首頁', left.screen === 's-home');
+      check('單機按 ◀ 離開會回到關卡選單，不是首頁', left.screen === 's-solo');
       await ctx.close();
     }
 
@@ -654,6 +671,10 @@ async function main() {
       await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
       /* 倒數的遮罩會早一步收掉，真正能不能出手要看快照的 phase */
       await waitPlaying(page);
+      check('麻將牌不加名稱文字（名稱預設開啟也一樣）',
+        await page.evaluate(() => document.body.classList.contains('show-label') &&
+          document.querySelectorAll('#board .tile.mahjong').length > 0 &&
+          document.querySelectorAll('#board .tile-name').length === 0));
 
       const info = await page.evaluate(() => {
         const G = window.__fruitLink;
@@ -1037,12 +1058,8 @@ async function main() {
     ]) {
       const ctx = await browser.newContext({ viewport: { width: v.w, height: v.h } });
       const page = await ctx.newPage();
+      /* 不碰設定：名稱預設就要看得到 */
       await page.goto(URL, { waitUntil: 'networkidle' });
-      await page.click('#b-settings');
-      await page.waitForTimeout(200);
-      await page.check('#set-label');
-      await page.click('#b-settings-done');
-      await page.waitForTimeout(150);
 
       for (const lv of ['easy', 'normal', 'hard']) {
         await page.click('#b-solo');
@@ -1075,6 +1092,42 @@ async function main() {
         check(v.label + ' ' + lv + ' 名稱待在磚塊正面裡、字沒有被截掉',
           lab.bottomPct <= 90 && !lab.clipped, JSON.stringify(lab));
         if (lv === 'hard') await page.screenshot({ path: path.join(SHOTS, 'label-' + v.key + '.png') });
+        await quitGame(page);
+      }
+      await ctx.close();
+    }
+
+    /* 手機的格子不到 56px：字會小到 7px、圖案也得縮一半，所以名稱不顯示、圖案維持原尺寸 */
+    group('手機格子太小就不顯示水果名稱');
+    for (const v of [
+      { key: 'phone-portrait', w: 390, h: 844, label: '手機直向' },
+      { key: 'phone-landscape', w: 844, h: 390, label: '手機橫向' }
+    ]) {
+      const ctx = await browser.newContext({ viewport: { width: v.w, height: v.h } });
+      const page = await ctx.newPage();
+      await page.goto(URL, { waitUntil: 'networkidle' });
+      for (const lv of ['easy', 'normal', 'hard']) {
+        await page.click('#b-solo');
+        await page.waitForTimeout(200);
+        await page.locator('#opt-level .pickcard[data-v="' + lv + '"]').click();
+        await page.click('#b-solo-start');
+        await page.waitForSelector('#countdown', { state: 'hidden', timeout: 9000 });
+        await waitPlaying(page);
+        const lab = await page.evaluate(() => {
+          const tile = document.querySelector('#board .tile:not([hidden])');
+          const art = tile.querySelector('.tile-art');
+          const on = getComputedStyle(art).transform;
+          document.body.classList.remove('show-label');
+          const off = getComputedStyle(art).transform;
+          document.body.classList.add('show-label');
+          return {
+            cell: Math.round(tile.closest('.cell').getBoundingClientRect().width),
+            shown: getComputedStyle(tile.querySelector('.tile-name')).display !== 'none',
+            on: on, off: off
+          };
+        });
+        check(v.label + ' ' + lv + ' 名稱不顯示、圖案維持原本大小',
+          !lab.shown && lab.on === lab.off, JSON.stringify(lab));
         await quitGame(page);
       }
       await ctx.close();

@@ -410,15 +410,12 @@ body{
 }
 /* 名稱擺不擺得下，只跟「這一格有多大」有關，跟裝置是手機還是平板無關，
    所以用容器查詢直接問格子（.cell 是 inline-size 容器）：
-   字級有 7px 的下限（再小就認不出字），格子小到一定程度名稱一定會壓到圖案，
-   那就乾脆不顯示，圖案維持原本大小。
-   顯示的時候圖案要往上縮讓位 —— 縮放和位移得一起調，
-   因為格子越小、名稱佔的比例越大，要讓出來的空間也越多。 */
-@container (min-width:40px){
-  body.show-label .tile:not(.mahjong) .tile-name{display:block}
-  body.show-label .tile:not(.mahjong) .tile-art{transform:translateY(-26%) scale(.56)}
-}
+   一格 ≥ 56px（平板、桌機的每一關）才顯示，圖案往上縮到 66% 讓位。
+   比這小的格子（手機的入門／日常／大亂）字會被壓到 7px、圖案也得縮到一半，
+   兩邊都認不清楚，所以乾脆不顯示，圖案維持原本大小。
+   麻將牌本來就是整張牌面，一律不顯示名稱。 */
 @container (min-width:56px){
+  body.show-label .tile:not(.mahjong) .tile-name{display:block}
   body.show-label .tile:not(.mahjong) .tile-art{transform:translateY(-21%) scale(.66)}
 }
 /* 幼幼班的盤面格數少、格子大得多，名稱也跟著放大讓小朋友看得清楚。

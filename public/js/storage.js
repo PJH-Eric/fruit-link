@@ -16,7 +16,8 @@
     sfxVol: 'fl_sfx_vol',
     haptic: 'fl_haptic',
     reduceMotion: 'fl_reduce_motion',
-    labelOn: 'fl_label',
+    /* v2：預設改成開啟。換一個 key，舊版「恢復預設」時寫進去的 0 才不會蓋掉新預設 */
+    labelOn: 'fl_label_v2',
     sidebarOpen: 'fl_sidebar',
     best: 'fl_best',
     stats: 'fl_stats',
@@ -87,8 +88,8 @@
     sfxVol: function (v) { if (v === undefined) return getNum(KEY.sfxVol, 1); set(KEY.sfxVol, v); return v; },
     haptic: function (v) { if (v === undefined) return getFlag(KEY.haptic, true); setFlag(KEY.haptic, v); return v; },
     reduceMotion: function (v) { if (v === undefined) return getFlag(KEY.reduceMotion, false); setFlag(KEY.reduceMotion, v); return v; },
-    /* 水果名稱標籤：色彩辨識不便或想順便認字的人可以打開 */
-    labelOn: function (v) { if (v === undefined) return getFlag(KEY.labelOn, false); setFlag(KEY.labelOn, v); return v; },
+    /* 水果名稱標籤：預設開啟（格子太小時 CSS 會自動不顯示，見 style.css），不想看可以關掉 */
+    labelOn: function (v) { if (v === undefined) return getFlag(KEY.labelOn, true); setFlag(KEY.labelOn, v); return v; },
     sidebarOpen: function (v) { if (v === undefined) return getFlag(KEY.sidebarOpen, true); setFlag(KEY.sidebarOpen, v); return v; },
     tutorialDone: function (v) { if (v === undefined) return getFlag(KEY.tutorialDone, false); setFlag(KEY.tutorialDone, v); return v; },
     best: best,
@@ -102,7 +103,7 @@
       setFlag(KEY.sfx, true); set(KEY.sfxVol, 1);
       setFlag(KEY.haptic, true);
       setFlag(KEY.reduceMotion, false);
-      setFlag(KEY.labelOn, false);
+      setFlag(KEY.labelOn, true);
     }
   };
 }(window));

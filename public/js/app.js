@@ -754,6 +754,20 @@
      這些都是 #s-game 底下的東西，畫面切走之後留著不只是佔記憶體，
      上一局的磚塊也可能在切換的瞬間殘留在畫面上。 */
   function backHome() {
+    closeGame();
+    show('s-home');
+  }
+
+  /* 左上角 ◀ 離開：退回上一層 —— 單機回關卡選單、線上回大廳的房間列表，
+     不要一路跳回首頁，想換一關或換一間房才不用重點一次。 */
+  function backOut() {
+    var online = isOnline();
+    closeGame();
+    if (online) { show('s-lobby'); Online.send('lobby:subscribe', {}); }
+    else { buildThemePicker(); buildLevelPicker(); show('s-solo'); }
+  }
+
+  function closeGame() {
     stopTicker();
     if (isOnline()) leaveRoom(true);
     G.state = null; G.snap = null; G.mountKey = ''; G.view = null; G.mode = 'solo';
@@ -764,13 +778,12 @@
     $('side').classList.remove('open');
     R.clear();
     applyBodyFlags();
-    show('s-home');
   }
 
   $('b-quit').addEventListener('click', function () {
     if (G.snap && !G.snap.over) {
-      askConfirm(isOnline() ? '要離開這個房間嗎？離開之後座位會讓給別人。' : '要離開這一關嗎？目前的進度不會保留。', backHome, '離開');
-    } else backHome();
+      askConfirm(isOnline() ? '要離開這個房間嗎？離開之後座位會讓給別人。' : '要離開這一關嗎？目前的進度不會保留。', backOut, '離開');
+    } else backOut();
   });
 
   /* 單機重開這一關：盤面會重抽，所以打到一半按下去要先問一聲 */
