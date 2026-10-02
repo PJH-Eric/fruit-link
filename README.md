@@ -239,7 +239,7 @@ npm test              # 規則、主題、麻將疊疊樂與房間單元測試�
 npm run test:online   # 真的開伺服器、接真的 Socket.IO 用戶端跑一輪（41 項）
 npm run verify        # 上面兩個一起跑
 
-npm run test:browser  # 真的開瀏覽器：RWD 八種尺寸 + 主題切換 + 麻將疊疊樂 + 名稱標籤 + 手機鍵盤讓位 + 單機一局 + 線上操作 + 設定流程（232 項）
+npm run test:browser  # 真的開瀏覽器：RWD 八種尺寸 + 主題切換 + 麻將疊疊樂 + 名稱標籤 + 手機鍵盤讓位 + 單機一局 + 線上操作 + 設定流程（240 項）
 ```
 
 `test:browser` 需要 Playwright 的瀏覽器：
