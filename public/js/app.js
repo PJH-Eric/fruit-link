@@ -70,6 +70,8 @@
   function show(id) {
     $$('.screen').forEach(function (s) { s.classList.toggle('active', s.id === id); });
     G.screen = id;
+    if (id !== 's-game' && w.NetworkLatency) w.NetworkLatency.setActive(false);
+    if (w.NetworkLatency) w.NetworkLatency.setActive(id === 's-game' && isOnline() && !!G.view && G.view.phase === 'playing');
     Sound.setTrack(id === 's-game' ? 'game' : 'menu');
     if (Sound.isMusicOn()) Sound.startBgm();
   }
@@ -1055,6 +1057,7 @@
   Online.on('room:sync', function (view) {
     G.mode = 'online';
     G.view = view;
+    if (w.NetworkLatency) w.NetworkLatency.setActive(G.screen === 's-game' && view.phase === 'playing');
     G.myId = (view.you && view.you.id) || G.myId;
     if (G.screen !== 's-game') show('s-game');
     $('chat-hint').hidden = true;
