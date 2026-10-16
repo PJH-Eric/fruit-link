@@ -2,6 +2,8 @@
   'use strict';
   var active = null;
   var lastKey = null;
+  var pendingRoom = null;
+  var joinedRoom = null;
 
   function track(name, params) {
     try {
@@ -28,12 +30,39 @@
   function reset() { active = null; lastKey = null; }
 
   function sync(phase, key, params, result) {
-    if (params && params.spectator) return;
+    if (params && params.spectator) { active = null; return; }
     if (['countdown', 'playing', 'running'].indexOf(phase) !== -1) start(params, key);
-    else if (['over', 'ended', 'finished'].indexOf(phase) !== -1) end(result);
+    else if (result && ['over', 'ended', 'finished'].indexOf(phase) !== -1) end(result);
   }
 
-  global.GameAnalytics = { track: track, start: start, end: end, reset: reset, sync: sync };
+  function roomRequest(message) {
+    var action = message.type || message.t;
+    if (action === 'invite:resolve') action = 'join';
+    if (action === 'create' || action === 'join') pendingRoom = {
+      action: action, via: message.token || message.invite ? 'invite_link' : 'lobby'
+    };
+    else if (action === 'leave') roomLeft();
+  }
+
+  function roomAccepted(action, key, via) {
+    if (key != null && key === joinedRoom) return;
+    joinedRoom = key == null ? null : key;
+    track('room_' + action, { mode: 'online', via: via || 'lobby' });
+  }
+
+  function roomLeft() { pendingRoom = null; joinedRoom = null; active = null; }
+
+  function roomResponse(type, hasRoom) {
+    if (pendingRoom && (type === 'joined' || (type === 'room' && hasRoom))) {
+      roomAccepted(pendingRoom.action, null, pendingRoom.via);
+      pendingRoom = null;
+    } else if (type === 'error' || type === 'err' || type === 'closed' || type === 'left') pendingRoom = null;
+  }
+
+  global.GameAnalytics = {
+    track: track, start: start, end: end, reset: reset, sync: sync,
+    roomRequest: roomRequest, roomResponse: roomResponse, roomAccepted: roomAccepted, roomLeft: roomLeft
+  };
   if (global.document) global.document.addEventListener('click', function (event) {
     var link = event.target.closest && event.target.closest('a[href]');
     if (!link) return;

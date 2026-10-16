@@ -28,6 +28,8 @@ function inject(root, env = process.env) {
   let html = fs.readFileSync(indexPath, 'utf8');
   if (html.split(MARK).length !== 2) throw new Error('index.html 必須有一個 ' + MARK);
   if (!/<title\b[^>]*>[\s\S]*?<\/title>/i.test(html)) throw new Error('index.html 缺少 title');
+  const descriptionTag = html.match(/<meta\b(?=[^>]*\bname=["']description["'])[^>]*>/i);
+  const descriptionKey = descriptionTag && descriptionTag[0].match(/data-i18n-content="([^"]+)"/);
   // 保留界線，重複建置不會累積標籤。所有檢查完成才寫入產物。
   html = html.replace(/<!--SEO:HEAD-->[\s\S]*?<!--SEO:END-->/, MARK)
     .replace(/<meta\b(?=[^>]*\bname=["']description["'])[^>]*>\s*/gi, '')
@@ -48,7 +50,7 @@ function inject(root, env = process.env) {
       ',page_location:' + safeJson(cfg.siteUrl) + '});' +
       'var s=document.createElement("script");s.async=true;s.src="https://www.googletagmanager.com/gtag/js?id=' + gaId + '";document.head.appendChild(s);})();</script>',
     cfg.googleSiteVerification && '<meta name="google-site-verification" content="' + esc(cfg.googleSiteVerification) + '">',
-    '<meta name="description" data-i18n-content="meta.desc" content="' + esc(cfg.description) + '">',
+    '<meta name="description" data-i18n-content="' + esc(descriptionKey ? descriptionKey[1] : 'meta.desc') + '" content="' + esc(cfg.description) + '">',
     '<link rel="canonical" href="' + esc(cfg.siteUrl) + '">',
     '<meta name="robots" content="index, follow, max-image-preview:large">',
     '<meta property="og:type" content="website">',

@@ -1,4 +1,3 @@
-require('./seo.js');
 /*
  * tests/verify.js — 規則核心與房間邏輯的單元測試
  * 不需要任何套件，直接 `node tests/verify.js` 就能跑。
@@ -8,6 +7,8 @@ require('./seo.js');
  *       房間權限、觀戰、邀請 token 的有效期／次數／撤銷、斷線回收。
  */
 'use strict';
+
+require('./seo.js');
 
 const assert = require('assert');
 const path = require('path');
