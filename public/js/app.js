@@ -383,6 +383,7 @@
     G.sel = null;
     G.lastTick = 0;
     G.snap = Rules.snapshot(G.state, Date.now());
+    GameAnalytics.start({ mode: 'solo', difficulty: level, players: 1 });
     $('ov-wait').hidden = true;
     $('ov-result').hidden = true;
     $('chat-hint').hidden = false;
@@ -721,6 +722,7 @@
     var me = st.players.me;
     var L = Rules.levelOf(st.level);
     var cleared = st.cleared;
+    GameAnalytics.end({ result: cleared ? 'win' : 'lose' });
 
     if (cleared) {
       G.run.total += me.score;
@@ -961,7 +963,9 @@
       private: $('room-private').checked,
       level: Store.level(),
       theme: Store.theme()
-    }, function (res) { if (res && res.ok) enterRoom(); });
+    }, function (res) {
+      if (res && res.ok) { GameAnalytics.track('room_create', { mode: 'online' }); enterRoom(); }
+    });
   });
 
   $('b-join').addEventListener('click', function () {
@@ -985,6 +989,7 @@
       Online.send('room:join', { code: code, name: Store.nick(), token: token }, function (res) {
         G.joining = false;
         if (!res || !res.ok) return;
+        GameAnalytics.track('room_join', { mode: 'online', via: token ? 'invite_link' : 'lobby' });
         if (G.pendingInvite && G.pendingInvite.code === code) {
           G.pendingInvite = null;
           $('invite-gate').hidden = true;
@@ -1114,6 +1119,10 @@
   Online.on('room:events', function (p) { (p.events || []).forEach(handleEvent); });
 
   Online.on('room:sync', function (view) {
+    if (view.match && view.phase !== 'over') GameAnalytics.sync(view.phase, view.code + '|' + view.match.seed, {
+      mode: 'online', difficulty: view.level, players: view.match.players.length,
+      spectator: !view.you || view.you.role !== 'player'
+    });
     G.mode = 'online';
     G.view = view;
     if (w.NetworkLatency) w.NetworkLatency.setActive(G.screen === 's-game' && view.phase === 'playing');
@@ -1234,6 +1243,7 @@
     $('ov-result').hidden = false;
 
     if (fresh && mine) {
+      GameAnalytics.end({ result: v.match.draw ? 'draw' : (mine.rank === 1 ? 'win' : 'lose') });
       Store.recordResult('online', (v.match.draw && mine.rank === 1) ? 'draw' : (mine.rank === 1 ? 'win' : 'lose'));
       Sound.play(mine.rank === 1 ? 'clear' : (v.match.draw ? 'draw' : 'fail'));
     }

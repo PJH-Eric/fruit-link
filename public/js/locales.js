@@ -16,9 +16,9 @@
   function add(key, zh, en) { D.push([key, zh, en]); }
 
   /* ---------- 頁面 ---------- */
-  add('meta.title', '水果連連看', 'Fruit Link');
+  add('meta.title', "水果連連看｜免費線上多人連連看・免下載", 'Fruit Link');
   add('meta.desc',
-    '可愛風水果連連看：三關幼幼班加三關卡單機闖關，最多 6 人共用同一張盤面線上搶消。',
+    "免費免下載的水果連連看，在兩次轉彎內連線消除相同圖案。單機從幼幼班一路闖關，也能邀最多六人同盤搶消、觀戰聊天，多款圖案主題，手機平板電腦都能玩。",
     'Cute fruit-matching game: three kids’ levels plus three challenge levels solo, or race up to 6 players on one shared board online.');
   add('lang.switchTo', '切換成英文（English）', 'Switch to Traditional Chinese (中文)');
 

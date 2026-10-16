@@ -36,6 +36,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -51,6 +54,9 @@ jobs:
           node scripts/inject-server-url.js
           echo "### 後端 server URL" >> "$GITHUB_STEP_SUMMARY"
           echo "\`$GAME_SERVER_URL\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 驗證並注入 GA4 與 SEO
+        run: node tests/seo.js && node scripts/inject-seo.js
 
       - name: Upload public/ as artifact
         uses: actions/upload-pages-artifact@v3

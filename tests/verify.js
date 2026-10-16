@@ -1,3 +1,4 @@
+require('./seo.js');
 /*
  * tests/verify.js — 規則核心與房間邏輯的單元測試
  * 不需要任何套件，直接 `node tests/verify.js` 就能跑。
