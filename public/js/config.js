@@ -19,6 +19,12 @@
   var INJECTED = '';
   /* GAME_SERVER_URL:END */
 
+  /* 介面文字走字典（I18N）；測試與 Node 環境沒有 I18N 時退回中文 */
+  function tr(key, params, zh) {
+    var I = (typeof window !== 'undefined' && window.I18N) ? window.I18N : null;
+    return I ? I.t(key, params, zh) : zh;
+  }
+
   /**
    * 純函式：決定最後要用哪個 server URL。測試直接呼叫這一支。
    * @param {string} injected      建置時注入的值
@@ -42,13 +48,16 @@
     try {
       parsed = new URL(raw);
     } catch (e) {
-      return { url: null, source: source, status: 'invalid', error: '不是合法的絕對網址：' + raw };
+      return { url: null, source: source, status: 'invalid', error: '不是合法的絕對網址：' + raw,
+               errorSpec: { key: 'cfg.badUrl', params: { raw: raw } } };
     }
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return { url: null, source: source, status: 'invalid', error: '只接受 http 或 https：' + raw };
+      return { url: null, source: source, status: 'invalid', error: '只接受 http 或 https：' + raw,
+               errorSpec: { key: 'cfg.badProto', params: { raw: raw } } };
     }
     if (pageProtocol === 'https:' && parsed.protocol === 'http:') {
-      return { url: null, source: source, status: 'invalid', error: 'https 頁面不能連 http 伺服器（混合內容會被瀏覽器擋掉）：' + raw };
+      return { url: null, source: source, status: 'invalid', error: 'https 頁面不能連 http 伺服器（混合內容會被瀏覽器擋掉）：' + raw,
+               errorSpec: { key: 'cfg.mixed', params: { raw: raw } } };
     }
     return {
       url: parsed.origin + parsed.pathname.replace(/\/+$/, ''),
@@ -78,6 +87,8 @@
     /* 'none' ｜ 'same-origin' ｜ 'injected' ｜ 'query' */
     source: r.source,
     error: r.error,
+    /* 同一個錯誤的字典代碼：畫面用它依目前語言顯示（error 保留中文給 console 與測試） */
+    errorSpec: r.errorSpec || null,
 
     isOnlineEnabled: function () { return r.status === 'ok'; },
 
@@ -112,11 +123,11 @@
 
     /** 線上連線狀態列使用的一行說明 */
     describe: function () {
-      if (Config.status === 'invalid') return '設定有誤（線上已停用）';
-      if (!Config.serverUrl) return '未設定（只能玩單機）';
+      if (Config.status === 'invalid') return tr('cfg.invalid', null, '設定有誤（線上已停用）');
+      if (!Config.serverUrl) return tr('cfg.unset', null, '未設定（只能玩單機）');
       var host = Config.serverUrl.replace(/^https?:\/\//, '');
-      var tag = Config.source === 'query' ? '（網址參數）'
-        : (Config.source === 'injected' ? '（建置注入）' : '（同源）');
+      var tag = Config.source === 'query' ? tr('cfg.query', null, '（網址參數）')
+        : (Config.source === 'injected' ? tr('cfg.injected', null, '（建置注入）') : tr('cfg.same', null, '（同源）'));
       return host + tag;
     },
 

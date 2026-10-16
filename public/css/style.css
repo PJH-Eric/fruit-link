@@ -84,11 +84,24 @@ body{
 .iconbtn:focus-visible{outline:3px solid var(--sky-d);outline-offset:2px}
 
 /* 右上角設定入口：所有畫面共用，固定在安全區內、不擋遊戲控制 */
-.settings-fab{
-  position:fixed;z-index:70;
-  top:calc(10px + var(--safe-t));right:calc(12px + var(--safe-r));--d:6px;
+/* 右上角工具列：設定鈕＋語言切換鈕並排；整組固定在安全區內 */
+.fab-bar{
+  position:fixed;z-index:70;display:flex;align-items:flex-start;gap:8px;
+  top:calc(10px + var(--safe-t));right:calc(12px + var(--safe-r));
 }
+.settings-fab{--d:6px}
 .settings-fab .b3-lbl{font-size:1.3rem}
+/* 語言切換鈕：與設定鈕同高同風格（粗墨框＋奶油底＋底部厚度），文字由 i18n 核心填入 */
+.lang-toggle{
+  flex:none;min-width:50px;height:calc(50px - 6px);padding:0 8px;margin-bottom:6px;
+  border:3px solid var(--ink);border-radius:16px;background:var(--cream);color:var(--ink);
+  box-shadow:0 6px 0 var(--cream-d);font:inherit;font-weight:900;font-size:.95rem;letter-spacing:.02em;
+  line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  transition:transform .07s ease,box-shadow .07s ease;
+}
+.lang-toggle:hover{background:#FFF6E8}
+.lang-toggle:active{transform:translateY(4px);box-shadow:0 2px 0 var(--cream-d)}
+.lang-toggle:focus-visible{outline:3px solid var(--sky-d);outline-offset:3px}
 .lobby-home-link{
   position:fixed;z-index:65;top:calc(10px + var(--safe-t));left:calc(12px + var(--safe-l));
   display:inline-flex;align-items:center;min-height:44px;padding:9px 14px;
@@ -299,6 +312,7 @@ body{
 .msg.me{background:var(--lemon);border-color:var(--lemon-d)}
 .msg.sys{background:transparent;border:0;color:var(--ink-soft);font-size:.75rem;text-align:center;padding:2px}
 .msg.spec .who::after{content:" · 觀戰";font-weight:600;color:var(--ink-soft)}
+html[data-lang="en"] .msg.spec .who::after{content:" · Watching"}
 .chatbar{display:flex;gap:6px;margin-top:6px}
 .chatbar .field{padding:9px 11px;font-size:.88rem;border-width:2.5px;border-radius:13px}
 .chatbar .btn3d{flex:0 0 auto;--d:5px;min-height:44px;padding:8px 12px calc(8px + var(--d))}
@@ -597,6 +611,8 @@ body.kids-board .tile:not(.mahjong) .tile-art{transform:translateY(-20%) scale(.
   .hud-stage,.hud-combo{padding:3px 10px;font-size:.78rem}
   .timebar{height:7px;margin:1px 0 4px}
   .settings-fab{--d:4px;min-width:42px;min-height:42px;padding:6px 8px calc(6px + var(--d))}
+  .fab-bar{gap:6px}
+  .lang-toggle{min-width:42px;height:calc(42px - 4px);margin-bottom:4px;box-shadow:0 4px 0 var(--cream-d);border-radius:14px;font-size:.85rem}
 }
 
 /* 窄螢幕的 HUD 只有一排的空間：剩餘水果收起來，剩下的全部擠在同一排。
@@ -680,3 +696,9 @@ body.reduce-motion .tile.gone{opacity:0}
 .board.stacked .cell.lay .tile.mahjong.locked{pointer-events:none}
 .board.stacked .cell.lay .tile.mahjong.locked .tile-svg-mahjong{pointer-events:none}
 .tile.locked .tile-name{opacity:.7}
+
+/* English HUD wraps before the fixed global tools, preserving the score. */
+@media (max-width: 600px) {
+  .hud { padding-right: 116px; flex-wrap: wrap; height: auto; min-height: 58px; }
+  .hud > * { flex-shrink: 0; }
+}

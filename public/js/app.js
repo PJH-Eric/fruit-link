@@ -18,6 +18,17 @@
   var $ = function (id) { return document.getElementById(id); };
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
 
+  /* 多語系：T 查字典；SRV 把伺服器／規則回傳的訊息翻成目前語言；NAME 顯示預設名稱（玩家3、你） */
+  var I = w.I18N;
+  var T = function (key, params) { return I.t(key, params); };
+  var SRV = function (text) { return I.srv(text); };
+  var NAME = function (name) { return I.name(name); };
+  /* 關卡與主題的名稱都由字典決定；Rules／Themes 裡的中文只是預設值 */
+  function lvLabel(l) { return T('level.' + l.key + '.label'); }
+  function lvShort(l) { return T('level.' + l.key + '.short'); }
+  function thLabel(t) { return T('theme.' + t.key + '.label'); }
+  function thNote(t) { return T('theme.' + t.key + '.note'); }
+
   /* ------------------------------------------------------------ 全域狀態 */
 
   var G = {
@@ -31,6 +42,11 @@
     joining: false,
     timeOffset: 0,           // 伺服器時間 - 本機時間
     snap: null,              // 目前畫面上的對局快照
+    conn: ['idle', ''],      // 最近一次連線狀態（切換語言時重畫用）
+    rooms: null,             // 最近一次公開房間清單
+    gateKind: 'plain',       // 邀請門檻的說明種類
+    inviteNote: null,        // 邀請彈窗說明的產生函式
+    soloResult: null,        // 單機結算的資料（切換語言時重畫用）
     sel: null,               // 已選起來的格子
     mountKey: '',
     unread: 0,
@@ -126,7 +142,7 @@
   var confirmCb = null;
   function askConfirm(message, onYes, yesLabel) {
     $('confirm-message').textContent = message;
-    UI.setLabel($('b-confirm-yes'), yesLabel || '確定');
+    UI.setLabel($('b-confirm-yes'), yesLabel || T('common.ok'));
     confirmCb = onYes;
     openModal('confirm-modal');
   }
@@ -162,17 +178,17 @@
 
   function syncSettingsUI() {
     $('set-music').checked = Sound.isMusicOn();
-    $('set-music-status').textContent = Sound.isMusicOn() ? '開啟' : '關閉';
+    $('set-music-status').textContent = Sound.isMusicOn() ? T('common.on') : T('common.off');
     $('set-music-vol').value = Math.round(Sound.musicVolume() * 100);
     $('set-music-vol-out').textContent = Math.round(Sound.musicVolume() * 100) + '%';
     $('set-sfx').checked = Sound.isSfxOn();
-    $('set-sfx-status').textContent = Sound.isSfxOn() ? '開啟' : '關閉';
+    $('set-sfx-status').textContent = Sound.isSfxOn() ? T('common.on') : T('common.off');
     $('set-sfx-vol').value = Math.round(Sound.sfxVolume() * 100);
     $('set-sfx-vol-out').textContent = Math.round(Sound.sfxVolume() * 100) + '%';
     $('set-haptic').checked = Sound.isHapticOn();
     $('set-motion').checked = Store.reduceMotion();
     $('set-label').checked = Store.labelOn();
-    $('set-server').textContent = '線上伺服器：' + Config.describe();
+    $('set-server').textContent = T('set.server', { host: Config.describe() });
     applyBodyFlags();
   }
 
@@ -185,7 +201,7 @@
     Sound.setSfx(true); Sound.setSfxVolume(1);
     Sound.setHaptic(true);
     syncSettingsUI();
-    toast('已恢復預設設定');
+    toast(T('set.resetDone'));
   });
   $('set-music').addEventListener('change', function () {
     Sound.unlock(); Sound.setMusic(this.checked);
@@ -215,9 +231,9 @@
     var pics = '';
     for (var i = 0; i < 4; i++) pics += UI.artSvg(t.key, Math.floor(i * t.count / 4));
     return '<button class="themecard" role="radio" type="button" data-v="' + t.key + '" aria-checked="' + checked + '"' +
-      ' aria-label="' + t.label + '，' + t.count + ' 種圖案">' +
-      '<span class="tname">' + t.emoji + ' ' + t.label + '</span>' +
-      '<span class="tcount">' + t.count + ' 種</span>' +
+      ' aria-label="' + T('theme.cardAria', { label: thLabel(t), n: t.count }) + '">' +
+      '<span class="tname">' + t.emoji + ' ' + thLabel(t) + '</span>' +
+      '<span class="tcount">' + T('theme.designs', { n: t.count }) + '</span>' +
       '<span class="tpics">' + pics + '</span></button>';
   }
 
@@ -227,7 +243,7 @@
     if (!Themes.has(cur)) { cur = Themes.DEFAULT; Store.theme(cur); }
     G.pendingTheme = cur;
     host.innerHTML = Themes.menu().map(function (t) { return themeCard(t, t.key === cur); }).join('');
-    var note = function () { $('theme-hint').textContent = Themes.of(G.pendingTheme).note + '；每一局會從裡面隨機抽圖案，所以每次玩到的都不一樣。'; };
+    var note = function () { $('theme-hint').textContent = T('solo.themeHint', { note: thNote(Themes.of(G.pendingTheme)) }); };
     note();
     $$('.themecard', host).forEach(function (b) {
       b.addEventListener('click', function () {
@@ -246,13 +262,13 @@
      卡片上不必每張都重複一段說明。 */
   var LEVEL_GROUPS = [
     {
-      title: '👶 幼幼班',
-      sub: '給 3～5 歲的小朋友：格子很大、時間很長，提示和洗牌不限次數，每一顆水果都會自動寫上名字。',
+      title: 'level.groupKids',
+      sub: 'level.groupKidsSub',
       match: function (l) { return !!l.showNames; }
     },
     {
-      title: '🍓 闖關模式',
-      sub: '每種水果最多 2 對。越後面的關卡格子越多、種類越雜，提示和洗牌也越少。',
+      title: 'level.groupPlay',
+      sub: 'level.groupPlaySub',
       match: function (l) { return !l.showNames; }
     }
   ];
@@ -260,11 +276,11 @@
   function levelCard(l, cur) {
     return '<button class="pickcard lvcard" role="radio" type="button" data-v="' + l.key + '"' +
       ' aria-checked="' + (l.key === cur) + '">' +
-      '<span class="lvhead"><b>' + l.emoji + ' ' + l.label + '</b></span>' +
+      '<span class="lvhead"><b>' + l.emoji + ' ' + lvLabel(l) + '</b></span>' +
       '<span class="lvmeta"><i>' + l.cols + ' × ' + l.rows + '</i>' +
-      '<i>' + l.kinds + ' 種水果</i><i>' + l.sec + ' 秒</i></span>' +
-      '<span class="lvaid"><em>💡 提示 ' + timesText(l.hints) + '</em>' +
-      '<em>🔀 洗牌 ' + timesText(l.shuffles) + '</em></span></button>';
+      '<i>' + T('level.kinds', { n: l.kinds }) + '</i><i>' + T('level.secs', { n: l.sec }) + '</i></span>' +
+      '<span class="lvaid"><em>' + T('level.hintN', { n: timesText(l.hints) }) + '</em>' +
+      '<em>' + T('level.shuffleN', { n: timesText(l.shuffles) }) + '</em></span></button>';
   }
 
   function buildLevelPicker() {
@@ -274,7 +290,7 @@
       var list = Rules.LEVELS.filter(g.match);
       if (!list.length) return '';
       return '<div class="lvgroup">' +
-        '<div class="lvgtitle">' + g.title + '<small>' + g.sub + '</small></div>' +
+        '<div class="lvgtitle">' + T(g.title) + '<small>' + T(g.sub) + '</small></div>' +
         '<div class="lvrow">' + list.map(function (l) { return levelCard(l, cur); }).join('') + '</div>' +
         '</div>';
     }).join('');
@@ -294,10 +310,12 @@
     R.pathDemos($('mahjong-path-demo'), 'mahjong');
     buildThemeGallery();
     $('level-table').innerHTML =
-      '<tr><th>關卡</th><th>盤面</th><th>水果種類</th><th>時間</th><th>提示</th><th>洗牌</th></tr>' +
+      '<tr><th>' + T('help.thLevel') + '</th><th>' + T('help.thBoard') + '</th><th>' + T('help.thKinds') + '</th><th>' +
+        T('help.thTime') + '</th><th>' + T('help.thHints') + '</th><th>' + T('help.thShuffles') + '</th></tr>' +
       Rules.LEVELS.map(function (l) {
-        return '<tr><td>' + l.emoji + ' ' + l.short + '</td><td>' + l.cols + ' × ' + l.rows + '</td>' +
-          '<td>' + l.kinds + ' 種</td><td>' + l.sec + ' 秒</td><td>' + timesText(l.hints) + ' 次</td><td>' + timesText(l.shuffles) + ' 次</td></tr>';
+        return '<tr><td>' + l.emoji + ' ' + lvShort(l) + '</td><td>' + l.cols + ' × ' + l.rows + '</td>' +
+          '<td>' + T('level.kinds', { n: l.kinds }) + '</td><td>' + T('level.secs', { n: l.sec }) + '</td><td>' +
+          T('help.times', { n: timesText(l.hints) }) + '</td><td>' + T('help.times', { n: timesText(l.shuffles) }) + '</td></tr>';
       }).join('');
   }
 
@@ -306,8 +324,8 @@
       var pics = '';
       var n = Math.min(12, t.count);
       for (var i = 0; i < n; i++) pics += UI.artSvg(t.key, Math.floor(i * t.count / n));
-      return '<div class="themerow"><div class="th">' + t.emoji + ' ' + t.label +
-        '<small>' + t.count + ' 種 · ' + t.note + '</small></div>' +
+      return '<div class="themerow"><div class="th">' + t.emoji + ' ' + thLabel(t) +
+        '<small>' + T('theme.designs', { n: t.count }) + ' · ' + thNote(t) + '</small></div>' +
         '<div class="tp">' + pics + '</div></div>';
     }).join('');
   }
@@ -316,22 +334,22 @@
     var best = Store.allBest();
     $('best-list').innerHTML = Rules.LEVELS.map(function (l) {
       var b = best[l.key];
-      return '<div class="bestrow"><span class="bn">' + l.emoji + ' ' + l.label + '</span>' +
-        (b ? '<span class="bv">最高分 <b>' + b.score + '</b>　最快 <b>' + b.sec + '</b> 秒　最高 <b>' + b.bestCombo + '</b> 連擊</span>'
-           : '<span class="bv">還沒有紀錄</span>') + '</div>';
+      return '<div class="bestrow"><span class="bn">' + l.emoji + ' ' + lvLabel(l) + '</span>' +
+        (b ? '<span class="bv">' + T('stats.bestRow', { score: b.score, sec: b.sec, combo: b.bestCombo }) + '</span>'
+           : '<span class="bv">' + T('stats.none') + '</span>') + '</div>';
     }).join('');
     var s = Store.stats();
     $('stat-grid').innerHTML =
-      '<div class="statcard"><b>' + s.solo.clear + '</b><span>單機過關</span></div>' +
-      '<div class="statcard"><b>' + s.solo.fail + '</b><span>單機失敗</span></div>' +
-      '<div class="statcard"><b>' + s.online.win + '</b><span>線上第一名</span></div>' +
-      '<div class="statcard"><b>' + s.online.lose + '</b><span>線上未奪冠</span></div>';
+      '<div class="statcard"><b>' + s.solo.clear + '</b><span>' + T('stats.soloClear') + '</span></div>' +
+      '<div class="statcard"><b>' + s.solo.fail + '</b><span>' + T('stats.soloFail') + '</span></div>' +
+      '<div class="statcard"><b>' + s.online.win + '</b><span>' + T('stats.onlineWin') + '</span></div>' +
+      '<div class="statcard"><b>' + s.online.lose + '</b><span>' + T('stats.onlineLose') + '</span></div>';
   }
 
   $('b-stats-reset').addEventListener('click', function () {
-    askConfirm('要清除這台裝置上的所有紀錄嗎？清掉就找不回來了。', function () {
-      Store.clearBest(); Store.clearStats(); buildStats(); toast('已清除本機紀錄');
-    }, '清除');
+    askConfirm(T('stats.confirm'), function () {
+      Store.clearBest(); Store.clearStats(); buildStats(); toast(T('stats.cleared'));
+    }, T('stats.confirmYes'));
   });
 
   /* ------------------------------------------------------------ 單機闖關 */
@@ -435,7 +453,7 @@
     fill.className = ratio < 0.15 ? 'low' : (ratio < 0.35 ? 'warn' : '');
 
     var lv = $('hud-level');
-    lv.textContent = L.emoji + ' ' + L.short;
+    lv.textContent = L.emoji + ' ' + lvShort(L);
     lv.className = 'hud-stage lv' + L.no;
 
     var me = myPlayer();
@@ -469,20 +487,22 @@
     var TH = Themes.of(G.snap.theme);
     if (isOnline() && G.view) {
       var specs = (G.view.members || []).filter(function (m) { return m.role === 'spectator'; }).length;
-      $('sum-room').innerHTML = '房號 <b>' + R.esc(G.view.code) + '</b><br>' + R.esc(G.view.name) +
-        '<br>' + L.short + '　' + L.cols + ' × ' + L.rows + '　' + TH.emoji + TH.label +
-        '<br>觀戰 ' + specs + ' 人';
+      $('sum-room').innerHTML = T('side.roomOnline', {
+        code: R.esc(G.view.code), name: R.esc(SRV(G.view.name)), level: lvShort(L), cols: L.cols, rows: L.rows,
+        theme: TH.emoji + ' ' + thLabel(TH), specs: specs
+      });
     } else {
-      $('sum-room').innerHTML = '單機闖關<br><b>' + L.short + '</b>　' + L.cols + ' × ' + L.rows +
-        '<br>' + TH.emoji + ' ' + TH.label + '<br>累計 <b>' + (G.run ? G.run.total : 0) + '</b> 分';
+      $('sum-room').innerHTML = T('side.roomSolo', {
+        level: lvShort(L), cols: L.cols, rows: L.rows, theme: TH.emoji + ' ' + thLabel(TH), total: (G.run ? G.run.total : 0)
+      });
     }
 
     var me = myPlayer();
     var role = (isOnline() && G.view && G.view.you) ? G.view.you.role : 'player';
     $('my-stat').innerHTML = me
-      ? ('已連 ' + me.pairs + ' 對 · 連錯 ' + me.misses + ' 次 · 最高 ' + me.bestCombo + ' 連擊<br>剩餘水果 ' + G.snap.left + ' 個' +
-         (G.snap.autoShuffles ? '<br>系統自動洗牌 ' + G.snap.autoShuffles + ' 次' : ''))
-      : (role === 'spectator' ? '你正在觀戰：看得到盤面與聊天室，但不能出手。' : '');
+      ? (T('side.myStat', { pairs: me.pairs, misses: me.misses, combo: me.bestCombo, left: G.snap.left }) +
+         (G.snap.autoShuffles ? T('side.autoShuffle', { n: G.snap.autoShuffles }) : ''))
+      : (role === 'spectator' ? T('side.spectating') : '');
   }
 
   function paintAll() {
@@ -531,7 +551,7 @@
     } else if (!c.hidden) {
       c.hidden = true;
       lastCount = null;
-      if (!isOnline()) { R.shout('開始！'); Sound.play('go'); }
+      if (!isOnline()) { R.shout(T('play.go')); Sound.play('go'); }
     }
   }
 
@@ -544,15 +564,15 @@
   function onPick(i) {
     Sound.unlock();
     if (!canPlay()) {
-      if (livePhase() === 'countdown') toast('還在倒數，先別急');
-      else if (isOnline() && G.view && G.view.you && G.view.you.role === 'spectator') toast('你正在觀戰，不能出手');
+      if (livePhase() === 'countdown') toast(T('play.countdown'));
+      else if (isOnline() && G.view && G.view.you && G.view.you.role === 'spectator') toast(T('play.spectator'));
       return;
     }
     var grid = curGrid();
     if (!grid[i]) return;
     if (R.isLocked(i)) {
       R.shake(i);
-      toast('這張被壓住了，要先把疊在上面的牌消掉');
+      toast(T('play.locked'));
       return;
     }
 
@@ -578,7 +598,7 @@
   function submit(a, b) {
     if (isOnline()) { Online.send('room:link', { a: a, b: b }); return; }
     var res = Rules.attempt(G.state, 'me', a, b, Date.now(), G.rng);
-    if (!res.ok) { toast(res.error); return; }
+    if (!res.ok) { toast(SRV(res.error)); return; }
     G.snap = Rules.snapshot(G.state, Date.now());
     handleEvent(res.event);
     (res.extra || []).forEach(handleEvent);
@@ -588,7 +608,7 @@
     Sound.unlock();
     if (isOnline()) return;
     var res = Rules.useHint(G.state, 'me', Date.now());
-    if (!res.ok) { toast(res.error); return; }
+    if (!res.ok) { toast(SRV(res.error)); return; }
     G.snap = Rules.snapshot(G.state, Date.now());
     handleEvent(res.event);
   }
@@ -597,7 +617,7 @@
     Sound.unlock();
     if (isOnline()) return;
     var res = Rules.useShuffle(G.state, 'me', Date.now(), G.rng);
-    if (!res.ok) { toast(res.error); return; }
+    if (!res.ok) { toast(SRV(res.error)); return; }
     G.snap = Rules.snapshot(G.state, Date.now());
     handleEvent(res.event);
   }
@@ -610,7 +630,7 @@
   function nameOf(id) {
     var list = (G.snap && G.snap.players) || [];
     for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i].name;
-    return '有人';
+    return T('common.someone');
   }
 
   function handleEvent(ev) {
@@ -632,11 +652,11 @@
       else R.drawLink(ev.path);
       R.popPair(ev.a, ev.b);
       R.flyScore(ev.b, '+' + ev.gain + (ev.combo > 1 ? ' ×' + ev.mult : ''), mine);
-      if (!mine) R.flyScore(ev.a, nameOf(ev.by), false);
+      if (!mine) R.flyScore(ev.a, NAME(nameOf(ev.by)), false);
       Sound.play('match', ev.combo);
       if (mine) Sound.vibrate(12);
-      if (mine && ev.combo === 5) R.shout('5 連擊！');
-      if (mine && ev.combo === 10) R.shout('10 連擊！！');
+      if (mine && ev.combo === 5) R.shout(T('play.combo5'));
+      if (mine && ev.combo === 10) R.shout(T('play.combo10'));
       setTimeout(function () { if (G.snap) R.sync(G.snap.grid); paintSide(); }, 260);
       paintHud();
       return;
@@ -647,9 +667,7 @@
         R.shake(ev.a); R.shake(ev.b);
         Sound.play('miss');
         Sound.vibrate([8, 40, 8]);
-        toast(isStackBoard()
-          ? '這兩張配不起來（要同圖案、同層、上方露出，路徑只經過該層空格且在 2 折以內）'
-          : '這兩顆連不起來（路徑要轉彎 2 次以內、而且只能經過空格）');
+        toast(T(isStackBoard() ? 'play.missStack' : 'play.missFlat'));
         if (isOnline() && G.snap) {
           (G.snap.players || []).forEach(function (p) { if (p.id === ev.by) { p.combo = 0; p.misses = ev.misses; } });
         }
@@ -674,14 +692,14 @@
       R.clearSelected();
       if (G.snap) R.sync(G.snap.grid);
       Sound.play('shuffle');
-      toast(ev.auto ? '沒有水果連得到了，系統自動幫大家洗牌（不算次數）' : '已經洗牌');
+      toast(T(ev.auto ? 'play.shuffleAuto' : 'play.shuffled'));
       paintHud(); paintSide();
       return;
     }
 
     if (ev.k === 'go') {
       $('countdown').hidden = true;
-      R.shout('開始！');
+      R.shout(T('play.go'));
       Sound.play('go');
       return;
     }
@@ -719,35 +737,43 @@
     }
 
     var nxt = cleared ? Rules.nextLevel(st.level) : null;
-    var best = Store.best(st.level);
-
-    $('ov-trophy').innerHTML = cleared ? UI.trophy() : '';
-    $('ov-result-title').textContent = cleared
-      ? (nxt ? L.emoji + ' ' + L.short + ' 過關！' : '🎉 ' + Rules.LEVELS.length + ' 關全部通過！')
-      : '⏰ 時間到';
-    $('result-table').innerHTML =
-      '<div class="resrow win"><span class="no">🍀</span>' +
-      '<span class="nm">這一關<small>' + me.pairs + ' 對 · 最高 ' + me.bestCombo + ' 連擊 · 連錯 ' + me.misses + ' 次' +
-      (me.timeBonus ? ' · 時間 +' + me.timeBonus : '') + '</small></span>' +
-      '<span class="sc">' + me.score + '</span></div>' +
-      '<div class="resrow"><span class="no">Σ</span><span class="nm">本次闖關累計</span>' +
-      '<span class="sc">' + G.run.total + '</span></div>';
-    $('ov-result-note').innerHTML = cleared
-      ? ('這一關的個人最佳：' + best.score + ' 分 · ' + best.sec + ' 秒 · ' + best.bestCombo + ' 連擊')
-      : ('盤面上還剩 ' + st.left + ' 個水果。<br>提示和洗牌用完就沒有了，記得留一點在後面。');
-
-    var btns = $('ov-result-btns');
-    btns.innerHTML = '';
-    if (nxt) btns.appendChild(mkBtn('mint', '下一關 ▶', function () { startSoloStage(nxt); }));
-    btns.appendChild(mkBtn(nxt ? 'cream' : 'mint', cleared ? '再玩這一關 🔁' : '再挑戰一次 🔁', function () {
-      startSoloStage(st.level);
-    }));
-    btns.appendChild(mkBtn('cream', '回主選單 🏠', backHome));
-    UI.decorateAll(btns);
+    G.soloResult = { st: st, me: me, L: L, cleared: cleared, nxt: nxt, best: Store.best(st.level) };
+    paintSoloResult();
 
     Sound.play(cleared ? 'clear' : 'fail');
     $('ov-result').hidden = false;
     paintSide();
+  }
+
+  /** 單機結算畫面的文字（切換語言時會再畫一次） */
+  function paintSoloResult() {
+    var r = G.soloResult;
+    if (!r) return;
+    var st = r.st, me = r.me, L = r.L, cleared = r.cleared, nxt = r.nxt, best = r.best;
+    $('ov-trophy').innerHTML = cleared ? UI.trophy() : '';
+    $('ov-result-title').textContent = cleared
+      ? (nxt ? T('result.levelClear', { level: L.emoji + ' ' + lvShort(L) }) : T('result.allClear', { n: Rules.LEVELS.length }))
+      : T('result.timeUp');
+    $('result-table').innerHTML =
+      '<div class="resrow win"><span class="no">🍀</span>' +
+      '<span class="nm">' + T('result.thisLevel') + '<small>' +
+      T('result.line', { pairs: me.pairs, combo: me.bestCombo, misses: me.misses }) +
+      (me.timeBonus ? T('result.bonus', { n: me.timeBonus }) : '') + '</small></span>' +
+      '<span class="sc">' + me.score + '</span></div>' +
+      '<div class="resrow"><span class="no">Σ</span><span class="nm">' + T('result.total') + '</span>' +
+      '<span class="sc">' + G.run.total + '</span></div>';
+    $('ov-result-note').innerHTML = cleared
+      ? T('result.best', { score: best.score, sec: best.sec, combo: best.bestCombo })
+      : T('result.left', { n: st.left });
+
+    var btns = $('ov-result-btns');
+    btns.innerHTML = '';
+    if (nxt) btns.appendChild(mkBtn('mint', T('result.next'), function () { startSoloStage(nxt); }));
+    btns.appendChild(mkBtn(nxt ? 'cream' : 'mint', cleared ? T('result.again') : T('result.retry'), function () {
+      startSoloStage(st.level);
+    }));
+    btns.appendChild(mkBtn('cream', T('result.home'), backHome));
+    UI.decorateAll(btns);
   }
 
   /* 離開這一局。盤面、浮層與抽屜都要收乾淨 ——
@@ -771,7 +797,7 @@
     stopTicker();
     if (isOnline()) leaveRoom(true);
     G.state = null; G.snap = null; G.mountKey = ''; G.view = null; G.mode = 'solo';
-    G.sel = null;
+    G.sel = null; G.soloResult = null;
     $('ov-result').hidden = true;
     $('ov-wait').hidden = true;
     $('countdown').hidden = true;
@@ -782,7 +808,7 @@
 
   $('b-quit').addEventListener('click', function () {
     if (G.snap && !G.snap.over) {
-      askConfirm(isOnline() ? '要離開這個房間嗎？離開之後座位會讓給別人。' : '要離開這一關嗎？目前的進度不會保留。', backOut, '離開');
+      askConfirm(T(isOnline() ? 'confirm.leaveRoom' : 'confirm.leaveSolo'), backOut, T('confirm.leave'));
     } else backOut();
   });
 
@@ -792,7 +818,7 @@
     var level = (G.snap && G.snap.level) || (G.run && G.run.level) || Store.level();
     var again = function () { Sound.play('click'); startSoloStage(level); };
     if (G.snap && !G.snap.over) {
-      askConfirm('要重新開始新的一局嗎？這一關目前的進度不會保留。', again, '重新開始');
+      askConfirm(T('confirm.restart'), again, T('confirm.restartYes'));
     } else again();
   });
 
@@ -828,7 +854,7 @@
     var input = $('chat-input');
     var text = input.value.trim();
     if (!text) return;
-    if (!isOnline()) { toast('單機闖關沒有聊天室'); return; }
+    if (!isOnline()) { toast(T('side.noChatToast')); return; }
     Online.send('room:chat', { text: text });
     input.value = '';
   });
@@ -875,19 +901,26 @@
 
   /* ------------------------------------------------------------ 線上：連線與大廳 */
 
-  function setConn(state, message) {
+  function setConn(state, message, spec) {
+    G.conn = [state, message, spec];
+    var text = spec ? T(spec.key, spec.params) : message;
     var map = {
-      idle: ['', '尚未連線'],
-      loading: ['warn', '正在載入連線程式…'],
-      connecting: ['warn', '連線中…（免費方案冷啟動可能要十幾秒）'],
-      connected: ['ok', '已連線：' + Config.describe()],
-      error: ['bad', message || '連線失敗'],
-      offline: ['bad', message || '沒有可用的伺服器，只能玩單機']
+      idle: ['', T('conn.idle')],
+      loading: ['warn', T('conn.loading')],
+      connecting: ['warn', text || T('conn.connecting')],
+      connected: ['ok', T('conn.connected', { host: Config.describe() })],
+      error: ['bad', text || T('conn.error')],
+      offline: ['bad', text || T('conn.offline')]
     };
     var m = map[state] || map.idle;
     $('conn-dot').className = 'dot ' + m[0];
     $('conn-text').textContent = m[1];
     $('b-reconnect').hidden = !(state === 'error' || state === 'offline');
+  }
+
+  /** 連線錯誤：優先用錯誤物件帶的字典代碼，切換語言時才翻得回來 */
+  function connError(err) {
+    setConn('error', err && err.message, err && err.i18n);
   }
 
   function identity() { return { clientId: Store.clientId(), name: Store.nick() || '玩家' }; }
@@ -899,17 +932,19 @@
     });
   }
 
+  function paintLobbyNote() {
+    $('lobby-note').textContent = T(Config.isOnlineEnabled() ? 'lobby.noteEnabled' : 'lobby.noteDisabled');
+  }
+
   function enterLobby() {
     show('s-lobby');
     $('lobby-nick').value = Store.nick();
-    $('lobby-note').textContent = Config.isOnlineEnabled()
-      ? '在電腦上執行「啟動遊戲.bat」之後，同一個 Wi-Fi 的平板或手機打開視窗裡印出的「同網段」網址，就會進到同一個大廳。'
-      : '目前沒有設定遊戲伺服器，只能玩單機闖關。';
-    if (!Config.isOnlineEnabled()) { setConn('offline', Config.error || '沒有可用的伺服器，只能玩單機'); return; }
-    connect().catch(function (err) { setConn('error', err.message); });
+    paintLobbyNote();
+    if (!Config.isOnlineEnabled()) { setConn('offline', Config.error, Config.errorSpec); return; }
+    connect().catch(connError);
   }
 
-  $('b-reconnect').addEventListener('click', function () { connect().catch(function (e) { setConn('error', e.message); }); });
+  $('b-reconnect').addEventListener('click', function () { connect().catch(connError); });
   $('b-refresh').addEventListener('click', function () { Online.send('lobby:subscribe', {}); });
   $('lobby-nick').addEventListener('change', function () {
     Store.nick(this.value.trim().slice(0, 12));
@@ -919,7 +954,7 @@
   $('b-create').addEventListener('click', function () {
     Sound.unlock();
     Store.nick($('lobby-nick').value.trim().slice(0, 12));
-    if (!Online.isConnected()) { toast('還沒連上伺服器'); return; }
+    if (!Online.isConnected()) { toast(T('lobby.notConnected')); return; }
     Online.send('room:create', {
       name: Store.nick(),
       roomName: $('room-name').value,
@@ -932,7 +967,7 @@
   $('b-join').addEventListener('click', function () {
     Sound.unlock();
     var code = $('join-code').value.trim().toUpperCase();
-    if (!code) { toast('請先輸入房號'); return; }
+    if (!code) { toast(T('lobby.needCode')); return; }
     if (G.pendingInvite && G.pendingInvite.code === code) return joinPendingInvite();
     joinRoom(code, null);
   });
@@ -954,14 +989,14 @@
           G.pendingInvite = null;
           $('invite-gate').hidden = true;
         }
-        if (res.downgraded) toast('玩家席位滿了，你先以觀戰身分進來');
-        else if (res.waiting) toast('這一局已經開始了，先觀戰，下一局再下場');
-        else if (res.note) toast(res.note);
+        if (res.downgraded) toast(T('lobby.downgraded'));
+        else if (res.waiting) toast(T('lobby.waiting'));
+        else if (res.note) toast(SRV(res.note));
         enterRoom();
       });
     };
     if (Online.isConnected()) go();
-    else connect().then(go).catch(function (e) { G.joining = false; setConn('error', e.message); });
+    else connect().then(go).catch(function (e) { G.joining = false; connError(e); });
   }
 
   function joinPendingInvite() {
@@ -969,7 +1004,7 @@
     if (!invite) return;
     var name = $('lobby-nick').value.trim().slice(0, 12);
     if (!name) {
-      toast('請先輸入暱稱，再加入邀請房間');
+      toast(T('lobby.needNick'));
       $('lobby-nick').focus();
       return;
     }
@@ -977,13 +1012,17 @@
     joinRoom(invite.code, invite.token);
   }
 
+  function paintGateNote() {
+    var key = { token: 'lobby.inviteNoteToken', plain: 'lobby.inviteNote', spec: 'lobby.inviteNoteSpec', player: 'lobby.inviteNotePlayer' }[G.gateKind];
+    $('invite-gate-note').textContent = T(key || 'lobby.inviteNote');
+  }
+
   function prepareInvite(entry) {
     G.pendingInvite = { code: entry.room, token: entry.invite || '' };
     $('join-code').value = entry.room;
     $('invite-gate').hidden = false;
-    $('invite-gate-note').textContent = entry.invite
-      ? '請先設定你的暱稱，再加入這間受邀的水果連線房間。'
-      : '請先設定你的暱稱，再加入這間水果連線房間。';
+    G.gateKind = entry.invite ? 'token' : 'plain';
+    paintGateNote();
     $('b-invite-join').disabled = !!entry.invite;
   }
 
@@ -1011,47 +1050,54 @@
   }
 
   Online.on('lobby:rooms', function (p) {
-    var rooms = (p && p.rooms) || [];
+    G.rooms = p;
+    paintRooms();
+  });
+
+  function paintRooms() {
+    var rooms = (G.rooms && G.rooms.rooms) || [];
     $('rooms-count').textContent = rooms.length;
     if (!rooms.length) {
-      $('room-list').innerHTML = '<div class="empty">現在沒有公開房間，按「建立房間」開一間吧。</div>';
+      $('room-list').innerHTML = '<div class="empty">' + T('lobby.empty') + '</div>';
       return;
     }
     $('room-list').innerHTML = rooms.map(function (r) {
       var tag = (r.phase === 'playing' || r.phase === 'countdown') ? 'playing' : (r.phase === 'over' ? 'over' : '');
-      var label = r.phase === 'playing' ? '對戰中' : (r.phase === 'countdown' ? '倒數中' : (r.phase === 'over' ? '剛結束' : '等待中'));
+      var label = T(r.phase === 'playing' ? 'lobby.phasePlaying' : (r.phase === 'countdown' ? 'lobby.phaseCountdown' : (r.phase === 'over' ? 'lobby.phaseOver' : 'lobby.phaseWaiting')));
       var canSit = r.seatsFree > 0 && r.phase === 'lobby';
-      return '<div class="roomrow"><span class="rname">' + R.esc(r.name) +
-        '<small>房號 ' + r.code + '　' + r.levelLabel + '（' + r.board + '）　' +
-        (r.themeEmoji || '') + (r.themeLabel || '') + '</small></span>' +
+      return '<div class="roomrow"><span class="rname">' + R.esc(SRV(r.name)) +
+        '<small>' + T('lobby.roomMeta', {
+          code: r.code, level: R.esc(I.label(r.levelLabel)), board: r.board,
+          theme: (r.themeEmoji || '') + R.esc(I.label(r.themeLabel || ''))
+        }) + '</small></span>' +
         '<span class="tag ' + tag + '">' + label + '</span>' +
-        '<span class="tag">玩家 ' + r.players + '/' + r.seats + '</span>' +
-        '<span class="tag">觀戰 ' + r.spectators + '</span>' +
+        '<span class="tag">' + T('lobby.players', { n: r.players, max: r.seats }) + '</span>' +
+        '<span class="tag">' + T('lobby.specs', { n: r.spectators }) + '</span>' +
         '<button class="btn3d small" data-color="mint" data-join="' + r.code + '" type="button">' +
-        (canSit ? '加入' : '觀戰') + '</button></div>';
+        T(canSit ? 'lobby.sit' : 'lobby.watch') + '</button></div>';
     }).join('');
     UI.decorateAll($('room-list'));
     $$('[data-join]', $('room-list')).forEach(function (b) {
       b.addEventListener('click', function () { joinRoom(b.getAttribute('data-join'), null); });
     });
-  });
+  }
 
-  Online.on('status', function (s) { setConn(s.status, s.message); });
+  Online.on('status', function (s) { setConn(s.status, s.message, s.spec); });
   Online.on('hello', function (res) {
     G.myId = res.clientId || Store.clientId();
     if (res.serverTime) G.timeOffset = res.serverTime - Date.now();
   });
-  Online.on('room:error', function (p) { toast(p.message || '操作失敗'); });
+  Online.on('room:error', function (p) { toast(p.message ? SRV(p.message) : T('lobby.opFailed')); });
   Online.on('room:left', function () {
     G.mode = 'solo'; G.view = null; G.snap = null; G.mountKey = '';
     show('s-lobby'); Online.send('lobby:subscribe', {});
   });
   Online.on('room:closed', function (p) {
     G.mode = 'solo'; G.view = null; G.snap = null; G.mountKey = '';
-    toast((p && p.reason) || '房間已經關閉');
+    toast((p && p.reason) ? SRV(p.reason) : T('lobby.closed'));
     show('s-lobby'); Online.send('lobby:subscribe', {});
   });
-  Online.on('reconnected', function () { toast('重新連上線了'); });
+  Online.on('reconnected', function () { toast(T('lobby.reconnected')); });
 
   Online.on('room:chat', function (p) {
     if (!G.view) return;
@@ -1102,7 +1148,7 @@
     if (v.phase !== 'countdown') $('countdown').hidden = true;
 
     if (waiting) {
-      $('ov-wait-title').textContent = v.name + '（房號 ' + v.code + '）';
+      $('ov-wait-title').textContent = T('wait.titleRoom', { name: SRV(v.name), code: v.code });
       R.seats($('seat-list'), v.members || [], v.hostId, G.myId);
 
       var canLevel = !!(v.you.can && v.you.can.setLevel);
@@ -1110,7 +1156,7 @@
       if (canLevel) {
         $('level-pick').innerHTML = (v.levels || []).map(function (l) {
           return '<button class="pickcard mini" role="radio" type="button" data-v="' + l.key + '" aria-checked="' + (l.key === v.level) + '">' +
-            '<b>' + l.emoji + ' ' + l.short + '</b><span>' + l.cols + '×' + l.rows + '　' + l.sec + ' 秒</span></button>';
+            '<b>' + l.emoji + ' ' + lvShort(l) + '</b><span>' + T('wait.levelCard', { cols: l.cols, rows: l.rows, sec: l.sec }) + '</span></button>';
         }).join('');
         $$('.pickcard', $('level-pick')).forEach(function (b) {
           b.addEventListener('click', function () { Online.send('room:setLevel', { level: b.getAttribute('data-v') }); });
@@ -1122,7 +1168,7 @@
       if (canTheme) {
         $('theme-pick').innerHTML = (v.themes || []).map(function (t) {
           return '<button class="pickcard mini" role="radio" type="button" data-v="' + t.key + '" aria-checked="' + (t.key === v.theme) + '">' +
-            '<b>' + t.emoji + ' ' + t.label + '</b><span>' + t.count + ' 種</span></button>';
+            '<b>' + t.emoji + ' ' + thLabel(t) + '</b><span>' + T('theme.designs', { n: t.count }) + '</span></button>';
         }).join('');
         $$('.pickcard', $('theme-pick')).forEach(function (b) {
           b.addEventListener('click', function () { Online.send('room:setTheme', { theme: b.getAttribute('data-v') }); });
@@ -1131,23 +1177,22 @@
 
       var TH = Themes.of(v.theme);
       var L = Rules.levelOf(v.level);
-      $('ov-wait-note').innerHTML = '圖案：<b>' + TH.emoji + ' ' + TH.label + '</b>（' + TH.list.length + ' 種，每局隨機抽）<br>' +
-        '關卡：<b>' + L.label + '</b>　' + L.cols + ' × ' + L.rows + '　' + L.sec + ' 秒<br>' +
-        '最多 ' + v.seats + ' 人共用同一張盤面，同一對水果誰先連到就是誰的分。' +
-        (v.you.startBlockedBy ? '<br>還不能開始：' + R.esc(v.you.startBlockedBy) : '');
+      $('ov-wait-note').innerHTML = T('wait.note', {
+        theme: TH.emoji + ' ' + thLabel(TH), n: TH.list.length, level: lvLabel(L), cols: L.cols, rows: L.rows, sec: L.sec, seats: v.seats
+      }) + (v.you.startBlockedBy ? T('wait.blocked', { why: R.esc(SRV(v.you.startBlockedBy)) }) : '');
 
       var btns = $('ov-wait-btns');
       btns.innerHTML = '';
       if (v.you.can.ready) {
-        btns.appendChild(mkBtn(v.you.ready ? 'cream' : 'mint', v.you.ready ? '取消準備' : '我準備好了 ✔', function () {
+        btns.appendChild(mkBtn(v.you.ready ? 'cream' : 'mint', T(v.you.ready ? 'wait.cancelReady' : 'wait.ready'), function () {
           Online.send('room:ready', { ready: !v.you.ready });
         }));
       }
-      if (v.you.can.sit) btns.appendChild(mkBtn('mint', '我要下場 🎮', function () { Online.send('room:sit', {}); }));
-      if (v.you.can.stand) btns.appendChild(mkBtn('cream', '改成觀戰 👀', function () { Online.send('room:stand', {}); }));
-      if (v.you.can.start) btns.appendChild(mkBtn('grape', '開始遊戲 ▶', function () { Online.send('room:start', {}); }));
-      if (v.you.can.invite) btns.appendChild(mkBtn('sky', '邀請朋友 🔗', openInvite));
-      btns.appendChild(mkBtn('cream', '離開房間', function () { leaveRoom(); }));
+      if (v.you.can.sit) btns.appendChild(mkBtn('mint', T('wait.sit'), function () { Online.send('room:sit', {}); }));
+      if (v.you.can.stand) btns.appendChild(mkBtn('cream', T('wait.stand'), function () { Online.send('room:stand', {}); }));
+      if (v.you.can.start) btns.appendChild(mkBtn('grape', T('wait.start'), function () { Online.send('room:start', {}); }));
+      if (v.you.can.invite) btns.appendChild(mkBtn('sky', T('wait.invite'), openInvite));
+      btns.appendChild(mkBtn('cream', T('wait.leave'), function () { leaveRoom(); }));
       UI.decorateAll(btns);
     }
 
@@ -1169,22 +1214,22 @@
     var champion = st[0];
 
     $('ov-trophy').innerHTML = (mine && mine.rank === 1) ? UI.trophy() : '';
-    $('ov-result-title').textContent = v.match.cleared ? '🎉 盤面清空！' : '⏰ 時間到';
+    $('ov-result-title').textContent = T(v.match.cleared ? 'result.boardClear' : 'result.timeUp');
     R.results($('result-table'), st, G.myId, (v.match.players || []).map(function (p) { return p.id; }));
     $('ov-result-note').innerHTML = v.match.draw
-      ? '同分平手！'
-      : ('冠軍是 <b>' + R.esc(champion ? champion.name : '—') + '</b>，' + (champion ? champion.score : 0) + ' 分。' +
-         (mine ? '<br>你是第 ' + mine.rank + ' 名。' : '<br>你這一局是觀戰。'));
+      ? T('result.draw')
+      : (T('result.champion', { name: R.esc(champion ? NAME(champion.name) : '—'), score: (champion ? champion.score : 0) }) +
+         (mine ? T('result.myRank', { rank: mine.rank }) : T('result.watched')));
 
     var btns = $('ov-result-btns');
     btns.innerHTML = '';
     if (v.you.can.rematch) {
-      btns.appendChild(mkBtn('mint', '再來一局 🔁（' + v.rematch.votes + '/' + v.rematch.need + '）', function () {
+      btns.appendChild(mkBtn('mint', T('result.rematch', { votes: v.rematch.votes, need: v.rematch.need }), function () {
         Online.send('room:rematch', {});
       }));
     }
-    if (v.you.can.reset) btns.appendChild(mkBtn('cream', '回房間準備', function () { Online.send('room:reset', {}); }));
-    btns.appendChild(mkBtn('cream', '離開房間', function () { leaveRoom(); }));
+    if (v.you.can.reset) btns.appendChild(mkBtn('cream', T('result.toRoom'), function () { Online.send('room:reset', {}); }));
+    btns.appendChild(mkBtn('cream', T('wait.leave'), function () { leaveRoom(); }));
     UI.decorateAll(btns);
     $('ov-result').hidden = false;
 
@@ -1196,13 +1241,18 @@
 
   /* ---- 邀請連結 ---- */
 
+  function paintInviteNote() {
+    $('invite-note').textContent = G.inviteNote ? G.inviteNote() : '';
+  }
+
   function openInvite() {
     G.inviteRole = 'player';
     $$('.pickcard', $('invite-role')).forEach(function (b) {
       b.setAttribute('aria-checked', String(b.getAttribute('data-v') === 'player'));
     });
     $('invite-out').hidden = true;
-    $('invite-note').textContent = '邀請連結預設 30 分鐘內有效、最多 5 個人用，隨時可以撤銷。';
+    G.inviteNote = function () { return T('inv.note'); };
+    paintInviteNote();
     paintInviteList();
     openModal('invite-modal');
   }
@@ -1220,9 +1270,13 @@
       if (!res || !res.ok) return;
       $('invite-url').value = Config.inviteUrl(G.view.code, res.token);
       $('invite-out').hidden = false;
-      $('invite-note').textContent = '這張邀請是「' + (res.role === 'spectator' ? '觀戰' : '下場玩') +
-        '」身分，最多 ' + res.maxUses + ' 個人用，' +
-        new Date(res.expiresAt).toLocaleTimeString('zh-TW') + ' 之前有效。';
+      G.inviteNote = function () {
+        return T('inv.made', {
+          role: T(res.role === 'spectator' ? 'inv.spec' : 'inv.player'), max: res.maxUses,
+          time: new Date(res.expiresAt).toLocaleTimeString(I.lang === 'en' ? 'en-US' : 'zh-TW')
+        });
+      };
+      paintInviteNote();
     });
   });
   $('b-invite-copy').addEventListener('click', function () {
@@ -1230,42 +1284,69 @@
     input.select();
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(input.value)
-        .then(function () { toast('邀請連結已複製'); })
-        .catch(function () { toast('請手動選取複製'); });
+        .then(function () { toast(T('inv.copied')); })
+        .catch(function () { toast(T('inv.copyManual')); });
       return;
     }
-    try { document.execCommand('copy'); toast('邀請連結已複製'); }
-    catch (e) { toast('請手動選取複製'); }
+    try { document.execCommand('copy'); toast(T('inv.copied')); }
+    catch (e) { toast(T('inv.copyManual')); }
   });
 
   function paintInviteList() {
     var v = G.view;
     var host = $('invite-list');
     if (!v || !v.invites || !v.invites.length) {
-      host.innerHTML = '<div class="empty">還沒有產生過邀請連結</div>';
+      host.innerHTML = '<div class="empty">' + T('inv.empty') + '</div>';
       return;
     }
     host.innerHTML = v.invites.map(function (iv) {
       var dead = iv.revoked || iv.expiresAt < Date.now() || iv.uses >= iv.maxUses;
-      var why = iv.revoked ? '已撤銷' : (iv.expiresAt < Date.now() ? '已過期' : (iv.uses >= iv.maxUses ? '已用完' : '有效'));
+      var why = T(iv.revoked ? 'inv.revoked' : (iv.expiresAt < Date.now() ? 'inv.expired' : (iv.uses >= iv.maxUses ? 'inv.used' : 'inv.valid')));
       return '<div class="invrow' + (dead ? ' dead' : '') + '">' +
-        '<span class="txt">' + (iv.role === 'spectator' ? '觀戰' : '下場玩') + '　' + why +
-        '　用了 ' + iv.uses + '/' + iv.maxUses + '</span>' +
-        (dead ? '' : '<button class="btn3d small" data-color="cream" data-revoke="' + iv.token + '" type="button">撤銷</button>') +
+        '<span class="txt">' + T('inv.row', { role: T(iv.role === 'spectator' ? 'inv.spec' : 'inv.player'), why: why, uses: iv.uses, max: iv.maxUses }) + '</span>' +
+        (dead ? '' : '<button class="btn3d small" data-color="cream" data-revoke="' + iv.token + '" type="button">' + T('inv.revoke') + '</button>') +
         '</div>';
     }).join('');
     UI.decorateAll(host);
     $$('[data-revoke]', host).forEach(function (b) {
       b.addEventListener('click', function () {
         Online.send('room:revokeInvite', { token: b.getAttribute('data-revoke') });
-        toast('已撤銷這張邀請');
+        toast(T('inv.revokedToast'));
       });
     });
   }
 
   /* ------------------------------------------------------------ 啟動 */
 
+  /** 語言切換：把目前看得到的動態文字全部重畫一次 */
+  function relocalize() {
+    $('logo').innerHTML = UI.logo();
+    $('lobby-link').setAttribute('href', I.withLang(LOBBY_URL));
+    buildThemePicker(); buildLevelPicker(); buildHelp(); buildStats();
+    syncSettingsUI();
+    setConn(G.conn[0], G.conn[1], G.conn[2]);
+    paintLobbyNote();
+    paintGateNote();
+    paintRooms();
+    if (G.snap) {
+      R.relabel();
+      paintHud(); paintSide();
+    }
+    if (isOnline() && G.view) {
+      R.chat($('chat-log'), G.view.chat || [], G.myId);
+      paintRoomOverlays();
+    } else if (G.soloResult && !$('ov-result').hidden) paintSoloResult();
+    paintInviteNote();
+    if (!$('invite-modal').hidden) paintInviteList();
+    UI.decorateAll(document);
+  }
+
+  var LOBBY_URL = 'https://pjh-eric.github.io/game-lobby/';
+
   function boot() {
+    I.mountToggle({ after: $('b-settings') });
+    I.onChange(relocalize);
+    $('lobby-link').setAttribute('href', I.withLang(LOBBY_URL));
     $('logo').innerHTML = UI.logo();
     UI.bgDeco($('bgdeco'));
     UI.decorateAll(document);
@@ -1299,16 +1380,15 @@
           if (!res || !res.ok) {
             G.pendingInvite = null;
             $('invite-gate').hidden = true;
-            toast((res && res.error) || '這個邀請連結沒有用了');
+            toast(res && res.error ? SRV(res.error) : T('lobby.inviteBad'));
             return;
           }
-          if (res.note) toast(res.note);
-          $('invite-gate-note').textContent = res.role === 'spectator'
-            ? '這是觀戰邀請，請設定暱稱後加入。'
-            : '這是玩家邀請，請設定暱稱後加入。';
+          if (res.note) toast(SRV(res.note));
+          G.gateKind = res.role === 'spectator' ? 'spec' : 'player';
+          paintGateNote();
           $('b-invite-join').disabled = false;
         });
-      }).catch(function (e) { setConn('error', e.message); });
+      }).catch(connError);
     }
 
     /* 視窗大小或方向改變時重畫立體按鈕（它們依實際像素畫出來） */

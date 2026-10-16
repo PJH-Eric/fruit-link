@@ -49,6 +49,8 @@
       (icons[skin] || icons['cat-dog-war']) +
       '</svg><span class="latency-meter__light" aria-hidden="true"></span><span class="latency-meter__value">--</span><span class="latency-meter__unit">ms</span>';
     document.body.appendChild(meter);
+    /* 切換語言時，徽章的 aria-label 與 title 要跟著換 */
+    if (window.I18N && window.I18N.onChange) window.I18N.onChange(function () { render(); });
     return meter;
   }
 
@@ -200,8 +202,10 @@
     const quality = ms === null ? 'unknown' : ms <= 30 ? 'good' : ms < 100 ? 'warn' : 'bad';
     el.classList.add('is-' + quality);
     el.querySelector('.latency-meter__value').textContent = ms === null ? '--' : String(ms);
-    el.setAttribute('aria-label', ms === null ? '連線延遲，等待回應' : '連線延遲 ' + ms + ' 毫秒');
-    el.title = ms === null ? '連線延遲：等待回應' : '連線延遲：' + ms + ' ms';
+    const I = window.I18N;
+    const say = function (key, params, zh) { return I ? I.t(key, params, zh) : zh; };
+    el.setAttribute('aria-label', ms === null ? say('lat.waitAria', null, '連線延遲，等待回應') : say('lat.valueAria', { ms: ms }, '連線延遲 ' + ms + ' 毫秒'));
+    el.title = ms === null ? say('lat.waitTitle', null, '連線延遲：等待回應') : say('lat.valueTitle', { ms: ms }, '連線延遲：' + ms + ' ms');
     dock();
   }
 

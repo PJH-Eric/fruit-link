@@ -17,6 +17,8 @@
   var W = 0, H = 0, cols = 0, rows = 0;
   var theme = 'fruits', palette = [];
   var tiles = {};          // cellIndex -> button 元素
+  var tr = function (key, params) { return w.I18N ? w.I18N.t(key, params) : key; };
+  var disp = function (name) { return w.I18N ? w.I18N.name(name) : name; };
   var lastGrid = null;
   /* 麻將才有：stackPos[i] = 第 i 張牌的半格座標與層數。平面模式是 null。 */
   var stackPos = null;
@@ -140,13 +142,26 @@
   }
 
   function tileLabel(i, kind) {
-    var name = kind ? w.SvgUI.tileName(kind, theme, palette) : '空格';
+    var name = kind ? w.SvgUI.tileName(kind, theme, palette) : tr('tile.empty');
     if (stackPos) {
       var p = stackPos[i];
-      return '第 ' + (p.z + 1) + ' 層，第 ' + (Math.floor(p.y / 2) + 1) + ' 列第 ' + (Math.floor(p.x / 2) + 1) + ' 行，' + name;
+      return tr('tile.stackAria', { z: p.z + 1, r: Math.floor(p.y / 2) + 1, c: Math.floor(p.x / 2) + 1, name: name });
     }
     var x = (i % W), y = Math.floor(i / W);
-    return '第 ' + y + ' 列第 ' + x + ' 行，' + name;
+    return tr('tile.flatAria', { r: y, c: x, name: name });
+  }
+
+  /** 切換語言：把每一格的名稱標籤與朗讀文字換成新語言（圖案與狀態不動） */
+  function relabel() {
+    if (!lastGrid) return;
+    for (var idx in tiles) {
+      var btn = tiles[idx];
+      var kind = lastGrid[idx] || 0;
+      if (!btn || !kind) continue;
+      var nm = btn.querySelector('.tile-name');
+      if (nm) nm.textContent = w.SvgUI.tileName(kind, theme, palette);
+      btn.setAttribute('aria-label', tileLabel(Number(idx), kind));
+    }
   }
 
   /* ---------------------------------------------------------- 麻將各層獨立平面
@@ -358,9 +373,9 @@
       var me = p.id === myId;
       return '<li class="rankrow' + (me ? ' me' : '') + '" style="--who:' + seatColor(seatOf[p.id] || 0) + '">' +
         '<span class="no">' + (i + 1) + '</span>' +
-        '<span class="nm">' + esc(p.name) + '</span>' +
+        '<span class="nm">' + esc(disp(p.name)) + '</span>' +
         '<span class="sc">' + p.score +
-          (p.combo > 1 ? '<small>' + p.combo + ' 連擊</small>' : '<small>' + p.pairs + ' 對</small>') +
+          (p.combo > 1 ? '<small>' + tr('side.comboSmall', { n: p.combo }) + '</small>' : '<small>' + tr('side.pairsSmall', { n: p.pairs }) + '</small>') +
         '</span></li>';
     }).join('');
 
@@ -368,7 +383,7 @@
       liveHost.innerHTML = rows.map(function (p) {
         var me = p.id === myId;
         return '<span class="lchip' + (me ? ' me' : '') + '" style="--who:' + seatColor(seatOf[p.id] || 0) + '">' +
-          '<span class="ln">' + esc(p.name) + '</span><i>' + p.score + '</i></span>';
+          '<span class="ln">' + esc(disp(p.name)) + '</span><i>' + p.score + '</i></span>';
       }).join('');
     }
   }
@@ -376,13 +391,13 @@
   function seats(host, members, hostId, myId) {
     host.innerHTML = members.map(function (m, i) {
       var tags = '';
-      if (m.host) tags += '<span class="tag host">房主</span>';
-      if (m.role === 'spectator') tags += '<span class="tag spec">觀戰</span>';
-      else tags += '<span class="tag' + (m.ready ? ' ready' : '') + '">' + (m.ready ? '準備好了' : '等待中') + '</span>';
-      if (!m.connected) tags += '<span class="tag off">斷線</span>';
+      if (m.host) tags += '<span class="tag host">' + tr('seat.host') + '</span>';
+      if (m.role === 'spectator') tags += '<span class="tag spec">' + tr('seat.spec') + '</span>';
+      else tags += '<span class="tag' + (m.ready ? ' ready' : '') + '">' + tr(m.ready ? 'seat.ready' : 'seat.waiting') + '</span>';
+      if (!m.connected) tags += '<span class="tag off">' + tr('seat.off') + '</span>';
       return '<div class="seatrow" style="--who:' + seatColor(i) + '">' +
-        '<span class="nm">' + esc(m.name) + (m.id === myId ? '（你）' : '') + '</span>' + tags + '</div>';
-    }).join('') || '<div class="empty">還沒有人在房間裡</div>';
+        '<span class="nm">' + esc(disp(m.name)) + (m.id === myId ? tr('common.youTag') : '') + '</span>' + tags + '</div>';
+    }).join('') || '<div class="empty">' + tr('seat.empty') + '</div>';
   }
 
   function results(host, standings, myId, order) {
@@ -392,18 +407,18 @@
       var me = r.id === myId;
       return '<div class="resrow' + (r.rank === 1 ? ' win' : '') + '" style="--who:' + seatColor(seatOf[r.id] || r.seat || 0) + '">' +
         '<span class="no">' + r.rank + '</span>' +
-        '<span class="nm">' + esc(r.name) + (me ? '（你）' : '') +
-          '<small>' + r.pairs + ' 對 · 最高 ' + r.bestCombo + ' 連擊 · 連錯 ' + r.misses + ' 次' +
-          (r.timeBonus ? ' · 時間 +' + r.timeBonus : '') + '</small></span>' +
+        '<span class="nm">' + esc(disp(r.name)) + (me ? tr('common.youTag') : '') +
+          '<small>' + tr('result.line', { pairs: r.pairs, combo: r.bestCombo, misses: r.misses }) +
+          (r.timeBonus ? tr('result.bonus', { n: r.timeBonus }) : '') + '</small></span>' +
         '<span class="sc">' + r.score + '</span></div>';
     }).join('');
   }
 
   function chat(host, messages, myId) {
     host.innerHTML = messages.map(function (m) {
-      if (m.system) return '<div class="msg sys">' + esc(m.text) + '</div>';
+      if (m.system) return '<div class="msg sys">' + esc(w.I18N ? w.I18N.srv(m.text) : m.text) + '</div>';
       var cls = 'msg' + (m.from === myId ? ' me' : '') + (m.role === 'spectator' ? ' spec' : '');
-      return '<div class="' + cls + '"><span class="who">' + esc(m.name) + '</span>' + esc(m.text) + '</div>';
+      return '<div class="' + cls + '"><span class="who">' + esc(disp(m.name)) + '</span>' + esc(m.text) + '</div>';
     }).join('');
     host.scrollTop = host.scrollHeight;
   }
@@ -414,9 +429,9 @@
   function pathDemos(host, demoTheme) {
     var themeName = demoTheme === 'mahjong' ? 'mahjong' : 'fruits';
     var demos = [
-      { title: '0 折 · 直線', w: 5, h: 3, a: [1, 1], b: [3, 1], path: [[1, 1], [3, 1]], k: [1, 2] },
-      { title: '1 折 · 轉一次', w: 5, h: 4, a: [1, 1], b: [3, 2], path: [[1, 1], [1, 2], [3, 2]], k: [3, 4] },
-      { title: '2 折 · 繞出去', w: 5, h: 4, a: [1, 1], b: [3, 1], path: [[1, 1], [1, 0], [3, 0], [3, 1]], k: [5, 6] }
+      { title: tr('help.demo0'), w: 5, h: 3, a: [1, 1], b: [3, 1], path: [[1, 1], [3, 1]], k: [1, 2] },
+      { title: tr('help.demo1'), w: 5, h: 4, a: [1, 1], b: [3, 2], path: [[1, 1], [1, 2], [3, 2]], k: [3, 4] },
+      { title: tr('help.demo2'), w: 5, h: 4, a: [1, 1], b: [3, 1], path: [[1, 1], [1, 0], [3, 0], [3, 1]], k: [5, 6] }
     ];
     host.innerHTML = demos.map(function (d) {
       var cells = '';
@@ -450,7 +465,7 @@
     mount: mount, clear: clear, sync: sync, dims: dims, tileAt: tileAt, focusTile: focusTile,
     isLocked: isLocked, stackStep: stackStep,
     setSelected: setSelected, clearSelected: clearSelected,
-    markHint: markHint, clearHints: clearHints, shake: shake,
+    relabel: relabel, markHint: markHint, clearHints: clearHints, shake: shake,
     drawLink: drawLink, drawStackLink: drawStackLink, popPair: popPair,
     flyScore: flyScore, shout: shout,
     rank: rank, seats: seats, results: results, chat: chat,

@@ -177,7 +177,12 @@
   /** 這一格要唸出來的名字（螢幕閱讀器與「顯示名稱」都用它） */
   function tileName(kind, theme, palette) {
     var art = artOf(theme, palette, kind);
-    return art ? art.label : '圖案';
+    var I = w.I18N;
+    if (!art) return I ? I.t('tile.fallback') : '圖案';
+    /* 字典 key：art.<主題>.<造型 id>；大混搭的 id 形如 fruits:apple，轉成 fruits.apple */
+    var id = String(art.id);
+    var key = 'art.' + (id.indexOf(':') > 0 ? id.replace(':', '.') : theme + '.' + id);
+    return I ? I.t(key, null, art.label) : art.label;
   }
 
   /* ---------------------------------------------------------- 標題與獎盃 */
@@ -187,9 +192,11 @@
     return w.Themes ? w.Themes.art('fruits', i).svg : '';
   }
 
+  function tr(key) { return w.I18N ? w.I18N.t(key) : key; }
+
   function logo() {
     var f = 'Yuanti TC, PingFang TC, Microsoft JhengHei, Noto Sans TC, sans-serif';
-    return '<svg class="logo-svg" viewBox="0 0 560 210" role="img" aria-label="水果連連看">' +
+    return '<svg class="logo-svg" viewBox="0 0 560 210" role="img" aria-label="' + tr('logo.title') + '">' +
       /* 左邊一塊草莓磚 */
       '<g transform="translate(16 46) rotate(-12)">' +
         '<rect x="0" y="6" width="86" height="84" rx="18" fill="#FFD9E2"/>' +
@@ -206,9 +213,9 @@
       '<path d="M118 62 H196 V104 H364 V62 H442" fill="none" stroke="#79C6AC" stroke-width="7" ' +
         'stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 15" opacity="0.85"/>' +
       '<text x="280" y="112" text-anchor="middle" font-size="58" font-weight="900" letter-spacing="5" ' +
-        'style="paint-order:stroke;stroke:' + INK + ';stroke-width:15px;stroke-linejoin:round" fill="#FFB8CF" font-family="' + f + '">水果連連看</text>' +
-      '<text x="280" y="112" text-anchor="middle" font-size="58" font-weight="900" letter-spacing="5" fill="#FFF6E4" font-family="' + f + '">水果連連看</text>' +
-      '<text x="280" y="152" text-anchor="middle" font-size="21" font-weight="800" letter-spacing="7" fill="#7A6A88" font-family="' + f + '">三折以內就能連</text>' +
+        'style="paint-order:stroke;stroke:' + INK + ';stroke-width:15px;stroke-linejoin:round" fill="#FFB8CF" font-family="' + f + '">' + tr('logo.title') + '</text>' +
+      '<text x="280" y="112" text-anchor="middle" font-size="58" font-weight="900" letter-spacing="5" fill="#FFF6E4" font-family="' + f + '">' + tr('logo.title') + '</text>' +
+      '<text x="280" y="152" text-anchor="middle" font-size="21" font-weight="800" letter-spacing="7" fill="#7A6A88" font-family="' + f + '">' + tr('logo.sub') + '</text>' +
       '<path d="M170 176 h220" stroke="#FFB8CF" stroke-width="7" stroke-linecap="round" fill="none" opacity="0.7"/>' +
       '</svg>';
   }
