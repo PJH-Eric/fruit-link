@@ -102,29 +102,6 @@ const lastSyncAt = new Map();    // roomCode -> 上一次送完整狀態的時�
 
 const now = () => Date.now();
 
-function presenceSnapshot() {
-  let players = 0, spectators = 0, rooms = 0;
-  for (const [code, sockets] of roomSockets) {
-    const room = store.get(code);
-    if (!room || !sockets.size) continue;
-    rooms += 1;
-    for (const socket of sockets) {
-      const member = room.member(socket.data.clientId);
-      if (member && member.role === 'player') players += 1;
-      if (member && member.role === 'spectator') spectators += 1;
-    }
-  }
-  return {
-    gameId: 'fruit-link',
-    online: io.engine.clientsCount,
-    players, spectators,
-    lobby: lobbySockets.size,
-    rooms,
-    updatedAt: new Date().toISOString()
-  };
-}
-app.get('/api/presence', (_req, res) => res.json(presenceSnapshot()));
-
 function socketsOf(code) {
   let set = roomSockets.get(code);
   if (!set) { set = new Set(); roomSockets.set(code, set); }
