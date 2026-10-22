@@ -6,5 +6,8 @@
   "lobbyUrl": "https://pjh-eric.github.io/game-lobby/",
   "googleSiteVerification": "",
   "genre": "連連看",
-  "players": "1-6"
+  "players": "1-6",
+  "iconUrl": "https://pjh-eric.github.io/fruit-link/favicon-96.png",
+  "ogImage": "https://pjh-eric.github.io/fruit-link/og-image.png",
+  "ogImageAlt": "水果連連看遊戲圖示"
 }
