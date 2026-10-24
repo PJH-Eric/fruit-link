@@ -8,6 +8,6 @@
   "genre": "連連看",
   "players": "1-6",
   "iconUrl": "https://pjh-eric.github.io/fruit-link/favicon-96.png",
-  "ogImage": "https://pjh-eric.github.io/fruit-link/og-image.png",
-  "ogImageAlt": "水果連連看遊戲圖示"
+  "ogImage": "https://pjh-eric.github.io/fruit-link/assets/images/cover.webp",
+  "ogImageAlt": "水果連連看 遊戲封面"
 }
