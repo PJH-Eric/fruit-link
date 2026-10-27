@@ -19,7 +19,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
-        value: "20"
+        value: "26.12.1"
       # 允許連線的前端來源，逗號分隔。
       # 預設 * 讓 Blueprint 一鍵就能跑（前端在 Render 或 GitHub Pages 都通），
       # 整套佈署因此只剩 GitHub 那邊的 GAME_SERVER_URL 要填。
