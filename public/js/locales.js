@@ -223,6 +223,7 @@
   add('lobby.codeAria', '房號', 'Room code');
   add('lobby.join', '加入房間', 'Join');
   add('lobby.public', '公開房間', 'Public Rooms');
+  add('lobby.onlineCount', '目前在線：{n} 人', 'Online now: {n}');
   add('lobby.refresh', '🔄 重新整理', '🔄 Refresh');
   add('lobby.noteEnabled',
     '在電腦上執行「啟動遊戲.bat」之後，同一個 Wi-Fi 的平板或手機打開視窗裡印出的「同網段」網址，就會進到同一個大廳。',
@@ -840,6 +841,7 @@
     "lobby.codeAria": "房号",
     "lobby.join": "加入房间",
     "lobby.public": "公开房间",
+    "lobby.onlineCount": "当前在线：{n} 人",
     "lobby.refresh": "🔄 重新整理",
     "lobby.noteEnabled": "在电脑上执行「启动游戏.bat」之后，同一个 Wi-Fi 的平板或手机打开视窗里印出的「同网段」网址，就会进到同一个大厅。",
     "lobby.noteDisabled": "目前没有设定游戏伺服器，只能玩单机闯关。",

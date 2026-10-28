@@ -84,6 +84,11 @@
   }
 
   function show(id) {
+    if (id === 's-lobby' && G.screen !== 's-lobby') {
+      G.onlineCount = null;
+      paintOnlineCount();
+    }
+    if (id === 's-home' || id === 's-solo') Online.disconnect();
     if (w.ServerOutage) w.ServerOutage.setScreen(id);
     $$('.screen').forEach(function (s) { s.classList.toggle('active', s.id === id); });
     G.screen = id;
@@ -906,6 +911,8 @@
 
   function setConn(state, message, spec) {
     G.conn = [state, message, spec];
+    if (state !== 'connected') G.onlineCount = null;
+    paintOnlineCount();
     var text = spec ? T(spec.key, spec.params) : message;
     var map = {
       idle: ['', T('conn.idle')],
@@ -1057,8 +1064,17 @@
 
   Online.on('lobby:rooms', function (p) {
     G.rooms = p;
+    G.onlineCount = Number.isInteger(p.online) && p.online >= 0 ? p.online : null;
+    paintOnlineCount();
     paintRooms();
   });
+
+  function paintOnlineCount() {
+    var el = $('online-count');
+    var visible = G.conn && G.conn[0] === 'connected' && Number.isInteger(G.onlineCount);
+    el.hidden = !visible;
+    el.textContent = visible ? T('lobby.onlineCount', { n: G.onlineCount }) : '';
+  }
 
   function paintRooms() {
     var rooms = (G.rooms && G.rooms.rooms) || [];

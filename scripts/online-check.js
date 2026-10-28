@@ -89,6 +89,13 @@ async function main() {
     host.send('lobby:subscribe', {});
     await host.until((c) => c.rooms !== null, 4000, '大廳列表');
     check('大廳一開始沒有房間', host.rooms.rooms.length === 0);
+    check('大廳顯示三位在線使用者', host.rooms.online === 3);
+    const probe = makeClient('client-count-probe', '測試');
+    await probe.hello();
+    await host.until((c) => c.rooms.online === 4, 4000, '在線人數增加');
+    probe.close();
+    await host.until((c) => c.rooms.online === 3, 4000, '在線人數減少');
+    check('連線及斷線時更新在線人數', true);
 
     group('建房與加入');
     const created = await host.emit('room:create', { name: '房主小明', roomName: '果園擂台', level: 'easy' });
