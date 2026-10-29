@@ -586,6 +586,9 @@ body.kids-board .tile:not(.mahjong) .tile-art{transform:translateY(-20%) scale(.
     box-shadow:6px 0 22px rgba(74,59,85,.22);
   }
   .side.open{transform:translateX(0)}
+  /* 右上角工具列（設定＋語言）固定在抽屜上方：手機上抽屜右緣會被它蓋住，
+     所以標題列右側要讓出重疊的寬度，分頁與關閉鈕才點得到；寬螢幕算出來是負的，退回 8px */
+  .side-head{padding-right:max(8px,calc(min(84vw,320px) - 100vw + 130px + var(--safe-r)))}
   .side-close{display:inline-flex}
   .side-fab{display:flex}
   .stage{padding-left:calc(8px + var(--safe-l))}

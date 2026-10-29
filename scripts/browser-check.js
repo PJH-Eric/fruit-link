@@ -18,12 +18,48 @@ const PORT = Number(process.env.PORT);
 const URL = 'http://127.0.0.1:' + PORT + '/';
 const SHOTS = path.join(__dirname, '..', 'screenshots');
 
+/* 各區塊用各自的 browser context，互不相干，所以並行跑以壓在 60 秒內。
+   輸出先收進各區塊自己的緩衝，跑完再依序印，不會交錯。 */
+const { AsyncLocalStorage } = require('async_hooks');
+const als = new AsyncLocalStorage();
+const MAX_PARALLEL = Number(process.env.PW_PARALLEL) || 4;
+const ACTION_TIMEOUT = 15000;
+const SOLO_COUNTDOWN_MS = Number(process.env.PW_COUNTDOWN_MS) || 900;
+
 let pass = 0, fail = 0;
-function check(name, cond, detail) {
-  if (cond) { pass++; console.log('  ✅ ' + name); }
-  else { fail++; console.log('  ❌ ' + name + (detail ? '\n     ' + detail : '')); }
+function say(line) {
+  const s = als.getStore();
+  if (s) s.out.push(line); else console.log(line);
 }
-function group(n) { console.log('\n▍' + n); }
+function check(name, cond, detail) {
+  if (cond) { pass++; say('  ✅ ' + name); }
+  else { fail++; say('  ❌ ' + name + (detail ? '\n     ' + detail : '')); }
+}
+function group(n) { say('\n▍' + n); }
+
+let running = 0;
+const waiting = [];
+async function slot() {
+  if (running >= MAX_PARALLEL) await new Promise((r) => waiting.push(r));
+  running++;
+}
+function release() { running--; const next = waiting.shift(); if (next) next(); }
+
+/** 跑一個獨立區塊：出錯只算這個區塊失敗，不拖垮其他區塊 */
+function section(fn) {
+  const store = { out: [] };
+  return als.run(store, async () => {
+    await slot();
+    const t0 = Date.now();
+    try { await fn(); }
+    catch (e) { fail++; store.out.push('\n  ❌ 流程中斷\n     ' + (e && (e.stack || e.message))); }
+    finally {
+      release();
+      if (process.env.PW_TIMING) store.out.push('  ⏱ ' + ((Date.now() - t0) / 1000).toFixed(1) + 's');
+    }
+    return store.out;
+  });
+}
 
 /* 檢查點：平板優先，再桌機，最後手機（依偏好的測試順序） */
 const VIEWS = [
@@ -98,8 +134,24 @@ async function main() {
     executablePath: process.env.PW_CHROMIUM || undefined,
     args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required']
   });
+  /* 點不到就快點失敗，別空等預設的 30 秒 */
+  const newContext = browser.newContext.bind(browser);
+  browser.newContext = async (opts) => {
+    const ctx = await newContext(opts);
+    ctx.setDefaultTimeout(ACTION_TIMEOUT);
+    ctx.setDefaultNavigationTimeout(45000);
+    /* 單機的開賽倒數在前端（Rules.COUNTDOWN_MS，預設 3 秒），上面那個環境變數只管線上。
+       約 50 次開局若都等滿 3 秒就是兩分多鐘；縮短但保留 > 0，
+       因為有幾項要在倒數期間量測（倒數遮罩會出現、麻將倒數置中）。 */
+    await ctx.addInitScript((ms) => {
+      document.addEventListener('DOMContentLoaded', () => { if (window.Rules) window.Rules.COUNTDOWN_MS = ms; });
+    }, SOLO_COUNTDOWN_MS);
+    return ctx;
+  };
 
+  const tasks = [];
   try {
+    tasks.push(section(async () => {
     group('首頁與靜態畫面');
     {
       const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -250,7 +302,15 @@ async function main() {
       check('大混搭開得了最難的一關（' + wantKinds + ' 種）', mixedInfo.kinds === wantKinds, '實際 ' + mixedInfo.kinds);
       check('大混搭不加入麻將牌', mixedInfo.hasMahjong === false, JSON.stringify(mixedInfo));
       await page.screenshot({ path: path.join(SHOTS, 'theme-mixed.png') });
-      await quitGame(page);
+      await ctx.close();
+    }
+    }));
+
+    tasks.push(section(async () => {
+    {
+      const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const page = await ctx.newPage();
+      await page.goto(URL, { waitUntil: 'networkidle' });
 
       group('方塊尺寸與名稱標籤');
       /* 開一局普通關，量方塊實際佔了格子多少、名稱有沒有壓到圖案 */
@@ -332,7 +392,16 @@ async function main() {
       await page.check('#set-label');
       await page.waitForTimeout(150);
       await page.click('#b-settings-done');
-      await quitGame(page);
+      await ctx.close();
+    }
+    }));
+
+    /* 以下幾組各開自己的 context，彼此不共用狀態，才能並行 */
+    tasks.push(section(async () => {
+    {
+      const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const page = await ctx.newPage();
+      await page.goto(URL, { waitUntil: 'networkidle' });
 
       /* 幼幼進階：格數比幼幼班大一點，但每種水果只有一對，所以「找到同一種」
          就一定是那一對，不用再分辨哪兩顆才是同一組。 */
@@ -369,7 +438,15 @@ async function main() {
       check('幼幼進階的格子夠大（一格 > 100px）',
         kids2Box.w / kids2Box.bw > 100, '一格約 ' + Math.round(kids2Box.w / kids2Box.bw) + 'px');
       await page.screenshot({ path: path.join(SHOTS, 'kids2-desktop.png') });
-      await quitGame(page);
+      await ctx.close();
+    }
+    }));
+
+    tasks.push(section(async () => {
+    {
+      const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const page = await ctx.newPage();
+      await page.goto(URL, { waitUntil: 'networkidle' });
 
       /* 幼幼困難：規則和幼幼進階一模一樣（每種水果只有一對），只是盤面再大一圈，
          難度來自「要多找一下」，不是「會不會認錯哪兩顆是同一組」。 */
@@ -406,7 +483,15 @@ async function main() {
       check('幼幼困難的格子夠大（一格 > 90px）',
         kids3Box.w / kids3Box.bw > 90, '一格約 ' + Math.round(kids3Box.w / kids3Box.bw) + 'px');
       await page.screenshot({ path: path.join(SHOTS, 'kids3-desktop.png') });
-      await quitGame(page);
+      await ctx.close();
+    }
+    }));
+
+    tasks.push(section(async () => {
+    {
+      const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const page = await ctx.newPage();
+      await page.goto(URL, { waitUntil: 'networkidle' });
 
       group('幼幼班（3～5 歲）');
       await page.click('#b-solo');
@@ -632,9 +717,11 @@ async function main() {
       check('單機按 ◀ 離開會回到關卡選單，不是首頁', left.screen === 's-solo');
       await ctx.close();
     }
+    }));
 
     /* 麻將是唯一「疊起來玩」的主題：牌一層層疊上去，被壓住的要先解鎖。
        這一組驗的是畫面與規則有沒有對上 —— 該壓暗的壓暗、該解鎖的解鎖。 */
+    tasks.push(section(async () => {
     group('麻將疊疊樂');
     {
       const ctx = await browser.newContext({ viewport: { width: 1112, height: 834 } });
@@ -880,9 +967,11 @@ async function main() {
 
       /* 幼幼班會自動打開「顯示名稱」，早期那條 CSS 沒有把麻將排除掉，
          牌面被縮到 76% 之後整疊牌就散開對不齊了。這裡逐關量牌面有沒有貼齊。 */
-      group('麻將各關的牌面對齊');
-      for (const lv of ['kids', 'kids2', 'kids3', 'easy', 'normal', 'hard']) {
-        await quitGame(page);
+      for (const lv of ['kids', 'kids2', 'kids3', 'easy', 'normal', 'hard']) tasks.push(section(async () => {
+        group('麻將各關的牌面對齊：' + lv);
+        const ctx = await browser.newContext({ viewport: { width: 1112, height: 834 } });
+        const page = await ctx.newPage();
+        await page.goto(URL, { waitUntil: 'networkidle' });
         await page.click('#b-solo');
         await page.waitForTimeout(200);
         await page.locator('#opt-theme .themecard[data-v="mahjong"]').click();
@@ -919,7 +1008,8 @@ async function main() {
         if (lv === 'kids' || lv === 'kids2' || lv === 'kids3') {
           await page.screenshot({ path: path.join(SHOTS, 'mahjong-' + lv + '.png') });
         }
-      }
+        await ctx.close();
+      }));
 
       /* 換回蔬果就要變回平面連連看 */
       await quitGame(page);
@@ -960,9 +1050,11 @@ async function main() {
       await quitGame(page);
       await ctx.close();
     }
+    }));
 
     /* Playwright 沒有真的軟體鍵盤，所以直接寫 --app-h／--kb 模擬「可見高度被鍵盤吃掉」。
        驗的是 CSS 有沒有接好：#app 縮了，抽屜與聊天輸入框要跟著浮到鍵盤上面。 */
+    tasks.push(section(async () => {
     group('手機軟體鍵盤讓位');
     {
       const KB = 340;
@@ -1046,16 +1138,17 @@ async function main() {
       check('鍵盤收起來版面就還原', Math.abs(off.app - off.vh) <= 1 && off.input === before, JSON.stringify(off));
       await ctx.close();
     }
+    }));
 
     /* 名稱標籤的關鍵不是裝置，而是「一格有多大」：
        字級有下限，格子小到一定程度就一定會壓到圖案。
        平板那種一格 60～110px 的盤面要看得到字，而且圖案不能被蓋到。 */
-    group('平板也看得到水果名稱');
     for (const v of [
       { key: 'tablet-portrait', w: 834, h: 1112, label: '平板直向' },
       { key: 'tablet-landscape', w: 1112, h: 834, label: '平板橫向' },
       { key: 'tablet-lg-portrait', w: 1024, h: 1366, label: '大平板直向' }
-    ]) {
+    ]) tasks.push(section(async () => {
+      group('平板也看得到水果名稱：' + v.label);
       const ctx = await browser.newContext({ viewport: { width: v.w, height: v.h } });
       const page = await ctx.newPage();
       /* 不碰設定：名稱預設就要看得到 */
@@ -1095,14 +1188,14 @@ async function main() {
         await quitGame(page);
       }
       await ctx.close();
-    }
+    }));
 
     /* 手機的格子不到 56px：字會小到 7px、圖案也得縮一半，所以名稱不顯示、圖案維持原尺寸 */
-    group('手機格子太小就不顯示水果名稱');
     for (const v of [
       { key: 'phone-portrait', w: 390, h: 844, label: '手機直向' },
       { key: 'phone-landscape', w: 844, h: 390, label: '手機橫向' }
-    ]) {
+    ]) tasks.push(section(async () => {
+      group('手機格子太小就不顯示水果名稱：' + v.label);
       const ctx = await browser.newContext({ viewport: { width: v.w, height: v.h } });
       const page = await ctx.newPage();
       await page.goto(URL, { waitUntil: 'networkidle' });
@@ -1131,10 +1224,10 @@ async function main() {
         await quitGame(page);
       }
       await ctx.close();
-    }
+    }));
 
-    group('RWD：各尺寸的版面');
-    for (const v of VIEWS) {
+    for (const v of VIEWS) tasks.push(section(async () => {
+      group('RWD：各尺寸的版面：' + v.label);
       const ctx = await browser.newContext({ viewport: { width: v.w, height: v.h }, deviceScaleFactor: 1 });
       const page = await ctx.newPage();
       await page.goto(URL, { waitUntil: 'networkidle' });
@@ -1217,7 +1310,16 @@ async function main() {
 
       await page.screenshot({ path: path.join(SHOTS, v.key + '-game.png') });
       await ctx.close();
+    }));
+
+    /* 有些區塊跑到一半才會再派出子任務，所以要等到再也沒有新任務為止 */
+    const outs = [];
+    for (let done = 0; done < tasks.length;) {
+      const batch = tasks.slice(done);
+      done = tasks.length;
+      outs.push(...await Promise.all(batch));
     }
+    outs.forEach((lines) => lines.forEach((l) => console.log(l)));
   } catch (e) {
     fail++;
     console.log('\n  ❌ 流程中斷\n     ' + (e && (e.stack || e.message)));
