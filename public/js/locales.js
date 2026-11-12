@@ -16,10 +16,10 @@
   function add(key, zh, en) { D.push([key, zh, en]); }
 
   /* ---------- 頁面 ---------- */
-  add('meta.title', "水果連連看｜免費線上多人連連看・免下載", 'Fruit Link');
+  add('meta.title', "水果連連看｜免費配對消除・單機闖關與六人搶消", 'Fruit Link | Free Tile Matching & Multiplayer Races');
   add('meta.desc',
-    "免費免下載的水果連連看，在兩次轉彎內連線消除相同圖案。單機從幼幼班一路闖關，也能邀最多六人同盤搶消、觀戰聊天，多款圖案主題，手機平板電腦都能玩。",
-    'Cute fruit-matching game: three kids’ levels plus three challenge levels solo, or race up to 6 players on one shared board online.');
+    "來一場繽紛的水果連連看！找出相同圖案，在兩次轉彎內連線消除，享受一對接一對的配對樂趣。從幼幼班輕鬆入門到單機闖關，或邀好友挑戰最多六人同盤搶消。免費免下載，手機、平板、電腦開啟即玩。",
+    'Match colorful fruit tiles with paths of at most two turns. Enjoy gentle kids’ levels, solo challenges, or shared-board races for up to 6 players. Free in your browser on mobile, tablet and desktop; no download needed.');
   add('lang.switchTo', '切換成英文（English）', 'Switch to Traditional Chinese (中文)');
 
   /* ---------- 共用 ---------- */
@@ -685,8 +685,8 @@
 // 由繁體中文介面字典轉換；動態參數（暱稱、分數等）維持原值。
 (function (root) {
   var hans = {
-    "meta.title": "水果连连看｜免费线上多人连连看・免下载",
-    "meta.desc": "免费免下载的水果连连看，在两次转弯内连线消除相同图案。单机从幼幼班一路闯关，也能邀最多六人同盘抢消、观战聊天，多款图案主题，手机平板电脑都能玩。",
+    "meta.title": "水果连连看｜免费配对消除・单机闯关与六人抢消",
+    "meta.desc": "来一场缤纷的水果连连看！找出相同图案，在两次转弯内连线消除，享受一对接一对的配对乐趣。从幼幼班轻松入门到单机闯关，或邀好友挑战最多六人同盘抢消。免费免下载，手机、平板、电脑打开即玩。",
     "lang.switchTo": "切换成英文（English）",
     "common.back": "◀ 返回",
     "common.close": "关闭",

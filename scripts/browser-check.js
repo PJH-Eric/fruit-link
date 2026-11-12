@@ -1032,6 +1032,9 @@ async function main() {
       await quitGame(page);
       await page.click('#b-online');
       await page.waitForFunction(() => !!(window.Online && window.Online.isConnected()), null, { timeout: 12000 });
+      const lobbyChatMin = page.locator('.lc-min');
+      if (await lobbyChatMin.isVisible()) await lobbyChatMin.click();
+      check('大廳聊天室可收合，讓建立房間操作露出', !(await page.locator('.lc-panel').isVisible()));
       await page.fill('#lobby-nick', '線上測試');
       await page.click('#b-create');
       await page.waitForFunction(() => window.__fruitLink.mode === 'online' && !!window.__fruitLink.view,
