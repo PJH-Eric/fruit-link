@@ -705,3 +705,12 @@ body.reduce-motion .tile.gone{opacity:0}
   .hud { padding-right: 116px; flex-wrap: wrap; height: auto; min-height: 58px; }
   .hud > * { flex-shrink: 0; }
 }
+
+/* ---------- 大廳聊天室：套用水果連連看配色 ---------- */
+body .lc-root{
+  --lc-accent:var(--grape-d);--lc-accent-ink:#fff;
+  --lc-panel-bg:var(--paper);--lc-panel-solid:var(--paper);
+  --lc-ink:var(--ink);--lc-muted:var(--ink-soft);--lc-line:var(--line);
+  --lc-field-bg:#fff;--lc-sys-bg:rgba(201,182,245,.28);--lc-name:#7B5FC9;
+  --lc-radius:var(--radius);--lc-z:85;
+}

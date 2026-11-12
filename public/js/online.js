@@ -111,7 +111,8 @@
         setStatus('error', tr('net.failed', { msg: em || tr('net.unknown') }), em ? { key: 'net.failed', params: { msg: em } } : { key: 'net.failed', params: { msg: tr('net.unknown') } });
       });
 
-      ['lobby:rooms', 'room:sync', 'room:events', 'room:chat', 'room:error', 'room:closed', 'room:left']
+      ['lobby:rooms', 'room:sync', 'room:events', 'room:chat', 'room:error', 'room:closed', 'room:left',
+        'lobbychat:history', 'lobbychat:msg', 'lobbychat:online', 'lobbychat:error']
         .forEach(function (evt) {
           socket.on(evt, function (payload) { emitLocal(evt, payload); });
         });

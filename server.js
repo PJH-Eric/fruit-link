@@ -93,6 +93,9 @@ const io = new Server(server, {
   maxHttpBufferSize: 1e5
 });
 
+/* 大廳聊天室（與房間聊天分開；最近 50 則只存在記憶體） */
+const lobbyChat = require('./lib/lobby-chat.js').attachSocketIo(io);
+
 /* ------------------------------------------------------------ 狀態 */
 
 const store = new RoomStore({});
@@ -202,6 +205,7 @@ io.on('connection', (socket) => {
     room.system(socket.data.name + ' 開了這間房。大家按「準備好了」就能開始搶消。', now());
     syncRoom(room);
     syncLobby();
+    lobbyChat.roomOpened({ code: room.code, roomName: room.name, host: socket.data.name, isPrivate: !!p.private });
     if (typeof ack === 'function') ack({ ok: true, code: room.code });
   });
 
