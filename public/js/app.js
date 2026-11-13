@@ -1137,15 +1137,27 @@
   });
   Online.on('room:error', function (p) { toast(p.message ? SRV(p.message) : T('lobby.opFailed')); });
   Online.on('room:left', function () {
+    if (G.mode !== 'online') return;
     G.mode = 'solo'; G.view = null; G.snap = null; G.mountKey = '';
     show('s-lobby'); Online.send('lobby:subscribe', {});
   });
   Online.on('room:closed', function (p) {
+    if (G.mode !== 'online') return;
     G.mode = 'solo'; G.view = null; G.snap = null; G.mountKey = '';
     toast((p && p.reason) ? SRV(p.reason) : T('lobby.closed'));
     show('s-lobby'); Online.send('lobby:subscribe', {});
   });
-  Online.on('reconnected', function () { toast(T('lobby.reconnected')); });
+  Online.on('reconnected', function () {
+    toast(T('lobby.reconnected'));
+    if (G.mode === 'online' && G.view) {
+      Online.send('room:join', { code: G.view.code, name: Store.nick() }, function (res) {
+        if (!res || res.ok || G.mode !== 'online') return;
+        leaveRoom(false);
+      });
+    } else if (G.screen === 's-lobby') {
+      Online.send('lobby:subscribe', {});
+    }
+  });
 
   Online.on('room:chat', function (p) {
     if (!G.view) return;
