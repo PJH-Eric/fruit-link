@@ -112,10 +112,29 @@ function socketsOf(code) {
 }
 
 function attach(socket, code) {
-  detach(socket);
+  if (socket.data.roomCode !== code) leaveCurrentRoom(socket);
   socket.data.roomCode = code;
   socketsOf(code).add(socket);
   lobbySockets.delete(socket);
+}
+
+/** 同一身分可開多個分頁；最後一條所屬連線離開才釋放座位。 */
+function leaveCurrentRoom(socket) {
+  const room = store.get(socket.data.roomCode);
+  detach(socket);
+  if (!room || hasRoomConnection(room.code, socket.data.clientId)) return;
+  const res = room.leave(socket.data.clientId, now());
+  if (res.ok && res.emptied) {
+    closeRoom(room, '房間沒有人了，已經自動關閉。');
+  } else if (res.ok) {
+    room.system(res.name + ' 離開了房間。', now());
+    syncRoom(room);
+  }
+}
+
+function hasRoomConnection(code, clientId) {
+  return [...(roomSockets.get(code) || [])]
+    .some(s => s.connected && s.data.clientId === clientId);
 }
 
 function detach(socket) {
@@ -169,7 +188,7 @@ io.on('connection', (socket) => {
 
   socket.on('hello', (payload, ack) => {
     const p = payload || {};
-    let id = String(p.clientId || '').trim();
+    let id = socket.data.clientId || String(p.clientId || '').trim();
     if (!/^[A-Za-z0-9_-]{8,64}$/.test(id)) id = crypto.randomBytes(12).toString('hex');
     socket.data.clientId = id;
     socket.data.name = sanitizeName(p.name, '玩家');
@@ -180,7 +199,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('lobby:subscribe', () => {
-    detach(socket);
+    leaveCurrentRoom(socket);
     lobbySockets.add(socket);
     syncLobby();
   });
@@ -284,6 +303,11 @@ io.on('connection', (socket) => {
   socket.on('room:stand', withRoom((room) => {
     const res = room.becomeSpectator(socket.data.clientId);
     if (!res.ok) return fail(socket, res.error, res.code);
+    if (room.seatCount() === 0) {
+      closeRoom(room, '房間沒有人了，已經自動關閉。');
+      syncLobby();
+      return;
+    }
     room.system(res.member.name + ' 改成觀戰。', now());
     syncRoom(room); syncLobby();
   }));
@@ -394,22 +418,18 @@ io.on('connection', (socket) => {
     syncRoom(room);
   }));
 
-  socket.on('room:leave', withRoom((room) => {
-    const res = room.leave(socket.data.clientId, now());
-    detach(socket);
+  socket.on('room:leave', () => {
+    leaveCurrentRoom(socket);
     socket.emit('room:left', { ok: true });
-    if (res.ok && res.emptied) { closeRoom(room, '房間沒有人了，已經自動關閉。'); syncLobby(); return; }
-    if (res.ok) room.system(res.name + ' 離開了房間。', now());
-    syncRoom(room);
     syncLobby();
-  }));
+  });
 
   socket.on('disconnect', () => {
     lobbySockets.delete(socket);
     syncLobby();
     const room = store.get(socket.data.roomCode);
     detach(socket);
-    if (!room) return;
+    if (!room || hasRoomConnection(room.code, socket.data.clientId)) return;
     const member = room.member(socket.data.clientId);
     if (!member) return;
     /* 先標記為斷線並保留座位，讓重新整理的人可以憑 clientId 回到原位 */
@@ -453,6 +473,7 @@ function closeRoom(room, reason, alreadyRemoved) {
   for (const s of socketsOf(room.code)) {
     s.emit('room:closed', { reason: reason });
     s.data.roomCode = null;
+    lobbySockets.add(s);
   }
   roomSockets.delete(room.code);
   lastSyncAt.delete(room.code);
