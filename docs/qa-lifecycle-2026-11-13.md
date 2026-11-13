@@ -18,3 +18,5 @@
 - 無設定 formatter；依既有風格手動整理，`git diff --check` 通過。檔案採 UTF-8 無 BOM。
 
 最後依 loop-engineering 檢視、修復、驗證一輪，關房與重連條件均有自動化斷言。未修改玩法或部署設定，未驗證正式服務的自動部署結果。本機 Node 版本低於專案宣告的 26.12.1；未宣稱已驗證該版本。原有 QA 文件刪除不納入本次提交。
+
+部署相容性複查：`npm test` 使用無開發依賴的 `tests/lifecycle-model.cjs`；需要 `socket.io-client` 的原整合情境保留在 `npm run test:online`。獨立目錄以 Git archive ZIP 還原後執行 `npm ci --omit=dev && npm test`，全部通過。未增加正式依賴，也未變更 Render 或 workflow。
