@@ -1333,7 +1333,8 @@
     if (!G.view) return;
     Online.send('room:invite', { role: G.inviteRole, ttlMinutes: 30, maxUses: 5 }, function (res) {
       if (!res || !res.ok) return;
-      $('invite-url').value = Config.inviteUrl(G.view.code, res.token);
+      var address = Config.inviteUrl(G.view.code, res.token);
+      $('invite-url').value = window.GameBackend?.pinInvite(address) ?? address;
       $('invite-out').hidden = false;
       G.inviteNote = function () {
         return T('inv.made', {
