@@ -98,7 +98,10 @@ const lobbyChat = require('./lib/lobby-chat.js').attachSocketIo(io);
 
 /* ------------------------------------------------------------ 狀態 */
 
-const store = new RoomStore({});
+const checkpoints = process.env.FRUIT_ROOM_DB_PATH
+  ? require('./lib/room-checkpoints.js').openCheckpoints(process.env.FRUIT_ROOM_DB_PATH)
+  : null;
+const store = new RoomStore({ checkpoints });
 const roomSockets = new Map();   // roomCode -> Set<socket>
 const lobbySockets = new Set();  // 停在大廳、要收房間列表推播的 socket
 const lastSyncAt = new Map();    // roomCode -> 上一次送完整狀態的時間
@@ -151,6 +154,7 @@ function detach(socket) {
 /** 每個人拿到的是「自己這個角色看到的投影」 */
 function syncRoom(room) {
   const t = now();
+  store.save(room, t);
   lastSyncAt.set(room.code, t);
   for (const s of socketsOf(room.code)) {
     s.emit('room:sync', room.viewFor(s.data.clientId, t));
@@ -166,10 +170,12 @@ function syncLobby() {
 
 function pushEvents(room, events, t) {
   if (!events || !events.length) return;
+  store.save(room, t || now());
   for (const s of socketsOf(room.code)) s.emit('room:events', { t: t || now(), events });
 }
 
 function broadcastChat(room, message) {
+  store.save(room, now());
   for (const s of socketsOf(room.code)) s.emit('room:chat', { message });
 }
 
@@ -188,8 +194,11 @@ io.on('connection', (socket) => {
 
   socket.on('hello', (payload, ack) => {
     const p = payload || {};
-    let id = socket.data.clientId || String(p.clientId || '').trim();
-    if (!/^[A-Za-z0-9_-]{8,64}$/.test(id)) id = crypto.randomBytes(12).toString('hex');
+    let secret = String(p.clientId || '').trim();
+    if (!/^[A-Za-z0-9_-]{8,64}$/.test(secret)) secret = crypto.randomBytes(12).toString('hex');
+    const id = socket.data.clientId || (checkpoints
+      ? crypto.createHmac('sha256', checkpoints.salt).update(secret).digest('hex').slice(0, 24)
+      : secret);
     socket.data.clientId = id;
     socket.data.name = sanitizeName(p.name, '玩家');
     if (typeof ack === 'function') {
@@ -283,6 +292,7 @@ io.on('connection', (socket) => {
     return (payload, ack) => {
       const room = store.get(socket.data.roomCode);
       if (!room) return fail(socket, '你已經不在任何房間裡了。', 'gone');
+      if (room.recovery) return fail(socket, '正在等待玩家回到原房間。', 'recovering');
       handler(room, payload || {}, ack);
     };
   }

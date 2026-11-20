@@ -59,7 +59,26 @@
     pendingInvite: null
   };
 
-  function nowSrv() { return Date.now() + G.timeOffset; }
+  function nowSrv() {
+    var match = G.view?.recovering && G.view.match;
+    return match ? match.endAt - match.remainMs : Date.now() + G.timeOffset;
+  }
+
+  var ROOM_KEY = 'fruit-link:room';
+
+  function rememberedRoom() {
+    try { return w.sessionStorage.getItem(ROOM_KEY); } catch (_error) { return null; }
+  }
+
+  function rememberRoom(code) {
+    try { w.sessionStorage.setItem(ROOM_KEY, code); } catch (_error) { /* 儲存空間可能被停用 */ }
+    w.GameBackend?.rememberRoom?.();
+  }
+
+  function forgetRoom() {
+    try { w.sessionStorage.removeItem(ROOM_KEY); } catch (_error) { /* 儲存空間可能被停用 */ }
+    w.GameBackend?.forgetRoom?.();
+  }
   function isOnline() { return G.mode === 'online'; }
 
   /* 提示、洗牌與「重新開始」都是單機專屬：線上是大家共用同一張盤面，
@@ -1053,6 +1072,7 @@
 
   function leaveRoom(silent) {
     if (G.mode !== 'online') return;
+    forgetRoom();
     if (Online.isConnected()) Online.send('room:leave', {});
     G.mode = 'solo';
     G.view = null;
@@ -1138,11 +1158,13 @@
   Online.on('room:error', function (p) { toast(p.message ? SRV(p.message) : T('lobby.opFailed')); });
   Online.on('room:left', function () {
     if (G.mode !== 'online') return;
+    forgetRoom();
     G.mode = 'solo'; G.view = null; G.snap = null; G.mountKey = '';
     show('s-lobby'); Online.send('lobby:subscribe', {});
   });
   Online.on('room:closed', function (p) {
     if (G.mode !== 'online') return;
+    forgetRoom();
     G.mode = 'solo'; G.view = null; G.snap = null; G.mountKey = '';
     toast((p && p.reason) ? SRV(p.reason) : T('lobby.closed'));
     show('s-lobby'); Online.send('lobby:subscribe', {});
@@ -1180,6 +1202,7 @@
     });
     G.mode = 'online';
     G.view = view;
+    rememberRoom(view.code);
     if (w.NetworkLatency) w.NetworkLatency.setActive(G.screen === 's-game' && view.phase === 'playing');
     G.myId = (view.you && view.you.id) || G.myId;
     if (G.screen !== 's-game') show('s-game');
@@ -1434,7 +1457,16 @@
 
     /* 邀請連結：先停在大廳，讓被邀請者確認暱稱後再進房 */
     var entry = Config.entry();
-    if (entry.room) {
+    var priorRoom = rememberedRoom();
+    if (priorRoom && (!entry.room || entry.room === priorRoom) && Config.isOnlineEnabled()) {
+      show('s-lobby');
+      paintLobbyNote();
+      connect().then(function () {
+        Online.send('room:join', { code: priorRoom, name: Store.nick() }, function (res) {
+          if (res && !res.ok && rememberedRoom() === priorRoom) forgetRoom();
+        });
+      }).catch(connError);
+    } else if (entry.room) {
       prepareInvite(entry);
       enterLobby();
       connect().then(function () {

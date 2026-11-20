@@ -28,12 +28,14 @@
   /* mulberry32：小而均勻的 PRNG，回傳 [0, 1) */
   function mulberry32(state) {
     var t = state >>> 0;
-    return function () {
+    function next() {
       t = (t + 0x6D2B79F5) >>> 0;
       var r = Math.imul(t ^ (t >>> 15), 1 | t);
       r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
       return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-    };
+    }
+    next.checkpoint = function () { return t; };
+    return next;
   }
 
   function createRng(seed) {
