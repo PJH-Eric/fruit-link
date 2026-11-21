@@ -56,6 +56,8 @@ jobs:
           echo "\`$GAME_SERVER_URL\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: 驗證並注入 GA4 與 SEO
+        env:
+          ENABLE_SHARED_BACKEND_ROUTING: '1'
         run: node tests/seo.js && node scripts/inject-seo.js
 
       - name: Upload public/ as artifact

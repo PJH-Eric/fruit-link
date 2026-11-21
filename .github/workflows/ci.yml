@@ -21,4 +21,4 @@ jobs:
       - name: 規則單元測試
         run: node tests/verify.js
       - name: 線上流程實測（開伺服器、多人搶消、觀戰、邀請、斷線重連）
-        run: node scripts/online-check.js
+        run: npm run test:online
