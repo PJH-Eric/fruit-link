@@ -65,7 +65,7 @@
       s.onerror = function () {
         loading = null;
         s.remove();
-        reject(mkError('net.unreachable', { host: Config.describe() }));
+        reject(mkError('net.unreachable'));
       };
       document.head.appendChild(s);
     });

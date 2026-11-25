@@ -203,7 +203,7 @@
   add('conn.idle', '尚未連線', 'Not connected');
   add('conn.loading', '正在載入連線程式…', 'Loading the connection library…');
   add('conn.connecting', '連線中…（免費方案冷啟動可能要十幾秒）', 'Connecting… (a free server can take 10+ seconds to wake up)');
-  add('conn.connected', '已連線：{host}', 'Connected: {host}');
+  add('conn.connected', '已連線', 'Connected');
   add('conn.error', '連線失敗', 'Connection failed');
   add('conn.offline', '沒有可用的伺服器，只能玩單機', 'No server available. Solo play only.');
   add('conn.reconnect', '重新連線', 'Reconnect');
@@ -254,11 +254,11 @@
   add('cfg.query', '（網址參數）', ' (URL parameter)');
   add('cfg.injected', '（建置注入）', ' (build-time)');
   add('cfg.same', '（同源）', ' (same origin)');
-  add('cfg.badUrl', '不是合法的絕對網址：{raw}', 'Not a valid absolute URL: {raw}');
-  add('cfg.badProto', '只接受 http 或 https：{raw}', 'Only http or https is accepted: {raw}');
-  add('cfg.mixed', 'https 頁面不能連 http 伺服器（混合內容會被瀏覽器擋掉）：{raw}', 'An https page can’t connect to an http server (blocked as mixed content): {raw}');
+  add('cfg.badUrl', '不是合法的絕對網址', 'Not a valid absolute URL');
+  add('cfg.badProto', '只接受 http 或 https', 'Only http or https is accepted');
+  add('cfg.mixed', 'https 頁面不能連 http 伺服器（混合內容會被瀏覽器擋掉）', 'An https page can’t connect to an http server (blocked as mixed content)');
   add('net.noUrl', '沒有設定遊戲伺服器位址。', 'No game server address is set.');
-  add('net.unreachable', '連不到遊戲伺服器（{host}），請確認伺服器有開著。', 'Can’t reach the game server ({host}). Make sure it is running.');
+  add('net.unreachable', '連不到遊戲伺服器，請確認伺服器有開著。', 'Can’t reach the game server. Make sure it is running.');
   add('net.noServer', '目前沒有可用的遊戲伺服器，只能玩單機。', 'No game server is available. Solo play only.');
   add('net.dropped', '連線中斷（{reason}），正在重試…', 'Connection lost ({reason}). Retrying…');
   add('net.failed', '連不上伺服器：{msg}', 'Can’t reach the server: {msg}');
@@ -390,7 +390,6 @@
   add('set.label', '顯示水果名稱', 'Show fruit names');
   add('set.labelSub', '每一格加上文字，不只靠顏色分辨（手機格子太小時會自動隱藏）',
     'Adds text to every tile so you don’t rely on colour alone (auto-hidden when tiles are small on phones)');
-  add('set.server', '線上伺服器：{host}', 'Online server: {host}');
   add('set.reset', '恢復預設', 'Reset');
   add('set.done', '完成', 'Done');
   add('set.resetDone', '已恢復預設設定', 'Settings reset to default');
@@ -821,7 +820,7 @@
     "conn.idle": "尚未连线",
     "conn.loading": "正在载入连线程式…",
     "conn.connecting": "连线中…（免费方案冷启动可能要十几秒）",
-    "conn.connected": "已连线：{host}",
+    "conn.connected": "已连线",
     "conn.error": "连线失败",
     "conn.offline": "没有可用的伺服器，只能玩单机",
     "conn.reconnect": "重新连线",
@@ -870,11 +869,11 @@
     "cfg.query": "（网址参数）",
     "cfg.injected": "（建置注入）",
     "cfg.same": "（同源）",
-    "cfg.badUrl": "不是合法的绝对网址：{raw}",
-    "cfg.badProto": "只接受 http 或 https：{raw}",
-    "cfg.mixed": "https 页面不能连 http 伺服器（混合内容会被浏览器挡掉）：{raw}",
+    "cfg.badUrl": "不是合法的绝对网址",
+    "cfg.badProto": "只接受 http 或 https",
+    "cfg.mixed": "https 页面不能连 http 伺服器（混合内容会被浏览器挡掉）",
     "net.noUrl": "没有设定游戏伺服器位址。",
-    "net.unreachable": "连不到游戏伺服器（{host}），请确认伺服器有开着。",
+    "net.unreachable": "连不到游戏伺服器，请确认伺服器有开着。",
     "net.noServer": "目前没有可用的游戏伺服器，只能玩单机。",
     "net.dropped": "连线中断（{reason}），正在重试…",
     "net.failed": "连不上伺服器：{msg}",
@@ -988,7 +987,6 @@
     "set.motionSub": "关掉飘浮装饰与消除动画",
     "set.label": "显示水果名称",
     "set.labelSub": "每一格加上文字，不只靠颜色分辨（手机格子太小时会自动隐藏）",
-    "set.server": "线上伺服器：{host}",
     "set.reset": "恢复预设",
     "set.done": "完成",
     "set.resetDone": "已恢复预设设定",

@@ -48,15 +48,15 @@
     try {
       parsed = new URL(raw);
     } catch (e) {
-      return { url: null, source: source, status: 'invalid', error: '不是合法的絕對網址：' + raw,
+      return { url: null, source: source, status: 'invalid', error: '不是合法的絕對網址。',
                errorSpec: { key: 'cfg.badUrl', params: { raw: raw } } };
     }
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return { url: null, source: source, status: 'invalid', error: '只接受 http 或 https：' + raw,
+      return { url: null, source: source, status: 'invalid', error: '只接受 http 或 https。',
                errorSpec: { key: 'cfg.badProto', params: { raw: raw } } };
     }
     if (pageProtocol === 'https:' && parsed.protocol === 'http:') {
-      return { url: null, source: source, status: 'invalid', error: 'https 頁面不能連 http 伺服器（混合內容會被瀏覽器擋掉）：' + raw,
+      return { url: null, source: source, status: 'invalid', error: 'https 頁面不能連 http 伺服器（混合內容會被瀏覽器擋掉）。',
                errorSpec: { key: 'cfg.mixed', params: { raw: raw } } };
     }
     return {
@@ -125,10 +125,7 @@
     describe: function () {
       if (Config.status === 'invalid') return tr('cfg.invalid', null, '設定有誤（線上已停用）');
       if (!Config.serverUrl) return tr('cfg.unset', null, '未設定（只能玩單機）');
-      var host = Config.serverUrl.replace(/^https?:\/\//, '');
-      var tag = Config.source === 'query' ? tr('cfg.query', null, '（網址參數）')
-        : (Config.source === 'injected' ? tr('cfg.injected', null, '（建置注入）') : tr('cfg.same', null, '（同源）'));
-      return host + tag;
+      return '';
     },
 
     /* 測試用：不依賴瀏覽器環境也能驗證解析規則 */

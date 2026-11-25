@@ -213,7 +213,6 @@
     $('set-haptic').checked = Sound.isHapticOn();
     $('set-motion').checked = Store.reduceMotion();
     $('set-label').checked = Store.labelOn();
-    $('set-server').textContent = T('set.server', { host: Config.describe() });
     applyBodyFlags();
   }
 
@@ -937,7 +936,7 @@
       idle: ['', T('conn.idle')],
       loading: ['warn', T('conn.loading')],
       connecting: ['warn', text || T('conn.connecting')],
-      connected: ['ok', T('conn.connected', { host: Config.describe() })],
+      connected: ['ok', T('conn.connected')],
       error: ['bad', text || T('conn.error')],
       offline: ['bad', text || T('conn.offline')]
     };
